@@ -47,7 +47,7 @@ CreateRecoveryPartition-BIOS.ps1 / CreateRecoveryPartition-UEFI.ps1 - Shrinks th
 FormatDataDrive.ps1 - Formats any one additional internal drive as a Data drive as part of the task sequence during OS deployment!
 VerifyWinRE.ps1 - Verifies that the WinPE Recovery environment was copied to the Recovery drive as part of the task sequence during OS deployment!
 ApplyUpdates10x64.ps1 / ApplyUpdates11.ps1 - Expects .cab/.msu update packages located on a network share at \\SERVER\Shared\Updates, or a folder named Updates on the root of a USB flash drive labeled DEPLOY then copies and applies the update packages as part of the task sequence during OS deployment!
-ExtractOEMApps.ps1 - Expects .7z archives located on a network share at \\SERVER\OEM, or a folder named OEM on the root of a USB flash drive labeled DEPLOY then extracts OEM apps as part of the task sequence during OS deployment!
+ExtractOEMAppsx64.ps1 - Expects .7z archives located on a network share at \\SERVER\OEM\x64, or a folder named OEM\x64 on the root of a USB flash drive labeled DEPLOY then extracts OEM apps as part of the task sequence during OS deployment!
 ExtractOEMDrivers.ps1 - Expects .7z archives located on a network share at \\SERVER\Shared\DriverPacks, or a folder named DriverPacks on the root of a USB flash drive labeled DEPLOY then extracts OEM drivers as part of the task sequence during OS deployment!
 ApplyOEMDrivers.ps1 - Applies the extracted OEM drivers to the deployed OS as part of the task sequence during OS deployment!
 CleanupScripts.ps1 - Cleans up MDT scripts copied to the OS drive after OS deployment as part of the task sequence during OS deployment!
@@ -59,3 +59,27 @@ The "$OEM$" folder contains everything including the SetupComplete.cmd file that
 You may modify the contents of the "$OEM$" folder as you desire.
 
 
+OEM Apps
+OEM get extratced to the deployed OS as part of the task sequence during OS deployment!
+OEM Apps should be archived using 7-Zip and placed on a network share at \\SERVER\OEM\x64 or a folder named OEM\x64 on the root of USB flash drive labeled DEPLOY
+If you place OEM apps in a different network share, please edit DeploymentShare\Scripts\Custom\ExtractOEMAppsx64.ps1 accordingly!
+This repository contains the scripts used to install OEM apps during the OOBE process of Windows Setup, apps for OEMs has been deleted due to GitHud size restrictions, you may download the complete archives from my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <--
+I used Dell's extensibility points as vase for all OEM apps and customizations!
+I only included necessary OEM apps without additional bloatware!
+
+
+Local Group Policies
+"DeploymentShare\$OEM$\$1\Recovery\OEM\LGPO" sets the following local group policies
+Turn on recommended updates via Automatic Updates - Enabled
+Turn off auto-restart for updates during active hours - Enabled - 7:00 AM to 7:00 PM
+Turn off hybrid sleep (on battery) - Disabled
+Turn off hybrid sleep (plugged in) - Disabled
+Turn off the hard disk (on battery) - Enabled
+Turn off the hard disk (plugged in) - Enabled
+
+
+
+Please feel free and contribute by assisting me in improving any/all scripts contained in this repository!
+
+
+Perhaps a PowerShell script can be included to run as part of the task sequence during OS deployment that sets the target edition of WIndows according to the OEM license (e.g. Home Single Language)! To activate OEM Home Single Language edition "DeploymentShare\$OEM$\$1\Recovery\OEM\pre.ps1" should be modified not just to activate Pro OEM, and local group policies that get applied should be limited to Pro edition.

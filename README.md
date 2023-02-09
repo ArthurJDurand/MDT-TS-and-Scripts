@@ -50,9 +50,9 @@ ApplyUpdates10x64.ps1 / ApplyUpdates11.ps1 - Expects .cab/.msu update packages l
 ExtractOEMApps.ps1 - Expects .7z archives located on a network share at \\SERVER\OEM, or a folder named OEM on the root of a USB flash drive labeled DEPLOY then extracts OEM apps as part of the task sequence during OS deployment!
 ExtractOEMDrivers.ps1 - Expects .7z archives located on a network share at \\SERVER\Shared\DriverPacks, or a folder named DriverPacks on the root of a USB flash drive labeled DEPLOY then extracts OEM drivers as part of the task sequence during OS deployment!
 
-$OEM$ folder
+'$OEM$' folder
 The unattend.xml of the OS being deployed expects to find and run SetupComplete.cmd located in C:\Windows\Setup\Scripts.
-The $OEM$ folder contains everything including the SetupComplete.cmd file that will be copied to C:\Windows\Setup\Scripts during OS deployment.
-You may modify the contents of the $OEM$ folder as you desire.
+The '$OEM$' folder contains everything including the SetupComplete.cmd file that will be copied to C:\Windows\Setup\Scripts during OS deployment.
+You may modify the contents of the '$OEM$' folder as you desire.
 
 

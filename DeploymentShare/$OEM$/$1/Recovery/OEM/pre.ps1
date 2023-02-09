@@ -280,88 +280,11 @@ if (($OPKDesc -like "*Professional*") -and (-not ([string]::IsNullOrWhiteSpace($
     cscript C:\Windows\System32\slmgr.vbs /ato
 }
 
-if (($OPKDesc -like "*Professional*") -and (-not ([string]::IsNullOrWhiteSpace($OPKDesc))) -and (Test-Path C:\ProgramData\KMS\Windows.cmd))
-{
-    Remove-Item C:\ProgramData\KMS\Windows.cmd -Force
-}
-
-if (($OPKDesc -like "*Professional*") -and (-not ([string]::IsNullOrWhiteSpace($OPKDesc))) -and (Test-Path C:\Recovery\OEM\Windows.cmd))
-{
-    Remove-Item C:\Recovery\OEM\Windows.cmd -Force
-}
-
-if ([string]::IsNullOrWhiteSpace($OPKDesc) -or (!($OPKDesc -like "*Professional*")) -and (Test-Path C:\Recovery\OEM\Windows.cmd) -and (!(Test-Path C:\Recovery\OEM\Office.cmd)))
-{
-    Add-MpPreference -ExclusionPath C:\ProgramData\KMS
-    Add-MpPreference -ExclusionProcess C:\WINDOWS\System32\SppExtComObjHook.dll
-    New-Item C:\ProgramData\KMS -itemType Directory
-    Copy-Item C:\Recovery\OEM\Windows.cmd -Destination C:\ProgramData\KMS -Force
-    & cmd /c C:\ProgramData\KMS\Windows.cmd
-}
-
-$Office365 = (Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'Microsoft 365 - un-us' })
-if ((Test-Path C:\Recovery\OEM\Office.cmd) -and (-not ([string]::IsNullOrWhiteSpace($Office365))))
-{
-    Start-Process "C:\Program Files\Common Files\Microsoft Shared\ClickToRun\OfficeClickToRun.exe" -ArgumentList "scenario=install scenariosubtype=ARP sourcetype=None productstoremove=O365HomePremRetail.16_en-us_x-none culture=en-us version.16=16.0 displaylevel=false" -Wait
-}
-
 $Office365 = (Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'Microsoft 365 - en-us' })
-$Office365Enterprise = (Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'Microsoft 365 Apps for enterprise' })
-if (([string]::IsNullOrWhiteSpace($Office365)) -or (-not ([string]::IsNullOrWhiteSpace($Office365Enterprise))) -and (!(Test-Path C:\Recovery\OEM\Office.cmd)))
-{
-    Start-Process C:\Recovery\OEM\Apps\Office365\setup.exe -ArgumentList "/configure C:\Recovery\OEM\Apps\Office365\configuration.xml" -Wait
-}
-
-$Office365Enterprise = (Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'Microsoft 365 Apps for enterprise' })
-if ((Test-Path C:\Recovery\OEM\Office.cmd) -and ([string]::IsNullOrWhiteSpace($Office365Enterprise)))
+if ([string]::IsNullOrWhiteSpace($Office365))
 {
     Set-Location C:\Recovery\OEM\Apps\Office365
     Start-Process C:\Recovery\OEM\Apps\Office365\setup.exe -ArgumentList "/configure C:\Recovery\OEM\Apps\Office365\configuration.xml" -Wait
-}
-
-if ((Test-Path C:\Recovery\OEM\Office.cmd) -and (!(Test-Path C:\ProgramData\KMS)))
-{
-    Add-MpPreference -ExclusionPath C:\ProgramData\KMS
-    Add-MpPreference -ExclusionProcess C:\WINDOWS\System32\SppExtComObjHook.dll
-    New-Item C:\ProgramData\KMS -itemType Directory
-    Copy-Item C:\Recovery\OEM\Office.cmd -Destination C:\ProgramData\KMS -Force
-}
-
-if ((Test-Path C:\Recovery\OEM\Office.cmd) -and (Test-Path C:\ProgramData\KMS\Windows.cmd))
-{
-    Remove-Item C:\ProgramData\KMS\Windows.cmd -Force
-    Remove-Item C:\Recovery\OEM\Windows.cmd -Force
-}
-
-$Office365Enterprise = (Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'Microsoft 365 Apps for enterprise' })
-if ((Test-Path C:\ProgramData\KMS\Office.cmd) -and (-not ([string]::IsNullOrWhiteSpace($Office365Enterprise))))
-{
-    & cmd /c C:\ProgramData\KMS\Office.cmd
-}
-
-if ((Test-Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Access.lnk") -and (!(Test-Path C:\Users\Public\Desktop\Access.lnk)))
-{
-    Copy-Item "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Access.lnk" -Destination C:\Users\Public\Desktop -Force
-}
-
-if ((Test-Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Excel.lnk") -and (!(Test-Path C:\Users\Public\Desktop\Excel.lnk)))
-{
-    Copy-Item "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Excel.lnk" -Destination C:\Users\Public\Desktop -Force
-}
-
-if ((Test-Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\PowerPoint.lnk") -and (!(Test-Path C:\Users\Public\Desktop\PowerPoint.lnk)))
-{
-    Copy-Item "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\PowerPoint.lnk" -Destination C:\Users\Public\Desktop -Force
-}
-
-if ((Test-Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Publisher.lnk") -and (!(Test-Path C:\Users\Public\Desktop\Publisher.lnk)))
-{
-    Copy-Item "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Publisher.lnk" -Destination C:\Users\Public\Desktop -Force
-}
-
-if ((Test-Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Word.lnk") -and (!(Test-Path C:\Users\Public\Desktop\Word.lnk)))
-{
-    Copy-Item "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Word.lnk" -Destination C:\Users\Public\Desktop -Force
 }
 
 $7Zip = (Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match '7-Zip' })
@@ -455,12 +378,6 @@ if ([string]::IsNullOrWhiteSpace($AnyDesk))
 {
     & cmd /c C:\Recovery\OEM\Apps\AnyDesk.cmd
 }
-
-$scheduleObject = New-Object -ComObject schedule.service
-$scheduleObject.connect()
-$rootFolder = $scheduleObject.GetFolder("\")
-$rootFolder.CreateFolder("OEM")
-schtasks /create /tn OEM\Update /xml C:\Recovery\OEM\Apps\Update.xml /f
 
 if (Test-Path C:\_SMSTaskSequence)
 {

@@ -1,0 +1,7 @@
+{ "primaryOEMPins": [
+    { "packagedAppId": "DellInc.MyDell_htrsf667h5kn2!Fusion"},
+    { "packagedAppId": "DellInc.AlienwareCommandCenter_htrsf667h5kn2!App"},
+    { "packagedAppId": "DellInc.DellSupportAssistforPCs_htrsf667h5kn2!App"},
+    { "packagedAppId": "DellInc.DellUpdate_htrsf667h5kn2!x9727E6712F7B4FBAA8FC91F6EFFD8095x"}
+  ]
+}

@@ -1,0 +1,21 @@
+{
+	"firstRunOEMPins" : 
+	[
+		{
+			"caption" : 
+			{
+				"default" : "Personalize your PC"
+			},
+			"packagedAppId" : "AD2F1837.myHP_v10z8vjag6ke6!App"
+		}
+	],
+	"primaryOEMPins" : 
+	[
+		{
+			"packagedAppId" : "AD2F1837.myHP_v10z8vjag6ke6!App"
+		},
+		{
+			"desktopAppLink" : "%ProgramData%\\Microsoft\\Windows\\Start Menu\\Programs\\HP Help and Support\\HP Support Assistant.lnk"
+		}
+	]
+}

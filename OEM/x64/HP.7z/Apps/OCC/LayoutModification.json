@@ -1,0 +1,24 @@
+{
+	"firstRunOEMPins" : 
+	[
+		{
+			"caption" : 
+			{
+				"default" : "Personalize your PC"
+			},
+			"packagedAppId" : "AD2F1837.myHP_v10z8vjag6ke6!App"
+		}
+	],
+	"primaryOEMPins" : 
+	[
+		{
+			"packagedAppId" : "AD2F1837.myHP_v10z8vjag6ke6!App"
+		},
+		{
+			"packagedAppId" : "AD2F1837.OMENCommandCenter_v10z8vjag6ke6!AD2F1837.OMENCommandCenter"
+		},
+		{
+			"packagedAppId" : "AD2F1837.HPSupportAssistant_v10z8vjag6ke6!AD2F1837.HPSupportAssistant"
+		}
+	]
+}

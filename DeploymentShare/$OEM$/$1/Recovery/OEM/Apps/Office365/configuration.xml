@@ -1,0 +1,9 @@
+﻿<Configuration>
+  <Add OfficeClientEdition="64" Channel="Current" ForceUpgrade="true" MigrateArch="true" AllowCdnFallback="true">
+    <Product ID="O365HomePremRetail">
+      <Language ID="en-us" />
+    </Product>
+  </Add>
+  <Property Name="ForceAppShutdown" Value="True" />
+  <RemoveMSI />
+</Configuration>

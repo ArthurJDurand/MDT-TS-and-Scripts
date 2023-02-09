@@ -1,5 +1,8 @@
 # MDT-TS-and-Scripts
-MDT Task Sequences and Custom Scripts to Deploy Windows 10 and 11
+MDT Task Sequences and Custom Scripts to
+1) Deploy 64-bit Windows 10 Pro and 64-bit Windows 11 Pro
+2) Extract OEM customizations and drivers
+3) Install third party software
 
 
 Prerequisites!
@@ -11,7 +14,7 @@ Microsoft Deployment Toolkit --> https://www.microsoft.com/en-us/download/detail
 KB4564442 for MDT --> https://support.microsoft.com/en-us/topic/windows-10-deployments-fail-with-microsoft-deployment-toolkit-on-computers-with-bios-type-firmware-70557b0b-6be3-81d2-556f-b313e29e2cb7 <--
 
 You will need to create a new deployment share before using this repository!
-After creating your deployment share, copy the contents of the DeploymentShare folder (from this repository) into your deployment share folder replacing existing files
+After creating your deployment share, copy the contents of the DeploymentShare folder (from this repository) into your deployment share folder replacing existing files!
 
 
 Please edit the following files inside the Control folder in your deployment share

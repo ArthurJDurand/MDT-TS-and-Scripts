@@ -32,3 +32,6 @@ I only added the optional component NETFX 3.5 and installed the en-GB optional l
 I installed the latest updates!
 I preinstalled Microsoft Office 365 Retail!
 I did not modify the image in any other way!
+You can download my Images from my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <--
+
+

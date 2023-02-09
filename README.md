@@ -23,3 +23,12 @@ CustomSettings.ini
 Medias.xml - Make sure you create the folder structure to conatin your offline media set, make sure your folder structure corresponds with Root in Medias.xml.
 Settings.xml - Make sure that UNCPath and PhysicalPath corresponds with your deployment share's network and local path. Replace C:\DeploymentShare at Boot.x86.ExtraDirectory and Boot.x64.ExtraDirectory with the local path to your deployment share if necessary.
 
+
+Next you'll need to download my Windows 10 and Windows 11 litetouch images and place it inside the appropriate folder in the Operating Systems folder in your deployment share or use your own! If you choose to use your own Windows 10 and 11 images, place the appropriate install.wim files in Win10Prox64 and Win11Prox64 folders of the Operating Systems folder of your deployment share! If you did not modufy your own images in Audit Mode, please remove the line containing CopyProfile from the unattend.xml located in the WIN10PROX64 and WIN11PROX64 folders in the Control folder from your deployment share!
+
+My Windows 10 and 11 Pro images
+I did not add any third party software to my images!
+I only added the optional component NETFX 3.5 and installed the en-GB optional language features!
+I installed the latest updates!
+I preinstalled Microsoft Office 365 Retail!
+I did not modify the image in any other way!

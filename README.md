@@ -22,7 +22,7 @@ After creating your deployment share, copy the contents of the DeploymentShare f
 Please edit the following files inside the Control folder in your deployment share
 Bootstrap.ini - If your deployment server is not named SERVER, and if the user account is not Network User, and the password is not p@$$w0rd - edit DeployRoot, UserID, UserPassword and UserDomain. You can use a local or domain user account as UserID. You can use your deployment server's network name and add ".local" (without quates) as the UserDomain.
 CustomSettings.ini
-Medias.xml - Make sure you create the folder structure to create your offline media set, make sure your folder structure corresponds with Root in Medias.xml.
+Medias.xml - For simplicity create the folder structure :C:\Deploy\MDT", otherwise create your own folder structure for an offline media set which you can copy to a USB flash drive. If you created your own folder structure instead of "C:\Deploy\MDT" - make sure your folder structure corresponds with Root in Medias.xml.
 Settings.xml - Make sure that UNCPath and PhysicalPath corresponds with your deployment share's network and local path. Replace "C:\DeploymentShare" at Boot.x86.ExtraDirectory and Boot.x64.ExtraDirectory with the local path to your deployment share if necessary.
 
 

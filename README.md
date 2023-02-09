@@ -70,16 +70,53 @@ I only included necessary OEM apps without additional bloatware!
 
 Local Group Policies
 "DeploymentShare\$OEM$\$1\Recovery\OEM\LGPO" sets the following local group policies
+Configure automatic updates - Enabled
+Enabling Windows Update Power Management to automatically wake up the system to install scheduled updates - Enabled
 Turn on recommended updates via Automatic Updates - Enabled
-Turn off auto-restart for updates during active hours - Enabled - 7:00 AM to 7:00 PM
+Always automatically restart at the scheduled time - Enabled
+Configure auto-restart reminder notifications for updates - Enabled
+Turn off auto-restart for updates during active hours - Enabled
 Turn off hybrid sleep (on battery) - Disabled
 Turn off hybrid sleep (plugged in) - Disabled
 Turn off the hard disk (on battery) - Enabled
 Turn off the hard disk (plugged in) - Enabled
-
+Prevent AutoPlay from remembering user choices - Enabled
+Turn off Microsoft Defender Antivirus - Disabled
+Turn off routine remediation - Disabled
+Allow antimalware service to remain running always - Enabled
+Allow antimalware service to startup with normal priority - Enabled
+Configure detection for potentially unwanted applications - Enabled
+Configure the 'Block At First Sight Feature' - Enabled
+Join Microsoft MAPS - Enabled
+Configure extended cloud check - Enabled
+Select cloud protection level - Disabled
 
 
 Please feel free and contribute by assisting me in improving any/all scripts contained in this repository!
 
 
 Perhaps a PowerShell script can be included to run as part of the task sequence during OS deployment that sets the target edition of WIndows according to the OEM license (e.g. Home Single Language)! To activate OEM Home Single Language edition "DeploymentShare\$OEM$\$1\Recovery\OEM\pre.ps1" should be modified not just to activate Pro OEM, and local group policies that get applied should be limited to Pro edition.
+
+
+
+
+pre.ps1
+If the deployed Windows edition is set according to OEM license during OS deployment, "DeploymentShare\$OEM$\$1\Recovery\OEM\pre.ps1" should be edited to activate the non-pro edition by replacing the following
+
+"$OPK = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKey
+$OPKDesc = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKeyDescription
+
+if (($OPKDesc -like "*Professional*") -and (-not ([string]::IsNullOrWhiteSpace($OPKDesc))))
+{
+    cscript C:\Windows\System32\slmgr.vbs /ipk $OPK
+    cscript C:\Windows\System32\slmgr.vbs /ato
+}"
+
+with
+"$OPK = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKey
+
+if (-not ([string]::IsNullOrWhiteSpace($OPKDesc)))
+{
+    cscript C:\Windows\System32\slmgr.vbs /ipk $OPK
+    cscript C:\Windows\System32\slmgr.vbs /ato
+}"

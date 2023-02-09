@@ -49,6 +49,9 @@ VerifyWinRE.ps1 - Verifies that the WinPE Recovery environment was copied to the
 ApplyUpdates10x64.ps1 / ApplyUpdates11.ps1 - Expects .cab/.msu update packages located on a network share at \\SERVER\Shared\Updates, or a folder named Updates on the root of a USB flash drive labeled DEPLOY then copies and applies the update packages as part of the task sequence during OS deployment!
 ExtractOEMApps.ps1 - Expects .7z archives located on a network share at \\SERVER\OEM, or a folder named OEM on the root of a USB flash drive labeled DEPLOY then extracts OEM apps as part of the task sequence during OS deployment!
 ExtractOEMDrivers.ps1 - Expects .7z archives located on a network share at \\SERVER\Shared\DriverPacks, or a folder named DriverPacks on the root of a USB flash drive labeled DEPLOY then extracts OEM drivers as part of the task sequence during OS deployment!
+ApplyOEMDrivers.ps1 - Applies the extracted OEM drivers to the deployed OS as part of the task sequence during OS deployment!
+CleanupScripts.ps1 - Cleans up MDT scripts copied to the OS drive after OS deployment as part of the task sequence during OS deployment!
+
 
 "$OEM$" folder
 The unattend.xml of the OS being deployed expects to find and run SetupComplete.cmd located in C:\Windows\Setup\Scripts.

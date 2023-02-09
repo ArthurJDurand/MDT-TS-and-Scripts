@@ -18,4 +18,5 @@ Please edit the following files inside the Control folder in your deployment sha
 Bootstrap.ini - Edit DeployRoot, UserID, UserPassword and UserDomain. You can use a local or domain user account as UserID. You can use your deployment server's network name and add .local as the UserDomain if you're a server without a domain name.
 CustomSettings.ini
 Medias.xml - Make sure you create the folder structure to conatin your offline media set, make sure your folder structure corresponds with Root in Medias.xml.
-Settings.xml - Make sure that UNCPath and PhysicalPath corresponds with your deployment share's network and local path.
+Settings.xml - Make sure that UNCPath and PhysicalPath corresponds with your deployment share's network and local path. Replace C:\DeploymentShare at Boot.x86.ExtraDirectory and Boot.x64.ExtraDirectory with the local path to your deployment share if necessary.
+

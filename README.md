@@ -39,7 +39,16 @@ You can download my Images from my shared OneDrive folder --> https://1drv.ms/u/
 
 Custom scripts ran as part of the task sequence during OS deployment
 CopyOEM.wsf (in the Scripts folder in your deployment share) - Copies the contents of the $OEM$ folder from the deployment share as part of the task sequence during OS deployment for more information see --> https://techcommunity.microsoft.com/t5/windows-blog-archive/copying-oem-files-and-folders-with-mdt-2012-update-1/ba-p/706642 <--
-PowerShell scripts in the Custom folder inside the Scripts folder of your deployment share! Please edit the PowerShell scripts according to your needs.
+The following PowerShell scripts in the Custom folder inside the Scripts folder of your deployment share
+LoadStorageDriver.ps1 - Loads the latest Intel VMD storage driver required for some 10th and 11th Generation Intel Platforms as part of the task sequence during OS deployment!
+CleanFixedDrives.ps1 - Will wipe all internal drives on the target computer during as part of the task sequence during OS deployment!
+SetTargetOSDrive.ps1 - Sets the first/only NVMe SSD, or the first/only SATA SSD if no NVMe SSD, or the first/only drive as the target OS drive as part of the task sequence during OS deployment!
+CreateRecoveryPartition-BIOS.ps1 / CreateRecoveryPartition-UEFI.ps1 - Shrinks the Windows partition to 1GB in size and create the Recovery partition as part of the task sequence during OS deployment!
+FormatDataDrive.ps1 - Formats any one additional internal drive as a Data drive as part of the task sequence during OS deployment!
+VerifyWinRE.ps1 - Verifies that the WinPE Recovery environment was copied to the Recovery drive as part of the task sequence during OS deployment!
+ApplyUpdates10x64.ps1 / ApplyUpdates11.ps1 - Expects .cab/.msu update packages located on a network share at \\SERVER\Shared\Updates, or a folder named Updates on the root of a USB flash drive labeled DEPLOY then copies and applies the update packages as part of the task sequence during OS deployment!
+ExtractOEMApps.ps1 - Expects .7z archives located on a network share at \\SERVER\OEM, or a folder named OEM on the root of a USB flash drive labeled DEPLOY then extracts OEM apps as part of the task sequence during OS deployment!
+ExtractOEMDrivers.ps1 - Expects .7z archives located on a network share at \\SERVER\Shared\DriverPacks, or a folder named DriverPacks on the root of a USB flash drive labeled DEPLOY then extracts OEM drivers as part of the task sequence during OS deployment!
 
 $OEM$ folder
 The unattend.xml of the OS being deployed expects to find and run SetupComplete.cmd located in C:\Windows\Setup\Scripts.

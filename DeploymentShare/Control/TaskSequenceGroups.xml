@@ -1,1 +1,14 @@
-<groups><group guid="{00000000-0000-0000-0000-000000000000}" enable="True"><Name>default</Name><Comments>default folder (root)</Comments><LastModifiedTime>2022-10-14 12:40:52 am</LastModifiedTime><LastModifiedBy>SERVER\Administrator</LastModifiedBy><Member>{52de66c6-a424-49df-bff8-2329bbd935a9}</Member><Member>{8d97bace-2183-43bb-ad10-6ccb09363bca}</Member><Member>{b62b563c-276a-44bd-8a0d-435ac8e264b9}</Member></group><group guid="{FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF}" enable="True"><Name>hidden</Name><Comments>This folder contains shared source items that have not been made explicitly visible in this deployment share.</Comments></group></groups>
+<groups>
+	<group guid="{00000000-0000-0000-0000-000000000000}" enable="True">
+		<Name>default</Name>
+		<Comments>default folder (root)</Comments>
+		<LastModifiedTime>2022-10-14 12:40:52 am</LastModifiedTime>
+		<LastModifiedBy>SERVER\Administrator</LastModifiedBy>
+		<Member>{8d97bace-2183-43bb-ad10-6ccb09363bca}</Member>
+		<Member>{b62b563c-276a-44bd-8a0d-435ac8e264b9}</Member>
+	</group>
+	<group guid="{FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF}" enable="True">
+		<Name>hidden</Name>
+		<Comments>This folder contains shared source items that have not been made explicitly visible in this deployment share.</Comments>
+	</group>
+</groups>

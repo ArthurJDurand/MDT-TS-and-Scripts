@@ -38,10 +38,12 @@ You can download my Images from my shared OneDrive folder --> https://1drv.ms/u/
 
 
 Custom scripts ran as part of the task sequence during OS deployment
-CopyOEM.wsf (in the Scripts folder in your deployment share) - Copies the $OEM$ folders from the deployment share as part of the task sequence during OS deployment for more information see --> https://techcommunity.microsoft.com/t5/windows-blog-archive/copying-oem-files-and-folders-with-mdt-2012-update-1/ba-p/706642 <--
+CopyOEM.wsf (in the Scripts folder in your deployment share) - Copies the contents of the $OEM$ folder from the deployment share as part of the task sequence during OS deployment for more information see --> https://techcommunity.microsoft.com/t5/windows-blog-archive/copying-oem-files-and-folders-with-mdt-2012-update-1/ba-p/706642 <--
 PowerShell scripts in the Custom folder inside the Scripts folder of your deployment share! Please edit the PowerShell scripts according to your needs.
 
 $OEM$ folder
-You may modify the contents of the $OEM$ folder as you desire!
+The unattend.xml of the OS being deployed expects to find and run SetupComplete.cmd located in C:\Windows\Setup\Scripts.
+The $OEM$ folder contains everything including the SetupComplete.cmd file that will be copied to C:\Windows\Setup\Scripts during OS deployment.
+You may modify the contents of the $OEM$ folder as you desire.
 
 

@@ -92,7 +92,7 @@ Configure extended cloud check - Enabled
 Select cloud protection level - Disabled
 
 
-Please feel free and contribute by assisting me in improving any/all scripts contained in this repository!
+Please feel free and contribute by assisting me in improving any/all scripts contained in this repository and by adding original resources to the OEM Apps and Customizations contained in this repository!
 
 
 Perhaps a PowerShell script can be included to run as part of the task sequence during OS deployment that sets the target edition of WIndows according to the OEM license (e.g. Home Single Language)! To activate OEM Home Single Language edition "DeploymentShare\$OEM$\$1\Recovery\OEM\pre.ps1" should be modified not just to activate Pro OEM, and local group policies that get applied should be limited to Pro edition.
@@ -130,4 +130,18 @@ if ($OPKDesc -like "*Professional*")
     & C:\Recovery\OEM\LGPO\LGPO.exe /g C:\Recovery\OEM\LGPO\Backup
 }"
 
-Again, please feel free to contribute by assisting me in improving the efficiency any/all scripts in this repository, and by adding to the OEM apps contained in this repository! I want this repository to be the most comprehensive and efficient add-on for repair technicians that are refurbishing/reimaging OEM desktop and laptop PCs!
+
+Offline Media
+You may create an offline media set that you can copy to a flash drive!
+Please format a USB flash drive with the FAT32 partition style and label the flash drive "DEPLOY" (without quotes), then set the partition as active.
+Copy the Content of your Media Set (Default location C:\Deploy\MDT\Content) to the root of the USB flash drive labeled DEPLOY!
+Create the folder structure OEM\x64 on the USB flash drive labeled DEPLOY
+Copy the OEM apps downloaded in .7z archive format - downloaded from my shared OneDrive folder to OEM\x64 on the USB flash drive labeled DEPLOY!
+Copy the Updates folder included in this repository containing any .cab and .msu updates (you'll have to download and add updates yourself) to the root of the USB flash drive labeled DEPLOY!
+
+
+After OS deployment, create a user account on the PC that the OS was deployed to, log in and apply updates and drivers via Windows Update (including Optional Driver updates, and via OEM update apps!
+Use the Scripts in C:\Scripts on the PC that the OS was deployed to
+
+
+Again, Please feel free and contribute by assisting me in improving any/all scripts contained in this repository and by adding original resources to the OEM Apps and Customizations contained in this repository!! Lets make this repository the most comprehensive and efficient add-on for repair technicians that are refurbishing/reimaging OEM desktop and laptop PCs!

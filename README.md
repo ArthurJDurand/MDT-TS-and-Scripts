@@ -96,8 +96,7 @@ Please feel free and contribute by assisting me in improving any/all scripts con
 
 
 Perhaps a PowerShell script can be included to run as part of the task sequence during OS deployment that sets the target edition of WIndows according to the OEM license (e.g. Home Single Language)! To activate OEM Home Single Language edition "DeploymentShare\$OEM$\$1\Recovery\OEM\pre.ps1" should be modified not just to activate Pro OEM, and local group policies that get applied should be limited to Pro edition.
-
-
+I am unable to find an easy solution to check and set the deployed OS to match the OEM license edition!
 
 
 pre.ps1
@@ -120,3 +119,15 @@ if (-not ([string]::IsNullOrWhiteSpace($OPKDesc)))
     cscript C:\Windows\System32\slmgr.vbs /ipk $OPK
     cscript C:\Windows\System32\slmgr.vbs /ato
 }"
+
+Limiting the local group policies to Pro edition by replacing the following line
+"& C:\Recovery\OEM\LGPO\LGPO.exe /g C:\Recovery\OEM\LGPO\Backup"
+
+with
+"$OPKDesc = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKeyDescription
+if ($OPKDesc -like "*Professional*")
+{
+    & C:\Recovery\OEM\LGPO\LGPO.exe /g C:\Recovery\OEM\LGPO\Backup
+}"
+
+Again, please feel free to contribute by assisting me in improving the efficiency any/all scripts in this repository, and by adding to the OEM apps contained in this repository! I want this repository to be the most comprehensive and efficient add-on for repair technicians that are refurbishing/reimaging OEM desktop and laptop PCs!

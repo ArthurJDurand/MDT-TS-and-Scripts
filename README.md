@@ -47,8 +47,8 @@ CreateRecoveryPartition-BIOS.ps1 / CreateRecoveryPartition-UEFI.ps1 - Shrinks th
 FormatDataDrive.ps1 - Formats any one additional internal drive as a Data drive as part of the task sequence during OS deployment!
 VerifyWinRE.ps1 - Verifies that the WinPE Recovery environment was copied to the Recovery drive as part of the task sequence during OS deployment!
 ApplyUpdates10x64.ps1 / ApplyUpdates11.ps1 - Expects .cab/.msu update packages located on a network share at \\SERVER\Shared\Updates, or a folder named Updates on the root of a USB flash drive labeled DEPLOY then copies and applies the update packages as part of the task sequence during OS deployment!
-ExtractOEMAppsx64.ps1 - Expects .7z archives located on a network share at \\SERVER\OEM\x64, or a folder named OEM\x64 on the root of a USB flash drive labeled DEPLOY then extracts OEM apps as part of the task sequence during OS deployment!
-ExtractOEMDrivers.ps1 - Expects .7z archives located on a network share at \\SERVER\Shared\DriverPacks, or a folder named DriverPacks on the root of a USB flash drive labeled DEPLOY then extracts OEM drivers as part of the task sequence during OS deployment!
+ExtractOEMAppsx64.ps1 - Expects .7z archives located in a folder named x64 on a network share at \\SERVER\OEM or in a folder named OEM\x64 on the root of a USB flash drive labeled DEPLOY, then extracts OEM apps as part of the task sequence during OS deployment!
+ExtractOEMDrivers.ps1 - Expects .7z archives located in a folder named DriverPacks on a network share at \\SERVER\Shared or on the root of a USB flash drive labeled DEPLOY, then extracts OEM drivers as part of the task sequence during OS deployment!
 ApplyOEMDrivers.ps1 - Applies the extracted OEM drivers to the deployed OS as part of the task sequence during OS deployment!
 CleanupScripts.ps1 - Cleans up MDT scripts copied to the OS drive after OS deployment as part of the task sequence during OS deployment!
 
@@ -92,7 +92,7 @@ Configure extended cloud check - Enabled
 Select cloud protection level - Disabled
 
 
-Please feel free and contribute by assisting me in improving any/all scripts contained in this repository!
+Please feel free and contribute by assisting me in improving any/all scripts contained in this repository and by adding original resources to the OEM Apps and Customizations contained in this repository!
 
 
 Perhaps a PowerShell script can be included to run as part of the task sequence during OS deployment that sets the target edition of WIndows according to the OEM license (e.g. Home Single Language)! To activate OEM Home Single Language edition "DeploymentShare\$OEM$\$1\Recovery\OEM\pre.ps1" should be modified not just to activate Pro OEM, and local group policies that get applied should be limited to Pro edition.
@@ -130,4 +130,23 @@ if ($OPKDesc -like "*Professional*")
     & C:\Recovery\OEM\LGPO\LGPO.exe /g C:\Recovery\OEM\LGPO\Backup
 }"
 
-Again, please feel free to contribute by assisting me in improving the efficiency any/all scripts in this repository, and by adding to the OEM apps contained in this repository! I want this repository to be the most comprehensive and efficient add-on for repair technicians that are refurbishing/reimaging OEM desktop and laptop PCs!
+
+Offline Media
+You may create an offline media set that you can copy to a flash drive!
+Please format a USB flash drive with the FAT32 partition style and label the flash drive "DEPLOY" (without quotes), then set the partition as active.
+Copy the Content of your Media Set (Default location C:\Deploy\MDT\Content) to the root of the USB flash drive labeled DEPLOY!
+Create the folder structure OEM\x64 on the USB flash drive labeled DEPLOY
+Copy the OEM apps downloaded in .7z archive format - downloaded from my shared OneDrive folder to OEM\x64 on the USB flash drive labeled DEPLOY!
+Copy the Updates folder included in this repository containing any .cab and .msu updates (you'll have to download and add updates yourself) to the root of the USB flash drive labeled DEPLOY!
+
+
+After OS deployment, create a user account on the PC that the OS was deployed to, log in and apply updates and drivers via Windows Update (including Optional Driver updates, and via OEM update apps!
+Use the Scripts in C:\Scripts on the PC that the OS was deployed to - to cleanup the image after updates and driver installs - to capture drivers to a network share or USB flash drive labeled DEPLOY (for reuse on same model) - to create a provisioned package for push-button reset
+Running the numbered .cmd scripts will run the accompanying PowerShell scripts, there is no need to run the PowerShell scripts separately!
+The following PowerShell scripts in C:\Scripts on the System Drive that contains the Deployed OS needs additional components or modification!
+OEMDriversExport.ps1 - This script expects 7-Zip to be installed and expects a folder named DriverPacks on a network share at \\SERVER\Shared or on the root of a USB flash drive labeled DEPLOY to copy exported drivers archived in the .7z format to!
+ScanWindowsImage64.ps1 - Cleaning up the driver store in Windows 11 breaks the Microsoft-OneCore-DirectX-Database-FOD-Package. This script expects a folder named Servicing (that contains the Microsoft-OneCore-DirectX-Database-FOD-Package) on a network share at \\SERVER\Shared or on the root of a USB flash drive labeled DEPLOY, then look for the offline components! The necessary offline servicing components (Microsoft-OneCore-DirectX-Database-FOD-Package) is included in this repository inside the Servicing folder, just copy the Servicing folder included in this repository to the network share \\SERVER\Shared or on the root of a USB flash drive labeled DEPLOY!
+ScanStatex64.ps1 - This script expects a folder named ScanState (that contains the ScanState tool) on a network share at \\SERVER\Shared or on the root of a USB flash drive labeled DEPLOY, then copies the appropriate ScanState tool to a Temp folder on the System Drive of the Deployed OS! The ScanState tool is included in this repository as a .7z archive, just extract to the network share \\SERVER\Shared or on the root of a USB flash drive labeled DEPLOY!
+
+
+Again, Please feel free and contribute by assisting me in improving any/all scripts contained in this repository and by adding original resources to the OEM Apps and Customizations contained in this repository!! Lets make this repository the most comprehensive and efficient add-on for repair technicians that are refurbishing/reimaging OEM desktop and laptop PCs!

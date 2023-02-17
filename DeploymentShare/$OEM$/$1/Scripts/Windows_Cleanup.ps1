@@ -58,41 +58,13 @@ Write-host "Deleting Rogue folders" -foreground yellow
 	if (test-path C:\swsetup) {remove-item -Path C:\swsetup -force -recurse}
 	if (test-path C:\Temp) {remove-item -Path C:\Temp -force -recurse}
 	if (test-path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\LiteTouch.lnk") {remove-item "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\LiteTouch.lnk" -force}
-    if (test-path $env:windir\memory.dmp) {remove-item $env:windir\memory.dmp -force}
-
-Write-host "Deleting Windows Error Reporting files" -foreground yellow
-    if (test-path C:\ProgramData\Microsoft\Windows\WER) {Get-ChildItem -Path C:\ProgramData\Microsoft\Windows\WER -Recurse | Remove-Item -force -recurse}
-
-Write-host "Removing System and User Temp Files" -foreground yellow
-    Remove-Item -Path "$env:windir\Temp\*" -Force -Recurse
-    Remove-Item -Path "$env:windir\minidump\*" -Force -Recurse
-    Remove-Item -Path "$env:windir\Prefetch\*" -Force -Recurse
-    Remove-Item -Path "C:\Users\*\AppData\Local\Temp\*" -Force -Recurse
-    Remove-Item -Path "C:\Users\*\AppData\Local\Microsoft\Windows\WER\*" -Force -Recurse
-    Remove-Item -Path "C:\Users\*\AppData\Local\Microsoft\Windows\Temporary Internet Files\*" -Force -Recurse
-    Remove-Item -Path "C:\Users\*\AppData\Local\Microsoft\Windows\IECompatCache\*" -Force -Recurse
-    Remove-Item -Path "C:\Users\*\AppData\Local\Microsoft\Windows\IECompatUaCache\*" -Force -Recurse
-    Remove-Item -Path "C:\Users\*\AppData\Local\Microsoft\Windows\IEDownloadHistory\*" -Force -Recurse
-    Remove-Item -Path "C:\Users\*\AppData\Local\Microsoft\Windows\INetCache\*" -Force -Recurse
-    Remove-Item -Path "C:\Users\*\AppData\Local\Microsoft\Windows\INetCookies\*" -Force -Recurse
-	Remove-Item -Path "C:\Users\*\AppData\Local\Microsoft\Terminal Server Client\Cache\*" -Force -Recurse
 
 Write-host "Removing Windows Updates Downloads" -foreground yellow
     Stop-Service wuauserv -Force -Verbose
 	Stop-Service TrustedInstaller -Force -Verbose
     Remove-Item -Path "$env:windir\SoftwareDistribution\*" -Force -Recurse
-    Remove-Item $env:windir\Logs\CBS\* -force -recurse
     Start-Service wuauserv -Verbose
 	Start-Service TrustedInstaller -Verbose
-
-Write-host "Check if Windows Cleanup exists" -foreground yellow
-#Mainly for 2008 servers
-	if (!(Test-Path C:\windows\System32\cleanmgr.exe)) {
-	Write-host "Windows Cleanup NOT installed now installing" -foreground yellow
-	copy-item $env:windir\winsxs\amd64_microsoft-windows-cleanmgr_31bf3856ad364e35_6.1.7600.16385_none_c9392808773cd7da\cleanmgr.exe $env:windir\System32
-	copy-item $env:windir\winsxs\amd64_microsoft-windows-cleanmgr.resources_31bf3856ad364e35_6.1.7600.16385_en-us_b9cb6194b257cc63\cleanmgr.exe.mui $env:windir\System32\en-US
-	}
-
 
 Write-host "Cleaning Windows Component Store" -foreground yellow
 	Start-Process -FilePath DISM.exe -ArgumentList "/Online /Cleanup-Image /StartComponentCleanup"  -WindowStyle Hidden -Wait

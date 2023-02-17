@@ -192,7 +192,7 @@ If (($Model -like '*Alienware*') -or ($Model -like '*G15*') -or ($Model -like '*
     $Package = Get-ChildItem -File $PackageFolderPath -Filter "*.exe" | Select-Object -ExpandProperty FullName
     $Log = "C:\Recovery\OEM\Apps\Logs\ACC_Install.log"
     Start-Process $Package -ArgumentList "/s /l=$Log" -Wait
-    New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce -Name !AlienwareCommandCenter -Value "$Package /s /l=$Log"
+    New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce -Name !AlienwareCommandCenter -Value "$Package"
 }
 
 $AlienwareCommandCenter = (Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'Alienware Command Center' })

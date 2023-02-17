@@ -49,8 +49,10 @@ if (($Model -like '*PRIME*') -or ($Model -like '*ROG*') -or ($Model -like '*TUF*
     Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
 }
 
-$ACService = ((Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'ARMOURY CRATE' }) -or (Get-ItemProperty HKLM:Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'ARMOURY CRATE' }))
+$ACService = (Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'ARMOURY CRATE' })
 if (($Model -like '*PRIME*') -or ($Model -like '*ROG*') -or ($Model -like '*TUF*') -and ([string]::IsNullOrWhiteSpace($ACService)))
 {
-    Start-Process "C:\Recovery\OEM\Apps\ArmouryCrate\ArmouryCrateInstaller.exe"
+    $PackageFolderPath = "C:\Recovery\OEM\Apps\ArmouryCrate"
+    $Package = Get-ChildItem -File $PackageFolderPath -Filter "*.exe" | Select-Object -ExpandProperty FullName
+    New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce -Name !ArmouryCrateInstaller -Value "$Package"
 }

@@ -95,7 +95,6 @@ pre.ps1
 If the deployed Windows edition is set according to OEM license during OS deployment, "DeploymentShare\\$OEM$\\$1\Recovery\OEM\pre.ps1" should be edited to activate the non-pro edition by replacing the following  
 $OPK = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKey  
 $OPKDesc = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKeyDescription  
-  
 if (($OPKDesc -like "*Professional*") -and (-not ([string]::IsNullOrWhiteSpace($OPKDesc))))  
 {  
     cscript C:\Windows\System32\slmgr.vbs /ipk $OPK  
@@ -104,7 +103,6 @@ if (($OPKDesc -like "*Professional*") -and (-not ([string]::IsNullOrWhiteSpace($
   
 with  
 $OPK = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKey  
-  
 if (-not ([string]::IsNullOrWhiteSpace($OPKDesc)))  
 {  
     cscript C:\Windows\System32\slmgr.vbs /ipk $OPK  

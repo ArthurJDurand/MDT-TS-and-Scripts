@@ -6,7 +6,11 @@ MDT Task Sequences and Custom Scripts to
 3) Install third party software
   
 Prerequisites!  
+A Server running Windows Server OS with at least the DHCP Server and WDS Server Roles installed and configured  
+or a desktop PC running a desktop edition of Windows like Windows 10 or Windows 11 running a PXE boot server like AOMEI PXE Boot!  
 For simplicity you may name your deployment server "SERVER" and create a user account named "Network User" (without quotes) with password "p@$$w0rd" (without quotes) and with administrative privileges!  
+I have added my Windows Server DHCP configuration backup in the Prerequisites folder of this repository, you can just import my DHCP config and edit the DCHP scope to suit your network environment!  
+I included AOMEI PXE Boot (Free edition) in the Prerequisites folder of this repository, you can just install it on your Windows Desktop Edition if you don't have a Server!  
 Before using this repository install the latest version of the following!  
 Microsoft Windows Assessment and Deployment Kit for Windows 11 --> https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install <--  
 Windows PE Addon for the Windows ADK  --> https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install <--  

@@ -6,26 +6,37 @@ MDT Task Sequences and Custom Scripts to
 3) Install third party software
   
 Prerequisites!  
-A Server running Windows Server OS with at least the DHCP Server and WDS Server Roles installed and configured  
-or a desktop PC running a desktop edition of Windows like Windows 10 or Windows 11 running a PXE boot server like AOMEI PXE Boot!  
-For simplicity you may name your deployment server "SERVER" and create a user account named "Network User" (without quotes) with password "p@$$w0rd" (without quotes) and with administrative privileges!  
+A Server running Windows Server OS with at least the DHCP Server and WDS Server Roles installed and configured!  
+or a desktop PC running a desktop edition of Windows like Windows 10 or Windows 11!  
+  
+If you have a server  
+Add and configure the DHCP Server and WDS Server Roles  
 I have added my Windows Server DHCP configuration backup in the Prerequisites folder of this repository, you can just import my DHCP config and edit the DCHP scope to suit your network environment!  
+Import your boot images contained in the Boot folder of your deployment share into WDS Server!  
+  
+Otherwise use your desktop PC as a Deployment Server  
 I included AOMEI PXE Boot (Free edition) in the Prerequisites folder of this repository, you can just install it on your Windows Desktop Edition if you don't have a Server!  
+Install AOMEI PXE Boot server and browse to the boot images contained in the Boot folder of your deployment share, use the appropriate image to PXE boot into from the PC you want to deploy WIndows to!  
+  
+For simplicity you may name your deployment server "SERVER" and create a user account named "Network User" (without quotes) with password "p@$$w0rd" (without quotes) and with administrative privileges!  
+  
 Before using this repository install the latest version of the following!  
 Microsoft Windows Assessment and Deployment Kit for Windows 11 --> https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install <--  
 Windows PE Addon for the Windows ADK  --> https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install <--  
 Microsoft Windows Software Development Kit for Windows 11 --> https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/ <--  
 Microsoft Deployment Toolkit --> https://www.microsoft.com/en-us/download/details.aspx?id=54259 <--  
 KB4564442 for MDT --> https://support.microsoft.com/en-us/topic/windows-10-deployments-fail-with-microsoft-deployment-toolkit-on-computers-with-bios-type-firmware-70557b0b-6be3-81d2-556f-b313e29e2cb7 <--  
+  
 You will need to create a new deployment share before using this repository!  
 For simplicity create your deployment share in the default location (C:\DeploymentShare)  
-After creating your deployment share, copy the contents of the DeploymentShare folder (from this repository) into your deployment share folder replacing existing files!
+After creating your deployment share, copy the contents of the DeploymentShare folder (from this repository) into your deployment share folder replacing existing files!  
   
 Please edit the following files inside the Control folder in your deployment share  
 Bootstrap.ini - If your deployment server is not named SERVER, and if the user account is not Network User, and the password is not p@$$w0rd - edit DeployRoot, UserID, UserPassword and UserDomain. You can use a local or domain user account as UserID. You can use your deployment server's network name and add ".local" (without quates) as the UserDomain.  
 CustomSettings.ini  
 Medias.xml - For simplicity create the folder structure :C:\Deploy\MDT", otherwise create your own folder structure for an offline media set which you can copy to a USB flash drive. If you created your own folder structure instead of "C:\Deploy\MDT" - make sure your folder structure corresponds with Root in Medias.xml.  
-Settings.xml - Make sure that UNCPath and PhysicalPath corresponds with your deployment share's network and local path. Replace "C:\DeploymentShare" at Boot.x86.ExtraDirectory and Boot.x64.ExtraDirectory with the local path to your deployment share if necessary.
+Settings.xml - Make sure that UNCPath and PhysicalPath corresponds with your deployment share's network and local path. Replace "C:\DeploymentShare" at Boot.x86.ExtraDirectory and Boot.x64.ExtraDirectory with the local path to your deployment share if necessary.  
+WIN1XPROX64\Unattend.xml - Edit the locales and time zone to match you locales and time zone.  
   
 Next you'll need to download my Windows 10 and Windows 11 lite touch images and place it inside the appropriate folder in the Operating Systems folder in your deployment share or use your own! If you choose to use your own Windows 10 and 11 images, place the appropriate install.wim files in Win10Prox64 and Win11Prox64 folders in the Operating Systems folder of your deployment share! If you did not modify your own images in Audit Mode, please remove the line containing CopyProfile from the unattend.xml located in the WIN10PROX64 and WIN11PROX64 folders in the Control folder from your deployment share!  
 My Windows 10 and 11 Pro images  
@@ -50,7 +61,7 @@ ExtractOEMAppsx64.ps1 - Expects .7z archives located in a folder named x64 on a 
 ExtractOEMDrivers.ps1 - Expects .7z archives located in a folder named DriverPacks on a network share at "\\\\SERVER\Shared" or on the root of a USB flash drive labeled DEPLOY, then extracts OEM drivers as part of the task sequence during OS deployment!  
 ApplyOEMDrivers.ps1 - Applies the extracted OEM drivers to the deployed OS as part of the task sequence during OS deployment!  
 CleanupScripts.ps1 - Cleans up MDT scripts copied to the OS drive after OS deployment as part of the task sequence during OS deployment!
-    
+  
 "$OEM$" folder  
 The unattend.xml of the OS being deployed expects to find and run SetupComplete.cmd located in C:\Windows\Setup\Scripts.  
 The "$OEM$" folder contains everything including the SetupComplete.cmd file that will be copied to C:\Windows\Setup\Scripts during OS deployment.  
@@ -101,16 +112,16 @@ $OPK = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOrigi
 $OPKDesc = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKeyDescription  
 if (($OPKDesc -like "*Professional*") -and (-not ([string]::IsNullOrWhiteSpace($OPKDesc))))  
 {  
-    cscript C:\Windows\System32\slmgr.vbs /ipk $OPK  
-    cscript C:\Windows\System32\slmgr.vbs /ato  
+  cscript C:\Windows\System32\slmgr.vbs /ipk $OPK  
+  cscript C:\Windows\System32\slmgr.vbs /ato  
 }  
   
 with  
 $OPK = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKey  
 if (-not ([string]::IsNullOrWhiteSpace($OPKDesc)))  
 {  
-    cscript C:\Windows\System32\slmgr.vbs /ipk $OPK  
-    cscript C:\Windows\System32\slmgr.vbs /ato  
+  cscript C:\Windows\System32\slmgr.vbs /ipk $OPK  
+  cscript C:\Windows\System32\slmgr.vbs /ato  
 }  
   
 Limiting the local group policies to Pro edition by replacing the following line  
@@ -119,7 +130,7 @@ with
 $OPKDesc = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKeyDescription  
 if ($OPKDesc -like "*Professional*")  
 {  
-    & C:\Recovery\OEM\LGPO\LGPO.exe /g C:\Recovery\OEM\LGPO\Backup  
+  & C:\Recovery\OEM\LGPO\LGPO.exe /g C:\Recovery\OEM\LGPO\Backup  
 }  
   
 Offline Media  

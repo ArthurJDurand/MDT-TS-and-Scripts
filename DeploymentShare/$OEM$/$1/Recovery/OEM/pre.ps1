@@ -457,12 +457,6 @@ if ([string]::IsNullOrWhiteSpace($AnyDesk))
     & cmd /c C:\Recovery\OEM\Apps\AnyDesk.cmd
 }
 
-$scheduleObject = New-Object -ComObject schedule.service
-$scheduleObject.connect()
-$rootFolder = $scheduleObject.GetFolder("\")
-$rootFolder.CreateFolder("OEM")
-schtasks /create /tn OEM\Update /xml C:\Recovery\OEM\Apps\Update.xml /f
-
 if (Test-Path C:\_SMSTaskSequence)
 {
     Remove-Item C:\_SMSTaskSequence -Force -Recurse

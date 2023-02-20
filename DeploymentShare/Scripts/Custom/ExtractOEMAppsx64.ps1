@@ -17,22 +17,22 @@ if (-not ([string]::IsNullOrWhiteSpace($WindowsVolumeLetter)))
     [String]$OEMDestination = ($WindowsVolumeLetter.Driveletter).ToString() + ":\Recovery\OEM"
 }
 
-$BaseBoardManufacturer = Get-WmiObject Win32_BaseBoard | Select Manufacturer
-if ((-not ([string]::IsNullOrWhiteSpace($BaseBoardManufacturer))) -or ($BaseBoardManufacturer.Manufacturer -eq 'Not Available') -or ($BaseBoardManufacturer.Manufacturer -eq 'System manufacturer'))
+$BaseBoardManufacturer = Get-WmiObject Win32_BaseBoard | Where-Object {$_.Manufacturer -ne 'Not Available' -and $_.Manufacturer -ne 'System manufacturer' -and $_.Manufacturer -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Manufacturer
+if (-not ([string]::IsNullOrWhiteSpace($BaseBoardManufacturer)))
 {
-    [String]$Manufacturer = ($BaseBoardManufacturer.Manufacturer).ToString()
+    $Manufacturer = $BaseBoardManufacturer
 }
 
-$ProductManufacturer = Get-WmiObject -Class:Win32_ComputerSystemProduct | select Vendor
-if ((-not ([string]::IsNullOrWhiteSpace($ProductManufacturer))) -or ($ProductManufacturer.Vendor -eq 'Not Available') -or ($ProductManufacturer.Vendor -eq 'System manufacturer') -or ($ProductManufacturer.Vendor -eq 'To be filled by O.E.M.'))
+$ProductManufacturer = Get-WmiObject -Class:Win32_ComputerSystemProduct | Where-Object {$_.Manufacturer -ne 'Not Available' -and $_.Manufacturer -ne 'System manufacturer' -and $_.Manufacturer -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Vendor
+if (-not ([string]::IsNullOrWhiteSpace($ProductManufacturer)))
 {
-    [String]$Manufacturer = ($ProductManufacturer.Vendor).ToString()
+    $Manufacturer = $ProductManufacturer
 }
 
-$SystemManufacturer = Get-WmiObject -Class:Win32_ComputerSystem | select Manufacturer
-if ((-not ([string]::IsNullOrWhiteSpace($SystemManufacturer))) -or ($SystemManufacturer.Manufacturer -eq 'Not Available') -or ($SystemManufacturer.Manufacturer -eq 'System manufacturer') -or ($SystemManufacturer.Manufacturer -eq 'To be filled by O.E.M.'))
+$SystemManufacturer = Get-WmiObject -Class:Win32_ComputerSystem | Where-Object {$_.Manufacturer -ne 'Not Available' -and $_.Manufacturer -ne 'System manufacturer' -and $_.Manufacturer -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Manufacturer
+if (-not ([string]::IsNullOrWhiteSpace($SystemManufacturer)))
 {
-    [String]$Manufacturer = ($SystemManufacturer.Manufacturer).ToString()
+    $Manufacturer = $SystemManufacturer
 }
 
 if (!(Test-Path $OEMDestination))

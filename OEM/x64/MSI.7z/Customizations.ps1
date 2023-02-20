@@ -11,22 +11,22 @@ reg LOAD HKLM\temp C:\Users\Default\ntuser.dat
 Set-ItemProperty -Path "HKLM:\temp\Control Panel\Desktop" -Name WallPaper -Value "C:\Windows\System32\oobe\info\Wallpaper\backgroundDefault.jpg" -Force
 reg UNLOAD HKLM\temp
 
-$BaseBoardProduct = Get-WmiObject Win32_BaseBoard | Select Product
-if ((-not ([string]::IsNullOrWhiteSpace($BaseBoardProduct))) -or ($BaseBoardProduct.Product -eq 'Not Available'))
+$BaseBoardProduct = Get-WmiObject Win32_BaseBoard | Where-Object {$_.Product -ne 'Not Available'} | Select-Object -ExpandProperty Product
+if (-not ([string]::IsNullOrWhiteSpace($BaseBoardProduct)))
 {
-    [String]$Model = ($BaseBoardProduct.Product).ToString()
+    $Model = $BaseBoardProduct
 }
 
-$ProductVersion = Get-WmiObject -Class:Win32_ComputerSystemProduct | select Version
-if ((-not ([string]::IsNullOrWhiteSpace($ProductVersion))) -or ($ProductVersion.Version -eq 'System Version') -or ($ProductVersion.Version -eq 'To be filled by O.E.M.'))
+$ProductVersion = Get-WmiObject -Class:Win32_ComputerSystemProduct | Where-Object {$_.Version -ne 'System Version' -and $_.Version -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Version
+if (-not ([string]::IsNullOrWhiteSpace($ProductVersion)))
 {
-    [String]$Model = ($ProductVersion.Version).ToString()
+    $Model = $ProductVersion
 }
 
-$SystemModel = Get-WmiObject -Class:Win32_ComputerSystem | select Model
-if ((-not ([string]::IsNullOrWhiteSpace($SystemModel))) -or ($SystemModel.Model -eq 'System Product Name') -or ($SystemModel.Model -eq 'To be filled by O.E.M.'))
+$SystemModel = Get-WmiObject -Class:Win32_ComputerSystem | Where-Object {$_.Model -ne 'System Product Name' -and $_.Model -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Model
+if (-not ([string]::IsNullOrWhiteSpace($SystemModel)))
 {
-    [String]$Model = ($SystemModel.Model).ToString()
+    $Model = $SystemModel
 }
 
 if ((Test-Path C:\Recovery\OEM\LayoutModification.*) -and (!(Test-Path C:\Windows\OEM)))

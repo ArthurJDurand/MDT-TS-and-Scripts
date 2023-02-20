@@ -1,21 +1,21 @@
 #Dell Inc. FEB 2023
 
-$SystemInfo = Get-WmiObject Win32_BaseBoard | Select Product
-if ((-not ([string]::IsNullOrWhiteSpace($SystemInfo))) -or ($SystemInfo.Product -eq 'Not Available'))
+$BaseBoardProduct = Get-WmiObject Win32_BaseBoard | Where-Object {$_.Product -ne 'Not Available'} | Select-Object -ExpandProperty Product
+if (-not ([string]::IsNullOrWhiteSpace($BaseBoardProduct)))
 {
-    [String]$Model = ($SystemInfo.Product).ToString()
+    $Model = $BaseBoardProduct
 }
 
-$SystemInfo = Get-WmiObject -Class:Win32_ComputerSystemProduct | select Version
-if ((-not ([string]::IsNullOrWhiteSpace($SystemInfo))) -or ($SystemInfo.Version -eq 'System Version'))
+$ProductVersion = Get-WmiObject -Class:Win32_ComputerSystemProduct | Where-Object {$_.Version -ne 'System Version' -and $_.Version -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Version
+if (-not ([string]::IsNullOrWhiteSpace($ProductVersion)))
 {
-    [String]$Model = ($SystemInfo.Version).ToString()
+    $Model = $ProductVersion
 }
 
-$SystemInfo = Get-WmiObject -Class:Win32_ComputerSystem | select Model
-if ((-not ([string]::IsNullOrWhiteSpace($SystemInfo))) -or ($SystemInfo.Model -eq 'System Product Name'))
+$SystemModel = Get-WmiObject -Class:Win32_ComputerSystem | Where-Object {$_.Model -ne 'System Product Name' -and $_.Model -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Model
+if (-not ([string]::IsNullOrWhiteSpace($SystemModel)))
 {
-    [String]$Model = ($SystemInfo.Model).ToString()
+    $Model = $SystemModel
 }
 
 $DependencyFolderPath = "C:\Recovery\OEM\Apps\Dependencies"

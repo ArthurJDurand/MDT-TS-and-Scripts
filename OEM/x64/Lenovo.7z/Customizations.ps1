@@ -2,10 +2,10 @@
 
 $WinRAR = "C:\Program Files\WinRAR\WinRAR.exe"
 
-$ProductVersion = Get-WmiObject -Class:Win32_ComputerSystemProduct | select Version
-if ((-not ([string]::IsNullOrWhiteSpace($ProductVersion))) -or ($ProductVersion.Version -eq 'System Version') -or ($ProductVersion.Version -eq 'To be filled by O.E.M.'))
+$ProductVersion = Get-WmiObject -Class:Win32_ComputerSystemProduct | Where-Object {$_.Version -ne 'System Version' -and $_.Version -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Version
+if (-not ([string]::IsNullOrWhiteSpace($ProductVersion)))
 {
-    [String]$Model = ($ProductVersion.Version).ToString()
+    $Model = $ProductVersion
 }
 
 if ($Model -like '*IdeaPad*')

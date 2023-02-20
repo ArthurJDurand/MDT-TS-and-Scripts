@@ -12,17 +12,21 @@ or a desktop PC running a desktop edition of Windows like Windows 10 or Windows 
 If you have a server  
 Add and configure the DHCP Server and WDS Server Roles  
 I have added my Windows Server DHCP configuration backup in the Prerequisites folder of this repository, you can just import my DHCP config and edit the DCHP scope to suit your network environment!  
+Import your boot images contained in the Boot folder of your deployment share into WDS Server!  
   
 Otherwise use your desktop PC as a Deployment Server  
 I included AOMEI PXE Boot (Free edition) in the Prerequisites folder of this repository, you can just install it on your Windows Desktop Edition if you don't have a Server!  
+Install AOMEI PXE Boot server and browse to the boot images contained in the Boot folder of your deployment share, use the appropriate image to PXE boot into from the PC you want to deploy WIndows to!  
   
 For simplicity you may name your deployment server "SERVER" and create a user account named "Network User" (without quotes) with password "p@$$w0rd" (without quotes) and with administrative privileges!  
+  
 Before using this repository install the latest version of the following!  
 Microsoft Windows Assessment and Deployment Kit for Windows 11 --> https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install <--  
 Windows PE Addon for the Windows ADK  --> https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install <--  
 Microsoft Windows Software Development Kit for Windows 11 --> https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/ <--  
 Microsoft Deployment Toolkit --> https://www.microsoft.com/en-us/download/details.aspx?id=54259 <--  
 KB4564442 for MDT --> https://support.microsoft.com/en-us/topic/windows-10-deployments-fail-with-microsoft-deployment-toolkit-on-computers-with-bios-type-firmware-70557b0b-6be3-81d2-556f-b313e29e2cb7 <--  
+  
 You will need to create a new deployment share before using this repository!  
 For simplicity create your deployment share in the default location (C:\DeploymentShare)  
 After creating your deployment share, copy the contents of the DeploymentShare folder (from this repository) into your deployment share folder replacing existing files!  

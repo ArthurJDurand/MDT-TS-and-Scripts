@@ -62,6 +62,8 @@ ExtractOEMDrivers.ps1 - Expects .7z archives located in a folder named DriverPac
 ApplyOEMDrivers.ps1 - Applies the extracted OEM drivers to the deployed OS as part of the task sequence during OS deployment!  
 CleanupScripts.ps1 - Cleans up MDT scripts copied to the OS drive after OS deployment as part of the task sequence during OS deployment!
   
+Please note that due to file size and bandwidth limitation of GitHub, the boot images is missing from this repository! You'll have to update your deployment share to recreate the boot images!
+  
 "$OEM$" folder  
 The unattend.xml of the OS being deployed expects to find and run SetupComplete.cmd located in C:\Windows\Setup\Scripts.  
 The "$OEM$" folder contains everything including the SetupComplete.cmd file that will be copied to C:\Windows\Setup\Scripts during OS deployment.  

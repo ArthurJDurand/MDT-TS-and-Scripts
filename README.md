@@ -70,11 +70,11 @@ The "$OEM$" folder contains everything including the SetupComplete.cmd file that
 You may modify the contents of the "$OEM$" folder as you desire.
   
 OEM Apps  
-OEM get extratced to the deployed OS as part of the task sequence during OS deployment!  
+OEM gets extratced to the deployed OS as part of the task sequence during OS deployment!  
 OEM Apps should be archived using 7-Zip and placed in a folder named x64 on a network share at "\\\\SERVER\OEM" or in a folder named x64 within a folder named OEM on a USB flash drive labeled DEPLOY!  
 If you place OEM apps in a different network share, please edit DeploymentShare\Scripts\Custom\ExtractOEMAppsx64.ps1 accordingly!  
 This repository contains the scripts used to install OEM apps during the OOBE process of Windows Setup, apps for OEMs has been deleted due to GitHud size restrictions, you may download the complete archives from my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <--  
-I used Dell's extensibility points as vase for all OEM apps and customizations!  
+I used Dell's extensibility points as base for all OEM apps and customizations!  
 I only included necessary OEM apps without additional bloatware!
   
 Local Group Policies  

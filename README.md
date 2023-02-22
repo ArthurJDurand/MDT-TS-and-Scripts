@@ -15,6 +15,8 @@ The most important prerequisite is knowledge and expertise in the following area
 Microsoft Windows Server and Desktop Editions of Microsoft WIndows!  
 Networking!  
 Deploying Desktop Editions of Microsoft Windows!  
+Windows ADK!  
+MDT!  
 The software mentioned below in the Prerequisites section!  
   
   

@@ -230,7 +230,42 @@ KB4564442 for MDT --> https://support.microsoft.com/en-us/topic/windows-10-deplo
   
 Create a new MDT deployment share in the default location (C:\DeploymentShare)!  
 After creating your deployment share, copy the contents of the DeploymentShare folder (from this repository) into your deployment share folder replacing existing files!  
-Download my Windows 10 and Windows 11 lite touch images and place it inside the appropriate folder in the Operating Systems folder in your deployment share (C:\DeploymentShare\Operating Systems)  
-  
+Download my Windows 10 and Windows 11 lite touch images from my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <-- and place it inside the appropriate folder in the Operating Systems folder in your deployment share (C:\DeploymentShare\Operating Systems)  
+Update your deployment share to create/recreate boot images! 
+Download my OEM Apps archives from my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <-- and place it in a folder named x64 on a network share at "\\\\SERVER\OEM" or in a folder named x64 within a folder named OEM on a USB flash drive labeled DEPLOY!  
+PXE boot your client and deploy Windows!    
   
 If you have a desktop PC running a Desktop Edition of Windows  
+Rename your desktop PC to "SERVER" (without quotes)  
+Create a user account named "Network User" (without quotes) in Computer Management under Local Users and Groups > Users, set the passwor as "p@$$w0rd" - [lowercase p, at sign, dollar sign, dollar sign, lowercase w, zero, lowercase r, lowercase d] (without quotes), and set the following  
+On 'General' tab  
+Remove check mark on 'User must change password at next logon'  
+Set check matk on 'User cannot change password'  
+Set check mark on 'Password never expires'  
+On 'Member of' tab  
+Remove the 'Users' group and add the 'Administrators' group, adn confirm by clicking on ok  
+Install and AOMEI PXE Boot Server Free (contained in the Prerequisites folder in this repository)!   
+
+Install the following  
+Microsoft Windows Assessment and Deployment Kit for Windows 11 --> https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install <--  
+Windows PE Addon for the Windows ADK  --> https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install <--  
+Microsoft Windows Software Development Kit for Windows 11 --> https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/ <--  
+Microsoft Deployment Toolkit --> https://www.microsoft.com/en-us/download/details.aspx?id=54259 <--  
+KB4564442 for MDT --> https://support.microsoft.com/en-us/topic/windows-10-deployments-fail-with-microsoft-deployment-toolkit-on-computers-with-bios-type-firmware-70557b0b-6be3-81d2-556f-b313e29e2cb7 <--  
+  
+Create a new MDT deployment share in the default location (C:\DeploymentShare)!  
+After creating your deployment share, copy the contents of the DeploymentShare folder (from this repository) into your deployment share folder replacing existing files!  
+Download my Windows 10 and Windows 11 lite touch images from my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <-- and place it inside the appropriate folder in the Operating Systems folder in your deployment share (C:\DeploymentShare\Operating Systems)  
+Update your deployment share to create/recreate boot images!  
+Download my OEM Apps archives from my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <-- and place it in a folder named x64 on a network share at "\\\\SERVER\OEM" or in a folder named x64 within a folder named OEM on a USB flash drive labeled DEPLOY!  
+Open AOMEI PXE Boot Server Free and browse to the folder containing the boot images of your deployment share (C:\DeploymentShare\Boot) and select the appropriate boot image (x64 for 64-bit)!  
+PXE boot your client and deploy Windows!  
+  
+  
+  
+To deploy Windows from Offline Media e.g. a USB flash drive, follow the steps above 'If you have a desktop PC running a Desktop Edition of Windows', then  
+Format a USB flash drive as FAT32 and label th volume "Deploy" (wihout quotes), then set the partition as active!  
+Update your Media in MDT!  
+Copy the contents of your oggline media (C:\Deploy\MDT\Content) to the root of your USB flash drive labeled Deploy!  
+Copy the OEM folder conatining OEM apps to the root of the flash drive!  
+Copy the folder containing the updates to the root of your USB flash drive!  

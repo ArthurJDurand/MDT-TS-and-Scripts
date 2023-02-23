@@ -54,7 +54,6 @@ Write-host "Deleting Rogue folders" -foreground yellow
 	if (test-path C:\Intel) {remove-item -Path C:\Intel -force -recurse}
 	if (test-path C:\LTIBootstrap.vbs) {remove-item C:\LTIBootstrap.vbs -force}
 	if (test-path C:\MININT) {remove-item -Path C:\MININT -force -recurse}
-	if (test-path C:\PerfLogs) {remove-item -Path C:\PerfLogs -force -recurse}
 	if (test-path C:\swsetup) {remove-item -Path C:\swsetup -force -recurse}
 	if (test-path C:\Temp) {remove-item -Path C:\Temp -force -recurse}
 	if (test-path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\LiteTouch.lnk") {remove-item "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\LiteTouch.lnk" -force}

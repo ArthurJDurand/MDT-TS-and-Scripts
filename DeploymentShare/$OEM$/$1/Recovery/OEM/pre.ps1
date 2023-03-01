@@ -115,32 +115,6 @@ if (($OSCaption -like "*Windows 10*") -and (Test-Path C:\Recovery\OEM\LayoutModi
     Copy-Item C:\Recovery\OEM\LayoutModification.xml -Destination C:\Users\Default\AppData\Local\Microsoft\Windows\Shell -Force
 }
 
-$PackageFolderPath = "C:\Recovery\OEM\Apps\App Installer"
-$Package = Get-ChildItem -File $PackageFolderPath | Select-Object -ExpandProperty FullName
-$DependencyFolderPath = "C:\Recovery\OEM\Apps\App Installer\Dependencies"
-$Dependencies = Get-ChildItem -Path $DependencyFolderPath -Filter "*.appx" | Select-Object -ExpandProperty FullName
-$Log = "C:\Recovery\OEM\Apps\Logs\DesktopAppInstaller_UWP.log"
-Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
-
-$PackageFolderPath = "C:\Recovery\OEM\Apps\Microsoft Store"
-$Package = Get-ChildItem -File $PackageFolderPath | Select-Object -ExpandProperty FullName
-$DependencyFolderPath = "C:\Recovery\OEM\Apps\Microsoft Store\Dependencies"
-$Dependencies = Get-ChildItem -Path $DependencyFolderPath -Filter "*.appx" | Select-Object -ExpandProperty FullName
-$Log = "C:\Recovery\OEM\Apps\Logs\WindowsStore_UWP.log"
-Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
-
-$WindowsTerminal = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.WindowsTerminal' })
-$OSCaption = (Get-WmiObject -class Win32_OperatingSystem).Caption
-if (($OSCaption -like "*Windows 11*") -and ([string]::IsNullOrWhiteSpace($WindowsTerminal)))
-{
-    $PackageFolderPath = "C:\Recovery\OEM\Apps\Windows Terminal"
-    $Package = Get-ChildItem -File $PackageFolderPath | Select-Object -ExpandProperty FullName
-    $DependencyFolderPath = "C:\Recovery\OEM\Apps\Windows Terminal\Dependencies"
-    $Dependencies = Get-ChildItem -Path $DependencyFolderPath -Filter "*.appx" | Select-Object -ExpandProperty FullName
-    $Log = "C:\Recovery\OEM\Apps\Logs\WindowsTerminal_UWP.log"
-    Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
-}
-
 $Todos = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.Todos' })
 if ([string]::IsNullOrWhiteSpace($Todos))
 {

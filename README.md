@@ -52,7 +52,7 @@ KB4564442 for MDT --> https://support.microsoft.com/en-us/topic/windows-10-deplo
 You will need to create a new deployment share before using this repository!  
 For simplicity create your deployment share in the default location (C:\DeploymentShare)  
 After creating your deployment share, copy the contents of the DeploymentShare folder from this repository into your deployment share folder replacing existing files!  
-Please note that due to file size and bandwidth limitation of GitHub, the boot images, Out-of-Box drivers and Operating System Images is missing from this repository! Download the DeploymentShare (which contains the missing content) from my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <-- and extract then copy the contents of the DeploymentShare folder from my shared OneDrive folder into your deployment share folder replacing existing files!  
+Please note that due to file size and bandwidth limitation of GitHub, the Boot images, Out-of-Box drivers and Operating System Images is missing from this repository! Download the DeploymentShare (which contains the missing content) from my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <-- and extract then copy the contents of the DeploymentShare folder from my shared OneDrive folder into your deployment share folder replacing existing files!  
   
 Please edit the following files inside the Control folder in your deployment share  
   

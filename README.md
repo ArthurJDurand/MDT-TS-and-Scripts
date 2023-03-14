@@ -234,7 +234,8 @@ KB4564442 for MDT --> https://support.microsoft.com/en-us/topic/windows-10-deplo
 Create a new MDT deployment share in the default location (C:\DeploymentShare)!  
 After creating your deployment share, copy the contents of the DeploymentShare folder (from this repository) into your deployment share folder replacing existing files!  
 Download the DeploymentShare folder that contains the Boot images, Out-of-Box Drivers and Operating System images from my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <-- and extract then copy the contents of the DeploymentShare folder from my shared OneDrive folder into your deployment share folder replacing existing files!  
-Update your deployment share to create/recreate boot images! 
+Update your deployment share to create/recreate boot images!  
+Import boot images into Windows Deployment Services under Boot Images!  
 Download my OEM Apps archives from my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <-- and place it in a folder named x64 on a network share at "\\\\SERVER\OEM" or in a folder named x64 within a folder named OEM on a USB flash drive labeled DEPLOY!  
 PXE boot your client and deploy Windows!    
   

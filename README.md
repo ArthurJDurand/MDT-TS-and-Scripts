@@ -211,18 +211,18 @@ Again, please feel free and contribute by assisting me in improving any/all scri
   
 To recap or simplify
   
-If you have a Server running Windows Server (assuming your server is not the default DHCP or DNS server)  
-Rename your Server to "SERVER" (without quotes)  
+If you have a server running Windows Server (assuming your server is not the default DHCP or DNS server)  
+Rename your Server to "SERVER" (without quotes)!  
 Create a user account named "Network User" (without quotes) in Computer Management under Local Users and Groups > Users, set the password as "p@$$w0rd" - [lowercase p, at sign, dollar sign, dollar sign, lowercase w, zero, lowercase r, lowercase d] (without quotes), and set the following  
 On 'General' tab  
-Remove check mark on 'User must change password at next logon'  
-Set check mark on 'User cannot change password'  
-Set check mark on 'Password never expires'  
+Remove check mark on 'User must change password at next logon'!  
+Set check mark on 'User cannot change password'!  
+Set check mark on 'Password never expires'!  
 On 'Member of' tab  
-Remove the 'Users' group and add the 'Administrators' group and confirm by clicking on ok  
+Remove the 'Users' group and add the 'Administrators' group and confirm by clicking on ok!  
 Look at the scope/range of your DHCP router and set the scope/range to e.g., 192.168.1.101-199 or whatever suits your network environment (reserve some IP addresses for static IP addresses and for the deployment server to respond to PXE requests!  
 Configure your server to use a static IP address on your current subnet (choose a static IP address within your current subnet and outside of the scope/range of your DHCP enabled router/server, e.g., 192.168.1.200!  
-Add and configure the DHCP Server and WDS Server Roles (Import my DHCP configuration backup contained in this repository and edit the scope to suit your network environment)  
+Add and configure the DHCP Server and WDS Server Roles (Import my DHCP configuration backup contained in this repository and edit the scope to suit your network environment)!  
   
 Install the following  
 Microsoft Windows Assessment and Deployment Kit for Windows 11 --> https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install <--  
@@ -233,20 +233,20 @@ KB4564442 for MDT --> https://support.microsoft.com/en-us/topic/windows-10-deplo
   
 Create a new MDT deployment share in the default location (C:\DeploymentShare)!  
 After creating your deployment share, copy the contents of the DeploymentShare folder (from this repository) into your deployment share folder replacing existing files!  
-Download my Windows 10 and Windows 11 lite touch images from my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <-- and place it inside the appropriate folder in the Operating Systems folder in your deployment share (C:\DeploymentShare\Operating Systems)  
+Download the DeploymentShare folder that contains the Boot images, Out-of-Box Drivers and Operating System images from my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <-- and extract then copy the contents of the DeploymentShare folder from my shared OneDrive folder into your deployment share folder replacing existing files!  
 Update your deployment share to create/recreate boot images! 
 Download my OEM Apps archives from my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <-- and place it in a folder named x64 on a network share at "\\\\SERVER\OEM" or in a folder named x64 within a folder named OEM on a USB flash drive labeled DEPLOY!  
 PXE boot your client and deploy Windows!    
   
 If you have a desktop PC running a Desktop Edition of Windows  
-Rename your desktop PC to "SERVER" (without quotes)  
-Create a user account named "Network User" (without quotes) in Computer Management under Local Users and Groups > Users, set the password as "p@$$w0rd" - [lowercase p, at sign, dollar sign, dollar sign, lowercase w, zero, lowercase r, lowercase d] (without quotes), and set the following  
+Rename your desktop PC to "SERVER" (without quotes)!  
+Create a user account named "Network User" (without quotes) in Computer Management under Local Users and Groups > Users, set the password as "p@$$w0rd" - [lowercase p, at sign, dollar sign, dollar sign, lowercase w, zero, lowercase r, lowercase d] (without quotes), and set the following!  
 On 'General' tab  
 Remove check mark on 'User must change password at next logon'  
 Set check mark on 'User cannot change password'  
 Set check mark on 'Password never expires'  
 On 'Member of' tab  
-Remove the 'Users' group and add the 'Administrators' group and confirm by clicking on ok  
+Remove the 'Users' group and add the 'Administrators' group and confirm by clicking on ok!  
 Install and AOMEI PXE Boot Server Free (contained in the Prerequisites folder in this repository)!   
 
 Install the following  

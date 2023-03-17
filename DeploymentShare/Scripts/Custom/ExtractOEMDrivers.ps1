@@ -30,7 +30,7 @@ if (-not ([string]::IsNullOrWhiteSpace($SystemModel)))
     $Model = $SystemModel
 }
 
-$SystemManufacturer = Get-WmiObject -Class:Win32_ComputerSystem | Where-Object {$_.Manufacturer -ne 'Not Available' -and $_.Manufacturer -ne 'System manufacturer' -and $_.Manufacturer -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Manufacturer
+$SystemManufacturer = Get-WmiObject -Class:Win32_ComputerSystem | Where-Object {$_.Manufacturer -ne 'Not Available' -and $_.Manufacturer -ne 'System Manufacturer' -and $_.Manufacturer -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Manufacturer
 if (-not ([string]::IsNullOrWhiteSpace($SystemManufacturer)))
 {
     $Manufacturer = $SystemManufacturer

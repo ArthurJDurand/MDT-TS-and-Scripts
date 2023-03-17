@@ -107,10 +107,9 @@ You may modify the contents of the "$OEM$" folder as you desire.
   
 OEM Apps  
   
+Please note that due to file size and bandwidth limitation of GitHub, the OEM Apps archives is missing from this repository! Download the OEM folder (which contains the missing content) from my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <-- and copy the contents of the OEM folder to a network share at "\\\\SERVER\OEM" or to a folder named OEM on a USB flash drive labeled DEPLOY!  
 OEM gets extracted to the deployed OS as part of the task sequence during OS deployment!  
-OEM Apps should be archived using 7-Zip and placed in a folder named x64 on a network share at "\\\\SERVER\OEM" or in a folder named x64 within a folder named OEM on a USB flash drive labeled DEPLOY!  
-If you place OEM apps in a different network share, please edit DeploymentShare\Scripts\Custom\ExtractOEMAppsx64.ps1 accordingly!  
-This repository contains the scripts used to install OEM apps during the OOBE process of Windows Setup, apps for OEMs has been deleted due to GitHub size restrictions, you may download the complete archives from my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <--  
+If you place OEM apps archives in a different network share, please edit DeploymentShare\Scripts\Custom\ExtractOEMAppsx64.ps1 accordingly!  
 I used Dell's extensibility points as base for all OEM apps and customizations!  
 I only included necessary OEM apps without additional bloatware!
   
@@ -261,7 +260,7 @@ Create a new MDT deployment share in the default location (C:\DeploymentShare)!
 After creating your deployment share, copy the contents of the DeploymentShare folder (from this repository) into your deployment share folder replacing existing files!  
 Download the DeploymentShare folder that contains the Boot images, Out-of-Box Drivers and Operating System images from my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <-- and extract then copy the contents of the DeploymentShare folder from my shared OneDrive folder into your deployment share folder replacing existing files!  
 Update your deployment share to create/recreate boot images!  
-Download my OEM Apps archives from my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <-- and place it in a folder named x64 on a network share at "\\\\SERVER\OEM" or in a folder named x64 within a folder named OEM on a USB flash drive labeled DEPLOY!  
+Download my OEM Apps archives from my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <-- and copy the contents of the OEM folder to a network share at "\\\\SERVER\OEM" (e.g. "\\\\SERVER\OEM\x64\Acer.7z) or to a folder named OEM on a USB flash drive labeled DEPLOY (e.g. "X:\OEM\x64\Acer.7z)!  
 Open AOMEI PXE Boot Server Free and browse to the folder containing the boot images of your deployment share (C:\DeploymentShare\Boot) and select the appropriate boot image (x64 for 64-bit)!  
 PXE boot your client and deploy Windows!  
   

@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8" ?>
-                                                    <wap-provisioningdoc>
-                                                      <characteristic type="AppInstall">   
-                                                        <characteristic type="AppxPackage">
-                                                          <parm name="AppXPath" value="C:\PROGRAMS\CommonFiles\Xaps\f5cfe52efd4541179d65efb2ca1f38a3.appxbundle" />
-                                                          <parm name="LicensePath" value="C:\PROGRAMS\CommonFiles\Xaps\f5cfe52efd4541179d65efb2ca1f38a3_License1.xml" />
-                                                        </characteristic>
-                                                      </characteristic>
-                                                    </wap-provisioningdoc>

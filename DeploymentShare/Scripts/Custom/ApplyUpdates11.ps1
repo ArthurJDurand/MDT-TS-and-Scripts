@@ -18,7 +18,7 @@ if (-not ([string]::IsNullOrWhiteSpace($WindowsVolumeLetter)))
     [String]$Updates = ($WindowsVolumeLetter.DriveLetter).ToString() + ":\Updates"
 }
 
-if (Test-Path $UpdateSource)
+if ((Test-Path $UpdateSource) -and (-not ([string]::IsNullOrWhiteSpace($WindowsVolumeLetter))))
 {
     New-Item $ScratchDir -itemType Directory
     New-Item $Updates -itemType Directory

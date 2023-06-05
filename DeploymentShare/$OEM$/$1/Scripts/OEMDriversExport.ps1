@@ -61,20 +61,24 @@ if (Test-Path $7Zip)
      & $7Zip a -mx9 -ssw $Archive $Drivers
 }
 
-$DeployVolumeLetter = Get-Volume | Where {$_.FileSystemLabel -Like "Deploy"} | select Driveletter
-if (-not ([string]::IsNullOrWhiteSpace($DeployVolumeLetter)))
-{
-    $DriverPackPath = ($DeployVolumeLetter.Driveletter).ToString() + ":\DriverPacks"
-}
-
-if (Test-Path "\\SERVER\Shared\DriverPacks")
-{
-    $DriverPackPath = "\\SERVER\Shared\DriverPacks"
-}
-
-if (!(Test-Path $DriverPackPath))
-{
-    New-Item $DriverPackPath -itemType Directory
+$DriverPackPath = $null
+$DeployVolumeLetter = Get-Volume | Where-Object {$_.FileSystemLabel -Like "Deploy"} | Select-Object -ExpandProperty DriveLetter
+while ($DriverPackPath -eq $null) {
+    if (Test-Path '\\SERVER\Shared\DriverPacks') {
+        $DriverPackPath = '\\SERVER\Shared\DriverPacks'
+    }
+    elseif ((-not ([string]::IsNullOrWhiteSpace($DeployVolumeLetter))) -and (!(Test-Path "$DeployVolumeLetter`:\DriverPacks"))) {
+        $DeployVolumeLetter = Get-Volume | Where-Object {$_.FileSystemLabel -Like "Deploy"} | Select-Object -ExpandProperty DriveLetter
+        New-Item "$DeployVolumeLetter`:\DriverPacks" -itemType Directory
+    }
+    elseif (Test-Path "$DeployVolumeLetter`:\DriverPacks") {
+        $DeployVolumeLetter = Get-Volume | Where-Object {$_.FileSystemLabel -Like "Deploy"} | Select-Object -ExpandProperty DriveLetter
+        $DriverPackPath = "$DeployVolumeLetter`:\DriverPacks"
+    }
+    else {
+        Write-Host "Please switch on the deployment server or connect the deployment flash drive and press any key to continue."
+        $null = Read-Host "Press any key to continue."
+    }
 }
 
 if ((Test-Path $Archive) -and (Test-Path $DriverPackPath))

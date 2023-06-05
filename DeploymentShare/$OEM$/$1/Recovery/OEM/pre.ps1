@@ -324,7 +324,7 @@ if (Test-Path $OEMDrivers)
     Get-ChildItem $OEMDrivers -Recurse -Filter "*.inf" | ForEach-Object { & $pnputil /add-driver $_.FullName /install }
 }
 
-if ((Test-Path $WLAN) -and (!(Test-Path $OEMDrivers)))
+if (Test-Path $WLAN)
 {
     Get-ChildItem $WLAN -Recurse -Filter "*.cer" | ForEach-Object { Import-Certificate -FilePath $_.FullName -CertStoreLocation Cert:\LocalMachine\TrustedPublisher }
     Get-ChildItem $WLAN -Recurse -Filter "*.inf" | ForEach-Object { & $pnputil /add-driver $_.FullName /install }

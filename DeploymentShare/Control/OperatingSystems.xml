@@ -39,4 +39,24 @@
 		<HAL/>
 		<Size>29863</Size>
 	</os>
+	<os guid="{bc653e93-8a5d-49d5-a50a-d0d99f6708d8}" enable="True">
+		<Name>Windows 10 Pro (32-bit).wim</Name>
+		<CreatedTime>2022-10-14 12:28:29 am</CreatedTime>
+		<CreatedBy>SERVER\Administrator</CreatedBy>
+		<LastModifiedTime>2022-10-14 12:28:29 am</LastModifiedTime>
+		<LastModifiedBy>SERVER\Administrator</LastModifiedBy>
+		<Description>Windows IBS image</Description>
+		<Platform>x86</Platform>
+		<Build>10.0.19041.1889</Build>
+		<OSType>Windows IBS</OSType>
+		<Source>.\Operating Systems\Win10Prox86</Source>
+		<IncludesSetup>False</IncludesSetup>
+		<SMSImage>False</SMSImage>
+		<ImageFile>.\Operating Systems\Win10Prox86\install.wim</ImageFile>
+		<ImageIndex>1</ImageIndex>
+		<ImageName>Windows 10 Pro</ImageName>
+		<Flags/>
+		<HAL/>
+		<Size>16922</Size>
+	</os>
 </oss>

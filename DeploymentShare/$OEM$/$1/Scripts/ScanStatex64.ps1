@@ -95,15 +95,20 @@ if (Test-Path C:\Temp\WindowsRE)
     Remove-Item C:\Temp\WindowsRE -Force -Recurse
 }
 
-$DeployVolumeLetter = Get-Volume | Where {$_.FileSystemLabel -Like "Deploy"} | select Driveletter
-if (-not ([string]::IsNullOrWhiteSpace($DeployVolumeLetter)))
-{
-    $ScanStatePath = ($DeployVolumeLetter.Driveletter).ToString() + ":\ScanState"
-}
-
-if (Test-Path "\\SERVER\Shared\ScanState")
-{
-    $ScanStatePath = "\\SERVER\Shared\ScanState"
+$ScanStatePath = $null
+$DeployVolumeLetter = Get-Volume | Where-Object {$_.FileSystemLabel -Like "Deploy"} | Select-Object -ExpandProperty DriveLetter
+while ($ScanStatePath -eq $null) {
+    if (Test-Path '\\SERVER\Shared\ScanState') {
+        $ScanStatePath = '\\SERVER\Shared\ScanState'
+    }
+    elseif (Test-Path "$DeployVolumeLetter`:\ScanState") {
+        $DeployVolumeLetter = Get-Volume | Where-Object {$_.FileSystemLabel -Like "Deploy"} | Select-Object -ExpandProperty DriveLetter
+        $ScanStatePath = "$DeployVolumeLetter`:\ScanState"
+    }
+    else {
+        Write-Host "Please switch on the deployment server or connect the deployment flash drive and press any key to continue."
+        $null = Read-Host "Press any key to continue."
+    }
 }
 
 $OSCaption = (Get-WmiObject -class Win32_OperatingSystem).Caption

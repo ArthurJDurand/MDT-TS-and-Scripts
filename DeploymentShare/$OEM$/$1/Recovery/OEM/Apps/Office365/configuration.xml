@@ -1,15 +1,9 @@
 ﻿<Configuration>
-  <Add OfficeClientEdition="64" Channel="MonthlyEnterprise" ForceUpgrade="true" MigrateArch="true" AllowCdnFallback="true">
-    <Product ID="O365ProPlusRetail">
+  <Add OfficeClientEdition="64" Channel="Current" ForceUpgrade="true" MigrateArch="true" AllowCdnFallback="true">
+    <Product ID="O365HomePremRetail">
       <Language ID="en-us" />
-      <ExcludeApp ID="Groove" />
-      <ExcludeApp ID="Lync" />
-      <ExcludeApp ID="OneDrive" />
-      <ExcludeApp ID="Teams" />
     </Product>
   </Add>
-  <Remove All="true" />
-  <Display Level="None" />
   <Property Name="ForceAppShutdown" Value="True" />
   <RemoveMSI />
 </Configuration>

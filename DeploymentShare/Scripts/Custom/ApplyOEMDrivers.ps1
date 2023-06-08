@@ -63,7 +63,7 @@ if ((-not ([string]::IsNullOrWhiteSpace($CPUName))) -and ($CPUName -like "*13th 
     $StorageDrivers = "C:\Recovery\OEM\Drivers\Storage\Intel\VMD\19.5.1.1040"
 }
 
-if (Test-Path $StorageDrivers\*)
+if ((-not ([string]::IsNullOrWhiteSpace($CPUName))) -and (Test-Path $StorageDrivers\*))
 {
     DISM /Image:$WindowsImage /Add-Driver /Driver:$StorageDrivers /recurse
 }

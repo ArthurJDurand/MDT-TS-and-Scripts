@@ -3,7 +3,7 @@ $RecoveryVolumeLetter = Get-Volume | Where {$_.FileSystemLabel -Like "Recovery"}
 if ([string]::IsNullOrWhiteSpace($RecoveryVolumeLetter.Driveletter))
 {
     $RecoveryVolume = Get-Volume | Where {$_.FileSystemLabel -Like "Recovery"} | Get-Partition | Select PartitionNumber
-    Set-Partition $SystemDiskNumber.DiskNumber $RecoveryVolume.PartitionNumber  -NewDriveLetter R
+    Set-Partition $SystemDiskNumber.DiskNumber $RecoveryVolume.PartitionNumber -NewDriveLetter R
 }
 
 $WindowsVolumeLetter = Get-Volume -FileSystemLabel Windows | Select DriveLetter

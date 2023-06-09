@@ -6,6 +6,24 @@ if ([string]::IsNullOrWhiteSpace($RecoveryVolumeLetter.Driveletter))
     Set-Partition $SystemDiskNumber.DiskNumber $RecoveryVolume.PartitionNumber -NewDriveLetter R
 }
 
+$SystemDiskNumber = Get-Volume | Where-Object { $_.FileSystemLabel -Like "System" } | Get-Partition | Select-Object -ExpandProperty DiskNumber
+$RecoveryVolumeLetter = Get-Volume | Where-Object { $_.FileSystemLabel -Like "Recovery" } | Select-Object -ExpandProperty DriveLetter
+if ([string]::IsNullOrWhiteSpace($RecoveryVolumeLetter))
+{
+    $RecoveryVolume = Get-Volume | Where-Object { $_.FileSystemLabel -Like "Recovery" } | Get-Partition | Select-Object -ExpandProperty PartitionNumber
+
+    $driveLetters = [System.IO.DriveInfo]::GetDrives() | ForEach-Object { $_.Name[0] }
+
+    if ($driveLetters -contains "R") {
+        $availableDriveLetter = [char]('D'.. 'J' | Where-Object { $driveLetters -notcontains $_ } | Select-Object -First 1)
+    }
+    else {
+        $availableDriveLetter = "R"
+    }
+
+    Set-Partition -DiskNumber $SystemDiskNumber -PartitionNumber $RecoveryVolume -NewDriveLetter $availableDriveLetter
+}
+
 $WindowsVolumeLetter = Get-Volume -FileSystemLabel Windows | Select DriveLetter
 $RecoveryVolumeLetter = Get-Volume -FileSystemLabel Recovery | Select DriveLetter
 [String]$SrcWinRE = ($WindowsVolumeLetter.Driveletter).ToString() + ":\Windows\System32\Recovery\Winre.wim"
@@ -34,4 +52,9 @@ if (Test-Path $DstWinRE\Winre.wim)
     & $reagentc /setreimage /path $DstWinRE /target $Windows
 }
 
-Get-Volume -Drive R | Get-Partition | Remove-PartitionAccessPath -accesspath R:\
+$RecoveryVolumeLetter = Get-Volume | Where-Object { $_.FileSystemLabel -Like "Recovery" } | Select-Object -ExpandProperty DriveLetter
+if (-not ([string]::IsNullOrWhiteSpace($RecoveryVolumeLetter)))
+{
+    $RecoveryDriveLetter = $RecoveryVolumeLetter + ":\"
+    Get-Volume -DriveLetter $RecoveryVolumeLetter | Get-Partition | Remove-PartitionAccessPath -AccessPath $RecoveryDriveLetter
+}

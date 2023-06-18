@@ -186,7 +186,7 @@ if ($OPKDesc -like "*Professional*")
 Offline Media  
   
 You may create an offline media set that you can copy to a USB flash drive!  
-Please format a USB flash drive with the FAT32 partition style and label the flash drive "DEPLOY" (without quotes), then set the partition as active!  
+Please format a USB flash drive with the FAT32 file system and label the flash drive "DEPLOY" (without quotes), then set the partition as active!  
 Copy the Content of your Media Set (Default location C:\Deploy\MDT\Content) to the root of the USB flash drive labeled DEPLOY!  
 Create the folder structure OEM\x64 on the USB flash drive labeled DEPLOY!  
 Copy the OEM apps downloaded in .7z archive format - downloaded from my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <-- to OEM\x64 on the USB flash drive labeled DEPLOY!  

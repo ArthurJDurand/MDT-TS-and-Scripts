@@ -47,8 +47,9 @@ $OSCaption = (Get-WmiObject -class Win32_OperatingSystem).Caption
 if ($OSCaption -like "*Windows 10*")
 {
     New-ItemProperty -Path HKLM:\temp\Software\Microsoft\Windows\CurrentVersion\Feeds -Name ShellFeedsTaskbarOpenOnHover -Value 0 -PropertyType DWord
+    Set-ItemProperty -Path HKLM:\temp\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name DisablePreviewDesktop -Value 0 -Force
     Set-ItemProperty -Path HKLM:\temp\Software\Microsoft\Windows\CurrentVersion\Feeds -Name ShellFeedsTaskbarOpenOnHover -Value 0 -Force
-    Set-ItemProperty -Path HKLM:\temp\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager -Name SystemPaneSuggestionsEnabled -Value 0 -Force
+    Set-ItemProperty -Path HKLM:\temp\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager -Name SubscribedContent-338388Enabled -Value 0 -Force
 }
 reg UNLOAD HKLM\temp
 

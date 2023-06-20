@@ -1,4 +1,3 @@
-Get-BitLockerVolume | Disable-BitLocker
 Set-MPPreference -PUAProtection Enabled
 Add-MpPreference -ExclusionPath C:\Recovery
 
@@ -422,3 +421,4 @@ if (-not ([string]::IsNullOrWhiteSpace($RecoveryVolume)))
 attrib C:\Users\Default +h +r
 attrib C:\Users\Default\NTUSER.DAT +a +h +i
 attrib C:\Users\Default\AppData +h
+Get-BitLockerVolume | Disable-BitLocker

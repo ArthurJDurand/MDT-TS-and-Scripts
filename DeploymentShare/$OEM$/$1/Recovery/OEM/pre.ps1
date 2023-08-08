@@ -145,7 +145,7 @@ $Dependencies = Get-ChildItem -Path $DependencyFolderPath -Filter "*.appx" | Sel
 $AV1VideoExtension = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.AV1VideoExtension' })
 if ([string]::IsNullOrWhiteSpace($AV1VideoExtension))
 {
-    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.AV1VideoExtension*.appx" | Select-Object -ExpandProperty FullName
+    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.AV1VideoExtension*.appxbundle" | Select-Object -ExpandProperty FullName
     $Log = "C:\Recovery\OEM\Apps\Logs\AV1VideoExtension_UWP.log"
     Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
 }
@@ -153,7 +153,7 @@ if ([string]::IsNullOrWhiteSpace($AV1VideoExtension))
 $HEIFImageExtension = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.HEIFImageExtension' })
 if ([string]::IsNullOrWhiteSpace($HEIFImageExtension))
 {
-    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.HEIFImageExtension*.appx" | Select-Object -ExpandProperty FullName
+    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.HEIFImageExtension*.appxbundle" | Select-Object -ExpandProperty FullName
     $Log = "C:\Recovery\OEM\Apps\Logs\HEIFImageExtension_UWP.log"
     Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
 }
@@ -161,7 +161,7 @@ if ([string]::IsNullOrWhiteSpace($HEIFImageExtension))
 $HEVCVideoExtension = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.HEVCVideoExtension' })
 if ([string]::IsNullOrWhiteSpace($HEVCVideoExtension))
 {
-    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.HEVCVideoExtensions*.appx" | Select-Object -ExpandProperty FullName
+    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.HEVCVideoExtensions*.appxbundle" | Select-Object -ExpandProperty FullName
     $Log = "C:\Recovery\OEM\Apps\Logs\HEVCVideoExtension_UWP.log"
     Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
 }

@@ -158,8 +158,8 @@ if ([string]::IsNullOrWhiteSpace($HEIFImageExtension))
     Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
 }
 
-$HEVCVideoExtension = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.HEVCVideoExtension' })
-if ([string]::IsNullOrWhiteSpace($HEVCVideoExtension))
+$HEVCVideoExtensions = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.HEVCVideoExtensions' })
+if ([string]::IsNullOrWhiteSpace($HEVCVideoExtensions))
 {
     $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.HEVCVideoExtensions*.appxbundle" | Select-Object -ExpandProperty FullName
     $Log = "C:\Recovery\OEM\Apps\Logs\HEVCVideoExtension_UWP.log"
@@ -169,7 +169,7 @@ if ([string]::IsNullOrWhiteSpace($HEVCVideoExtension))
 $MPEG2VideoExtension = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.MPEG2VideoExtension' })
 if ([string]::IsNullOrWhiteSpace($MPEG2VideoExtension))
 {
-    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.MPEG2VideoExtension*.appx" | Select-Object -ExpandProperty FullName
+    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.MPEG2VideoExtension*.appxbundle" | Select-Object -ExpandProperty FullName
     $Log = "C:\Recovery\OEM\Apps\Logs\MPEG2VideoExtension_UWP.log"
     Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
 }
@@ -193,7 +193,7 @@ if ([string]::IsNullOrWhiteSpace($RawImageExtension))
 $VP9VideoExtensions = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.VP9VideoExtensions' })
 if ([string]::IsNullOrWhiteSpace($VP9VideoExtensions))
 {
-    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.VP9VideoExtensions*.appx" | Select-Object -ExpandProperty FullName
+    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.VP9VideoExtensions*.appxbundle" | Select-Object -ExpandProperty FullName
     $Log = "C:\Recovery\OEM\Apps\Logs\VP9VideoExtensions_UWP.log"
     Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
 }
@@ -201,7 +201,7 @@ if ([string]::IsNullOrWhiteSpace($VP9VideoExtensions))
 $WebpImageExtension = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.WebpImageExtension' })
 if ([string]::IsNullOrWhiteSpace($WebpImageExtension))
 {
-    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.WebpImageExtension*.appx" | Select-Object -ExpandProperty FullName
+    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.WebpImageExtension*.appxbundle" | Select-Object -ExpandProperty FullName
     $Log = "C:\Recovery\OEM\Apps\Logs\WebpImageExtension_UWP.log"
     Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
 }

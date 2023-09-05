@@ -198,6 +198,14 @@ if ([string]::IsNullOrWhiteSpace($VP9VideoExtensions))
     Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
 }
 
+$WebMediaExtensions = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.WebMediaExtensions' })
+if ([string]::IsNullOrWhiteSpace($WebMediaExtensions))
+{
+    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.WebMediaExtensions*.appxbundle" | Select-Object -ExpandProperty FullName
+    $Log = "C:\Recovery\OEM\Apps\Logs\WebMediaExtensions.log"
+    Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
+}
+
 $WebpImageExtension = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.WebpImageExtension' })
 if ([string]::IsNullOrWhiteSpace($WebpImageExtension))
 {

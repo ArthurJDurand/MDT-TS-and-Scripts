@@ -73,7 +73,7 @@
         <ProtectYourPC>1</ProtectYourPC>
         <HideLocalAccountScreen>false</HideLocalAccountScreen>
         <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
-        <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+        <HideWirelessSetupInOOBE>false</HideWirelessSetupInOOBE>
       </OOBE>
       <TimeZone>South Africa Standard Time</TimeZone>
     </component>

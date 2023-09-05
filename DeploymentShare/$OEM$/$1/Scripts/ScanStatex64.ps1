@@ -1,3 +1,21 @@
+powercfg -setacvalueindex scheme_current sub_pciexpress ee12f906-d277-404b-b6da-e5fa1a576df5 0
+
+if (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}") {
+    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" -Name "EnableUlps" -Value 0
+}
+
+if (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}") {
+    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" -Name "PerformanceSettings" -Value 0
+}
+
+if (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Services\amdkmpfd") {
+    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\amdkmpfd" -Name "Start" -Value 0
+}
+
+if (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Services\nvlddmkm") {
+    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\nvlddmkm" -Name "TdrLevel" -Value 0
+}
+
 $SystemDiskNumber = Get-Volume | Where {$_.FileSystemLabel -Like "System"} | Get-Partition | Select DiskNumber
 $RecoveryVolume = Get-Volume | Where {$_.FileSystemLabel -Like "Recovery"} | Get-Partition | Select PartitionNumber
 if (-not ([string]::IsNullOrWhiteSpace($RecoveryVolume)))
@@ -331,5 +349,54 @@ if ((!(Test-Path C:\Scripts\*)) -and (Test-Path C:\Scripts))
 {
     Remove-Item C:\Scripts -Force
 }
+
+$ServicingPath = $null
+$DeployVolumeLetter = Get-Volume | Where-Object {$_.FileSystemLabel -Like "Deploy"} | Select-Object -ExpandProperty DriveLetter
+while ($ServicingPath -eq $null) {
+    if (Test-Path '\\SERVER\Shared\Servicing') {
+        $ServicingPath = '\\SERVER\Shared\Servicing'
+    }
+    elseif (Test-Path "$DeployVolumeLetter`:\Servicing") {
+        $DeployVolumeLetter = Get-Volume | Where-Object {$_.FileSystemLabel -Like "Deploy"} | Select-Object -ExpandProperty DriveLetter
+        $ServicingPath = "$DeployVolumeLetter`:\Servicing"
+    }
+    else {
+        Write-Host "Please switch on the deployment server or connect the deployment flash drive and press any key to continue."
+        $null = Read-Host "Press any key to continue."
+    }
+}
+
+if ((Test-Path $ServicingPath) -and (!(Test-Path C:\Temp\Servicing)))
+{
+    New-Item C:\Temp\Servicing -itemType Directory
+}
+
+$OSCaption = (Get-WmiObject -class Win32_OperatingSystem).Caption
+if (($OSCaption -like "*Windows 11*") -and (Test-Path $ServicingPath))
+{
+    Copy-Item -Path $ServicingPath\Win11\* -Destination C:\Temp\Servicing -Force -Recurse
+}
+
+$OSCaption = (Get-WmiObject -class Win32_OperatingSystem).Caption
+if (($OSCaption -like "*Windows 10*") -and (Test-Path $ServicingPath))
+{
+    Copy-Item -Path $ServicingPath\Win10\x64\* -Destination C:\Temp\Servicing -Force -Recurse
+}
+
+$WindowsImageHealth = Repair-WindowsImage -Online -CheckHealth
+if (($WindowsImageHealth.ImageHealthState -eq 'Repairable') -and (Test-Path 'C:\Temp\Servicing\*'))
+{
+    Repair-WindowsImage -Online -RestoreHealth -Source C:\Temp\Servicing\Windows -LimitAccess
+} else {
+    Repair-WindowsImage -Online -RestoreHealth
+}
+
+$WindowsImageHealth = Repair-WindowsImage -Online -CheckHealth
+if ($WindowsImageHealth.ImageHealthState -eq 'Repairable')
+{
+    Repair-WindowsImage -Online -RestoreHealth
+}
+
+SFC /SCANNOW
 
 Remove-Item $PSCommandPath -Force

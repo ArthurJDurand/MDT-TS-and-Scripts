@@ -31,4 +31,7 @@ if not exist C:\Recovery\OEM\Logs md C:\Recovery\OEM\Logs
 C:\Temp\ScanState\scanstate.exe /apps /ppkg C:\Recovery\Customizations\usmt.ppkg /i:C:\Temp\ScanState\OEMCustomizations.xml /config:C:\Temp\ScanState\Config_AppsAndSettings.xml /o /c /v:13 /l:C:\Recovery\OEM\Logs\ScanState.log
 rd C:\Temp /s /q
 pause
+powercfg.exe /batteryreport
+move battery-report.html %UserProfile%\Desktop
+%UserProfile%\Desktop\battery-report.html
 (goto) 2>nul & del "%~f0"

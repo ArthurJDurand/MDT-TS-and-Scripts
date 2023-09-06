@@ -387,8 +387,6 @@ $WindowsImageHealth = Repair-WindowsImage -Online -CheckHealth
 if (($WindowsImageHealth.ImageHealthState -eq 'Repairable') -and (Test-Path 'C:\Temp\Servicing\*'))
 {
     Repair-WindowsImage -Online -RestoreHealth -Source C:\Temp\Servicing\Windows -LimitAccess
-} else {
-    Repair-WindowsImage -Online -RestoreHealth
 }
 
 $WindowsImageHealth = Repair-WindowsImage -Online -CheckHealth

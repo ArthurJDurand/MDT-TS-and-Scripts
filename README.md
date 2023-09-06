@@ -98,16 +98,12 @@ PXE boot your client and deploy Windows!
   
 ### Offline Media  
   
-Update your Media in Deployment Workbench (Microsoft Deployment Toolkit)!  
-You may create an offline media set that you can copy to a USB flash drive!  
-Please format a USB flash drive with the FAT32 file system and label the flash drive "DEPLOY" (without quotes), then set the partition as active!  
+You may create an offline media set that you can copy to a USB flash drive, to do so  
+Copy the MDT folder from this repository to the root of your system drive!  
+Update your Media in Deployment (Microsoft Deployment Toolkit)!  
+Format a USB flash drive with the FAT32 file system and label the flash drive "DEPLOY" (without quotes), then set the partition as active!  
 Copy the contents of your Media Set (Default location C:\Deploy\MDT\Content) to the root of the USB flash drive labeled DEPLOY!  
 Copy the contents of the Shared folder to the root of the USB flash drive labeled "DEPLOY"!  
-  
-To deploy Windows from Offline Media e.g., a USB flash drive, follow the steps above 'If you have a desktop PC running a Desktop Edition of Windows', then Format a USB flash drive as FAT32 and label the volume "Deploy" (without quotes), then set the partition as active!  
-Copy the contents of your offline media (C:\Deploy\MDT\Content) to the root of your USB flash drive labeled Deploy!  
-Copy the OEM folder containing OEM apps to the root of the flash drive!  
-Copy the folder containing the updates to the root of your USB flash drive!  
   
   
 

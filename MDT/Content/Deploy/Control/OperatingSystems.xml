@@ -1,0 +1,86 @@
+<oss>
+  <os guid="{bc653e93-8a5d-49d5-a50a-d0d99f6708d8}" enable="True" hide="">
+    <Name>Windows 10 Pro (32-bit).wim</Name>
+    <Comments>
+    </Comments>
+    <CreatedTime>2022-10-14 6:00:33 am</CreatedTime>
+    <CreatedBy>SERVER\Administrator</CreatedBy>
+    <LastModifiedTime>2023-06-08 5:27:41 pm</LastModifiedTime>
+    <LastModifiedBy>SERVER\Administrator</LastModifiedBy>
+    <Description>Windows IBS image</Description>
+    <Platform>x86</Platform>
+    <Build>10.0.19041.1889</Build>
+    <OSType>Windows IBS</OSType>
+    <Source>.\Operating Systems\Win10Prox86</Source>
+    <IncludesSetup>False</IncludesSetup>
+    <SMSImage>False</SMSImage>
+    <ImageFile>.\Operating Systems\Win10Prox86\install.swm</ImageFile>
+    <ImageIndex>1</ImageIndex>
+    <ImageName>Windows 10 Pro</ImageName>
+    <Flags>
+    </Flags>
+    <HAL>
+    </HAL>
+    <Size>16922</Size>
+    <WDSServer>
+    </WDSServer>
+    <ImageGroup>
+    </ImageGroup>
+  </os>
+  <os guid="{0cabe44a-4e43-4e52-abad-7edfb42704a8}" enable="True" hide="">
+    <Name>Windows 10 Pro (64-bit).wim</Name>
+    <Comments>
+    </Comments>
+    <CreatedTime>2022-10-14 6:06:37 am</CreatedTime>
+    <CreatedBy>SERVER\Administrator</CreatedBy>
+    <LastModifiedTime>2023-06-08 5:28:52 pm</LastModifiedTime>
+    <LastModifiedBy>SERVER\Administrator</LastModifiedBy>
+    <Description>Windows IBS image</Description>
+    <Platform>x64</Platform>
+    <Build>10.0.19041.1889</Build>
+    <OSType>Windows IBS</OSType>
+    <Source>.\Operating Systems\Win10Prox64</Source>
+    <IncludesSetup>False</IncludesSetup>
+    <SMSImage>False</SMSImage>
+    <ImageFile>.\Operating Systems\Win10Prox64\install.swm</ImageFile>
+    <ImageIndex>1</ImageIndex>
+    <ImageName>Windows 10 Pro</ImageName>
+    <Flags>
+    </Flags>
+    <HAL>
+    </HAL>
+    <Size>29863</Size>
+    <WDSServer>
+    </WDSServer>
+    <ImageGroup>
+    </ImageGroup>
+  </os>
+  <os guid="{f080bd22-c068-4ae4-8759-cc1f3f7b956b}" enable="True" hide="">
+    <Name>Windows 11 Pro (64-bit).wim</Name>
+    <Comments>
+    </Comments>
+    <CreatedTime>2022-10-14 6:11:02 am</CreatedTime>
+    <CreatedBy>SERVER\Administrator</CreatedBy>
+    <LastModifiedTime>2023-06-08 5:29:59 pm</LastModifiedTime>
+    <LastModifiedBy>SERVER\Administrator</LastModifiedBy>
+    <Description>Windows IBS image</Description>
+    <Platform>x64</Platform>
+    <Build>10.0.22621.608</Build>
+    <OSType>Windows IBS</OSType>
+    <Source>.\Operating Systems\Win11Prox64</Source>
+    <IncludesSetup>False</IncludesSetup>
+    <SMSImage>False</SMSImage>
+    <ImageFile>.\Operating Systems\Win11Prox64\install.swm</ImageFile>
+    <ImageIndex>1</ImageIndex>
+    <ImageName>Windows 11 Pro</ImageName>
+    <Flags>
+    </Flags>
+    <HAL>
+    </HAL>
+    <Size>23730</Size>
+    <WDSServer>
+    </WDSServer>
+    <ImageGroup>
+    </ImageGroup>
+  </os>
+</oss>

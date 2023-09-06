@@ -52,9 +52,15 @@ Windows PE Addon for the Windows ADK --> https://learn.microsoft.com/en-us/windo
 Microsoft Windows Software Development Kit for Windows 11 --> https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/ <--  
 Microsoft Deployment Toolkit --> https://www.microsoft.com/en-us/download/details.aspx?id=54259 <--  
 Run the self extracting archive "MDT Templates" from the Prerequisites folder contained in this repository and extract the contents to the default location specified by the self extracting archive!  
-Add and configure the DHCP Server and WDS Server Roles by running the following command in PowerShell 7  `Install-WindowsFeature -ConfigurationFilePath <path_to_DeploymentConfigTemplate.xml>' (Replace <path_to_DeploymentConfigTemplate.xml> with the path to the "DeploymentConfigTemplate.xml" file contained in this repository in "Prerequisites\for Windows Server\Configs")!  
-Import my DHCP Serve config by running the following command in PowerShell 7  `Import-DhcpServer -File <path_to_DHCP Server.xml>' (Replace <path_to_DHCP Server.xml> with the path to the "DHCP Server.xml" file contained in this repository in "Prerequisites\for Windows Server\Configs") and edit the IPv4 Server Options and DCHP scope to suit your network environment!  
-Import my WDS Server config by running the following command in PowerShell 7  `Import-WdsServer -Path <path_to_WDS Server.xml> -OverwriteExisting' (Replace <path_to_WDS Server.xml> with the path to the "WDS Server.xml" file contained in this repository in "Prerequisites\for Windows Server\Configs")!  
+Add and configure the DHCP Server and WDS Server Roles by running the following command in PowerShell 7
+`Install-WindowsFeature -ConfigurationFilePath <path_to_DeploymentConfigTemplate.xml>'
+(Replace <path_to_DeploymentConfigTemplate.xml> with the path to the "DeploymentConfigTemplate.xml" file contained in this repository in "Prerequisites\for Windows Server\Configs")!  
+Import my DHCP Serve config by running the following command in PowerShell 7
+`Import-DhcpServer -File <path_to_DHCP Server.xml>'
+(Replace <path_to_DHCP Server.xml> with the path to the "DHCP Server.xml" file contained in this repository in "Prerequisites\for Windows Server\Configs") and edit the IPv4 Server Options and DCHP scope to suit your network environment!  
+Import my WDS Server config by running the following command in PowerShell 7
+`Import-WdsServer -Path <path_to_WDS Server.xml> -OverwriteExisting'
+(Replace <path_to_WDS Server.xml> with the path to the "WDS Server.xml" file contained in this repository in "Prerequisites\for Windows Server\Configs")!  
 Import both boot images (LiteTouchPE_x64.wim and LiteTouchPE_x86.wim) contained in the "DeploymentShare\Boot" folder of your deployment share into the WDS Server!  
 Open the Deployment Workbench (Microsoft Deployment Toolkit), and create a new deployment share in the default location (C:\DeploymentShare) then close the Deployment Workbench!  
 Merge the contents from this repository and my shared OneDrive folder with the deployment share you created in the previous step!  
@@ -217,24 +223,26 @@ I am unable to find an easy solution to check and set the deployed OS to match t
 pre.ps1  
 If the deployed Windows edition is set according to OEM license during OS deployment, "DeploymentShare\\$OEM$\\$1\Recovery\OEM\pre.ps1" should be edited to activate the non-pro edition by replacing the following  
   
-'$OPK = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKey
+'''
+$OPK = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKey
 $OPKDesc = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKeyDescription
 if (($OPKDesc -like "*Professional*") -and (-not ([string]::IsNullOrWhiteSpace($OPKDesc))))
 {
   cscript C:\Windows\System32\slmgr.vbs /ipk $OPK
   cscript C:\Windows\System32\slmgr.vbs /ato
 }
-'  
+'''  
   
 with  
   
-'$OPK = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKey
+'''
+$OPK = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKey
 if (-not ([string]::IsNullOrWhiteSpace($OPKDesc)))
 {
   cscript C:\Windows\System32\slmgr.vbs /ipk $OPK
   cscript C:\Windows\System32\slmgr.vbs /ato
 }
-'  
+'''  
   
 Limiting the local group policies to Pro edition by replacing the following line  
   
@@ -242,10 +250,11 @@ Limiting the local group policies to Pro edition by replacing the following line
   
 with  
   
-'$OPKDesc = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKeyDescription
+'''
+$OPKDesc = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKeyDescription
 if ($OPKDesc -like "*Professional*")
 {
   & C:\Recovery\OEM\LGPO\LGPO.exe /g C:\Recovery\OEM\LGPO\Backup
 }
-'  
+'''  
   

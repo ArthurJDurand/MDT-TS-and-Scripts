@@ -1,7 +1,7 @@
 $WindowsVolumeLetter = Get-Volume -FileSystemLabel Windows | Select DriveLetter
 $DeployVolumeLetter = Get-Volume | Where {$_.FileSystemLabel -Like "Deploy"} | select Driveletter
 
-if (-not ([string]::IsNullOrWhiteSpace($DeployVolumeLetter)))
+if (!([string]::IsNullOrWhiteSpace($DeployVolumeLetter)))
 {
     [String]$UpdateSource = ($DeployVolumeLetter.DriveLetter).ToString() + ":\Updates\Win10\x64\*"
 }
@@ -11,14 +11,14 @@ if (Test-Path \\SERVER\Shared\Updates\Win10\x64\*)
     $UpdateSource = "\\SERVER\Shared\Updates\Win10\x64\*"
 }
 
-if (-not ([string]::IsNullOrWhiteSpace($WindowsVolumeLetter)))
+if (!([string]::IsNullOrWhiteSpace($WindowsVolumeLetter)))
 {
     [String]$WindowsImage = ($WindowsVolumeLetter.DriveLetter).ToString() + ":\"
     [String]$ScratchDir = ($WindowsVolumeLetter.DriveLetter).ToString() + ":\Scratch"
     [String]$Updates = ($WindowsVolumeLetter.DriveLetter).ToString() + ":\Updates"
 }
 
-if ((Test-Path $UpdateSource) -and (-not ([string]::IsNullOrWhiteSpace($WindowsVolumeLetter))))
+if ((Test-Path $UpdateSource) -and (!([string]::IsNullOrWhiteSpace($WindowsVolumeLetter))))
 {
     New-Item $ScratchDir -itemType Directory
     New-Item $Updates -itemType Directory

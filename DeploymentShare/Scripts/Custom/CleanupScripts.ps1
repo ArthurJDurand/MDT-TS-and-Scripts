@@ -1,6 +1,6 @@
 $WindowsVolumeLetter = Get-Volume -FileSystemLabel Windows | Select DriveLetter
 
-if (-not ([string]::IsNullOrWhiteSpace($WindowsVolumeLetter)))
+if (!([string]::IsNullOrWhiteSpace($WindowsVolumeLetter)))
 {
     [String]$SMSTaskSequence = ($WindowsVolumeLetter.DriveLetter).ToString() + ":\_SMSTaskSequence"
     [String]$MININT = ($WindowsVolumeLetter.DriveLetter).ToString() + ":\MININT"

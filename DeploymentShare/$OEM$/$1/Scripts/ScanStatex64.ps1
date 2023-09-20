@@ -1,4 +1,5 @@
 powercfg -setacvalueindex scheme_current sub_pciexpress ee12f906-d277-404b-b6da-e5fa1a576df5 0
+Start-Process 'windowsdefender:' -WindowStyle Maximized
 
 if (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}") {
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" -Name "EnableUlps" -Value 0
@@ -18,7 +19,7 @@ if (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Services\nvlddmkm") {
 
 $SystemDiskNumber = Get-Volume | Where {$_.FileSystemLabel -Like "System"} | Get-Partition | Select DiskNumber
 $RecoveryVolume = Get-Volume | Where {$_.FileSystemLabel -Like "Recovery"} | Get-Partition | Select PartitionNumber
-if (-not ([string]::IsNullOrWhiteSpace($RecoveryVolume)))
+if (!([string]::IsNullOrWhiteSpace($RecoveryVolume)))
 {
     Set-Partition $SystemDiskNumber.DiskNumber $RecoveryVolume.PartitionNumber  -NewDriveletter R
 }
@@ -26,25 +27,25 @@ if (-not ([string]::IsNullOrWhiteSpace($RecoveryVolume)))
 $DriversPath = "C:\Recovery\OEM\Drivers\"
 
 $BaseBoardProduct = Get-WmiObject Win32_BaseBoard | Select Product
-if ((-not ([string]::IsNullOrWhiteSpace($BaseBoardProduct))) -or ($BaseBoardProduct.Product -eq 'Not Available'))
+if ((!([string]::IsNullOrWhiteSpace($BaseBoardProduct))) -or ($BaseBoardProduct.Product -eq 'Not Available'))
 {
     [String]$Model = ($BaseBoardProduct.Product).ToString()
 }
 
 $ProductVersion = Get-WmiObject -Class:Win32_ComputerSystemProduct | select Version
-if ((-not ([string]::IsNullOrWhiteSpace($ProductVersion))) -or ($ProductVersion.Version -eq 'System Version') -or ($ProductVersion.Version -eq 'To be filled by O.E.M.'))
+if ((!([string]::IsNullOrWhiteSpace($ProductVersion))) -or ($ProductVersion.Version -eq 'System Version') -or ($ProductVersion.Version -eq 'To be filled by O.E.M.'))
 {
     [String]$Model = ($ProductVersion.Version).ToString()
 }
 
 $SystemModel = Get-WmiObject -Class:Win32_ComputerSystem | select Model
-if ((-not ([string]::IsNullOrWhiteSpace($SystemModel))) -or ($SystemModel.Model -eq 'System Product Name') -or ($SystemModel.Model -eq 'To be filled by O.E.M.'))
+if ((!([string]::IsNullOrWhiteSpace($SystemModel))) -or ($SystemModel.Model -eq 'System Product Name') -or ($SystemModel.Model -eq 'To be filled by O.E.M.'))
 {
     [String]$Model = ($SystemModel.Model).ToString()
 }
 
 $SystemManufacturer = Get-WmiObject -Class:Win32_ComputerSystem | select Manufacturer
-if ((-not ([string]::IsNullOrWhiteSpace($SystemManufacturer))) -or ($SystemManufacturer.Manufacturer -eq 'Not Available') -or ($SystemManufacturer.Manufacturer -eq 'System manufacturer') -or ($SystemManufacturer.Manufacturer -eq 'To be filled by O.E.M.'))
+if ((!([string]::IsNullOrWhiteSpace($SystemManufacturer))) -or ($SystemManufacturer.Manufacturer -eq 'Not Available') -or ($SystemManufacturer.Manufacturer -eq 'System manufacturer') -or ($SystemManufacturer.Manufacturer -eq 'To be filled by O.E.M.'))
 {
     [String]$Manufacturer = ($SystemManufacturer.Manufacturer).ToString()
 }
@@ -103,7 +104,7 @@ if (Test-Path R:\$Recycle.Bin)
     Remove-Item R:\$Recycle.Bin -Force -Recurse
 }
 
-if (-not ([string]::IsNullOrWhiteSpace($RecoveryVolume)))
+if (!([string]::IsNullOrWhiteSpace($RecoveryVolume)))
 {
     Get-Volume -Drive R | Get-Partition | Remove-PartitionAccessPath -accesspath R:\
 }

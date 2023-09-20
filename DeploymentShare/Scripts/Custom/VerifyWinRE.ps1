@@ -53,7 +53,7 @@ if (Test-Path $DstWinRE\Winre.wim)
 }
 
 $RecoveryVolumeLetter = Get-Volume | Where-Object { $_.FileSystemLabel -Like "Recovery" } | Select-Object -ExpandProperty DriveLetter
-if (-not ([string]::IsNullOrWhiteSpace($RecoveryVolumeLetter)))
+if (!([string]::IsNullOrWhiteSpace($RecoveryVolumeLetter)))
 {
     $RecoveryDriveLetter = $RecoveryVolumeLetter + ":\"
     Get-Volume -DriveLetter $RecoveryVolumeLetter | Get-Partition | Remove-PartitionAccessPath -AccessPath $RecoveryDriveLetter

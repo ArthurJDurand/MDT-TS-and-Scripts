@@ -220,25 +220,25 @@ reg import C:\Recovery\OEM\RegionalSettings.reg
 reg UNLOAD HKLM\temp
 
 $BaseBoardProduct = Get-WmiObject Win32_BaseBoard | Where-Object {$_.Product -ne 'Not Available'} | Select-Object -ExpandProperty Product
-if (-not ([string]::IsNullOrWhiteSpace($BaseBoardProduct)))
+if (!([string]::IsNullOrWhiteSpace($BaseBoardProduct)))
 {
     $Model = $BaseBoardProduct
 }
 
 $ProductVersion = Get-WmiObject -Class:Win32_ComputerSystemProduct | Where-Object {$_.Version -ne 'System Version' -and $_.Version -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Version
-if (-not ([string]::IsNullOrWhiteSpace($ProductVersion)))
+if (!([string]::IsNullOrWhiteSpace($ProductVersion)))
 {
     $Model = $ProductVersion
 }
 
 $SystemModel = Get-WmiObject -Class:Win32_ComputerSystem | Where-Object {$_.Model -ne 'System Product Name' -and $_.Model -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Model
-if (-not ([string]::IsNullOrWhiteSpace($SystemModel)))
+if (!([string]::IsNullOrWhiteSpace($SystemModel)))
 {
     $Model = $SystemModel
 }
 
 $SystemManufacturer = Get-WmiObject -Class:Win32_ComputerSystem | Where-Object {$_.Manufacturer -ne 'Not Available' -and $_.Manufacturer -ne 'System manufacturer' -and $_.Manufacturer -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Manufacturer
-if (-not ([string]::IsNullOrWhiteSpace($SystemManufacturer)))
+if (!([string]::IsNullOrWhiteSpace($SystemManufacturer)))
 {
     $Manufacturer = $SystemManufacturer
 }
@@ -249,7 +249,7 @@ if ($Manufacturer -like '*Lenovo*')
     $Model = $ProductVersion
 }
 
-if (-not ([string]::IsNullOrWhiteSpace($Model)))
+if (!([string]::IsNullOrWhiteSpace($Model)))
 {
     Set-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation -Name Model -Value "$Model" -Force
 }
@@ -257,7 +257,7 @@ if (-not ([string]::IsNullOrWhiteSpace($Model)))
 $OPK = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKey
 $OPKDesc = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKeyDescription
 
-if (($OPKDesc -like "*Professional*") -and (-not ([string]::IsNullOrWhiteSpace($OPKDesc))))
+if (($OPKDesc -like "*Professional*") -and (!([string]::IsNullOrWhiteSpace($OPKDesc))))
 {
     cscript C:\Windows\System32\slmgr.vbs /ipk $OPK
     cscript C:\Windows\System32\slmgr.vbs /ato
@@ -289,7 +289,7 @@ if ([string]::IsNullOrWhiteSpace($WinRAR))
 }
 
 $WinRAR = (Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'WinRAR' })
-if (-not [string]::IsNullOrWhiteSpace($WinRAR))
+if (![string]::IsNullOrWhiteSpace($WinRAR))
 {
     reg LOAD HKLM\temp C:\Users\Default\ntuser.dat
     reg import C:\Recovery\OEM\Apps\WinRARSettings.reg
@@ -304,7 +304,7 @@ if ([string]::IsNullOrWhiteSpace($Diskeeper))
 }
 
 $Diskeeper = (Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'Diskeeper' })
-if (-not [string]::IsNullOrWhiteSpace($Diskeeper))
+if (![string]::IsNullOrWhiteSpace($Diskeeper))
 {
     reg LOAD HKLM\temp C:\Users\Default\ntuser.dat
     reg import C:\Recovery\OEM\Apps\DiskeeperSettings.reg
@@ -313,14 +313,14 @@ if (-not [string]::IsNullOrWhiteSpace($Diskeeper))
 
 $HDD = Get-PhysicalDisk | select DeviceID, Friendlyname, BusType, MediaType | Where MediaType -eq 'HDD' | Select -ExpandProperty DeviceID
 $DriveMonitor = (Get-ItemProperty HKLM:Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'Acronis Drive Monitor' })
-if ((-not ([string]::IsNullOrWhiteSpace($HDD))) -and ([string]::IsNullOrWhiteSpace($DriveMonitor)))
+if ((!([string]::IsNullOrWhiteSpace($HDD))) -and ([string]::IsNullOrWhiteSpace($DriveMonitor)))
 {
     Start-Process C:\Recovery\OEM\Apps\DriveMonitor.msi -ArgumentList "/qn /norestart /l*v C:\Recovery\OEM\Apps\Logs\DriveMonitor_Install.log" -Wait
     Remove-Item "C:\Users\Public\Desktop\Acronis Drive Monitor.lnk" -Force
 }
 
 $DriveMonitor = (Get-ItemProperty HKLM:Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'Acronis Drive Monitor' })
-if (-not [string]::IsNullOrWhiteSpace($DriveMonitor))
+if (![string]::IsNullOrWhiteSpace($DriveMonitor))
 {
     reg import C:\Recovery\OEM\Apps\DriveMonitor.reg
 }
@@ -344,19 +344,19 @@ if (Test-Path $WLAN)
 }
 
 $CPUName = WMIC CPU Get Name
-if ((-not ([string]::IsNullOrWhiteSpace($CPUName))) -and ($CPUName -like "*11th Gen*"))
+if ((!([string]::IsNullOrWhiteSpace($CPUName))) -and ($CPUName -like "*11th Gen*"))
 {
     $StorageDrivers = "C:\Recovery\OEM\Drivers\Storage\Intel\VMD\19.5.2.1049.5"
 }
 
 $CPUName = WMIC CPU Get Name
-if ((-not ([string]::IsNullOrWhiteSpace($CPUName))) -and ($CPUName -like "*12th Gen*"))
+if ((!([string]::IsNullOrWhiteSpace($CPUName))) -and ($CPUName -like "*12th Gen*"))
 {
     $StorageDrivers = "C:\Recovery\OEM\Drivers\Storage\Intel\VMD\19.5.2.1049.5"
 }
 
 $CPUName = WMIC CPU Get Name
-if ((-not ([string]::IsNullOrWhiteSpace($CPUName))) -and ($CPUName -like "*13th Gen*"))
+if ((!([string]::IsNullOrWhiteSpace($CPUName))) -and ($CPUName -like "*13th Gen*"))
 {
     $StorageDrivers = "C:\Recovery\OEM\Drivers\Storage\Intel\VMD\19.5.2.1049.5"
 }
@@ -395,7 +395,7 @@ if (Test-Path C:\LTIBootstrap.vbs)
 
 $SystemDiskNumber = Get-Volume | Where {$_.FileSystemLabel -Like "System"} | Get-Partition | Select DiskNumber
 $RecoveryVolume = Get-Volume | Where {$_.FileSystemLabel -Like "Recovery"} | Get-Partition | Select PartitionNumber
-if (-not ([string]::IsNullOrWhiteSpace($RecoveryVolume)))
+if (!([string]::IsNullOrWhiteSpace($RecoveryVolume)))
 {
     Set-Partition $SystemDiskNumber.DiskNumber $RecoveryVolume.PartitionNumber  -NewDriveLetter R
 }
@@ -426,7 +426,7 @@ if (Test-Path R:\$Recycle.Bin)
     Remove-Item R:\$Recycle.Bin -Force -Recurse
 }
 
-if (-not ([string]::IsNullOrWhiteSpace($RecoveryVolume)))
+if (!([string]::IsNullOrWhiteSpace($RecoveryVolume)))
 {
     Get-Volume -Drive R | Get-Partition | Remove-PartitionAccessPath -accesspath R:\
 }

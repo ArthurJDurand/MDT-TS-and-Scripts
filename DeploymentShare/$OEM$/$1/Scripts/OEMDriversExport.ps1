@@ -62,7 +62,7 @@ if (Test-Path $7Zip)
 }
 
 $DeployVolumeLetter = Get-Volume | Where-Object {$_.FileSystemLabel -Like "Deploy"} | Select-Object -ExpandProperty DriveLetter
-if (!(Test-Path "$DeployVolumeLetter`:\DriverPacks"))
+if ((!(Test-Path "$DeployVolumeLetter`:\DriverPacks")) -and (!([string]::IsNullOrWhiteSpace($DeployVolumeLetter))))
 {
     New-Item "$DeployVolumeLetter`:\DriverPacks" -itemType Directory
 }

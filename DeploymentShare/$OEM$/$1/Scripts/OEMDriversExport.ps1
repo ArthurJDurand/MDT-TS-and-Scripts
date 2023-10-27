@@ -56,9 +56,14 @@ if (Test-Path $Drivers\prn*)
 }
 
 $7Zip = "C:\Program Files\7-Zip\7z.exe"
-if (Test-Path $7Zip)
-{
-     & $7Zip a -mx9 -ssw $Archive $Drivers
+if (Test-Path $7Zip) {
+    do {
+        & $7Zip a -mx9 -ssw $Archive $Drivers
+        & $7Zip t $Archive
+        if ($LASTEXITCODE -ne 0) {
+            Remove-Item $Archive -Force
+        }
+    } while ($LASTEXITCODE -ne 0)
 }
 
 $DeployVolumeLetter = Get-Volume | Where-Object {$_.FileSystemLabel -Like "Deploy"} | Select-Object -ExpandProperty DriveLetter
@@ -90,6 +95,19 @@ while ($DriverPackPath -eq $null) {
 if ((Test-Path $Archive) -and (Test-Path $DriverPackPath))
 {
     Copy-Item -Path $Archive -Destination $DriverPackPath -Force
+}
+
+$DestinationArchive = Join-Path -Path $DriverPackPath -ChildPath (Split-Path -Path $Archive -Leaf)
+if (Test-Path $Archive) {
+    do {
+        if (!(Test-Path $DestinationArchive)) {
+            Copy-Item -Path $Archive -Destination $DriverPackPath -Force
+        }
+        & $7Zip t $DestinationArchive
+        if ($LASTEXITCODE -ne 0) {
+            Remove-Item $DestinationArchive -Force
+        }
+    } while ($LASTEXITCODE -ne 0)
 }
 
 if (Test-Path $Archive)

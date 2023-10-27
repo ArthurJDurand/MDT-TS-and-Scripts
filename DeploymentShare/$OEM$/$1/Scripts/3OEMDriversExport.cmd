@@ -18,6 +18,7 @@ if '%errorlevel%' NEQ '0' (
     pushd "%CD%"
     CD /D "%~dp0"
 :-----------------------------------------------------------------------
+devmgmt.msc
 powershell.exe -ExecutionPolicy Bypass -File "%~dp0\OEMDriversExport.ps1" -Verb RunAs
 pause
 (goto) 2>nul & del "%~f0"

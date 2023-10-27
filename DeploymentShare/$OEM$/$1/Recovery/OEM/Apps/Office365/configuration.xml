@@ -4,6 +4,8 @@
       <Language ID="en-us" />
     </Product>
   </Add>
+  <Remove All="true" />
+  <Display Level="None" />
   <Property Name="ForceAppShutdown" Value="True" />
   <RemoveMSI />
 </Configuration>

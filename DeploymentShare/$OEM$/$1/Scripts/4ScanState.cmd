@@ -18,6 +18,7 @@ if '%errorlevel%' NEQ '0' (
     pushd "%CD%"
     CD /D "%~dp0"
 :-----------------------------------------------------------------------
+devmgmt.msc
 attrib C:\Recovery +h +s
 IF %PROCESSOR_ARCHITECTURE% == x86 (IF NOT DEFINED PROCESSOR_ARCHITEW6432 goto bit32)
 goto bit64

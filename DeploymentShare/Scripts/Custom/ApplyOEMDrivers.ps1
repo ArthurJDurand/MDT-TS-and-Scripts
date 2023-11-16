@@ -48,19 +48,19 @@ if (Test-Path $WLAN)
 $CPUName = WMIC CPU Get Name
 if ((!([string]::IsNullOrWhiteSpace($CPUName))) -and ($CPUName -like "*11th Gen*"))
 {
-    $StorageDrivers = "C:\Recovery\OEM\Drivers\Storage\Intel\VMD\19.5.1.1040"
+    [String]$StorageDrivers = ($WindowsVolumeLetter.Driveletter).ToString() + ":\Recovery\OEM\Drivers\Storage\Intel\VMD"
 }
 
 $CPUName = WMIC CPU Get Name
 if ((!([string]::IsNullOrWhiteSpace($CPUName))) -and ($CPUName -like "*12th Gen*"))
 {
-    $StorageDrivers = "C:\Recovery\OEM\Drivers\Storage\Intel\VMD\19.5.1.1040"
+    [String]$StorageDrivers = ($WindowsVolumeLetter.Driveletter).ToString() + ":\Recovery\OEM\Drivers\Storage\Intel\VMD"
 }
 
 $CPUName = WMIC CPU Get Name
 if ((!([string]::IsNullOrWhiteSpace($CPUName))) -and ($CPUName -like "*13th Gen*"))
 {
-    $StorageDrivers = "C:\Recovery\OEM\Drivers\Storage\Intel\VMD\19.5.1.1040"
+    [String]$StorageDrivers = ($WindowsVolumeLetter.Driveletter).ToString() + ":\Recovery\OEM\Drivers\Storage\Intel\VMD"
 }
 
 if ((!([string]::IsNullOrWhiteSpace($CPUName))) -and (Test-Path $StorageDrivers\*))

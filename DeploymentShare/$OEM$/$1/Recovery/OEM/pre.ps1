@@ -263,9 +263,9 @@ if (($OPKDesc -like "*Professional*") -and (!([string]::IsNullOrWhiteSpace($OPKD
     cscript C:\Windows\System32\slmgr.vbs /ato
 }
 
-if ([string]::IsNullOrWhiteSpace($OPKDesc) -or (!($OPKDesc -like "*Professional*")) -and (Test-Path C:\Recovery\OEM\HWID_Activation.cmd))
+if ([string]::IsNullOrWhiteSpace($OPKDesc) -or (!($OPKDesc -like "*Professional*")) -and (Test-Path C:\Recovery\OEM\Activation\HWID_Activation.cmd))
 {
-    & cmd /c "C:\Recovery\OEM\HWID_Activation.cmd /HWID-NoEditionChange"
+    & cmd /c "C:\Recovery\OEM\Activation\HWID_Activation.cmd /HWID-NoEditionChange"
 }
 
 $Office365 = (Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'Microsoft 365 - en-us' })

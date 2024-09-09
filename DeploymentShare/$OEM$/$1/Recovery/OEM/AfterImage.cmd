@@ -26,7 +26,7 @@ if exist C:\Recovery\OEM\unattend.xml set OSpath=C:
 
 :CREATE_FOLDERS
 if not exist %OSpath%\Windows\OEM md %OSpath%\Windows\OEM
-if not exist %OSpath%\Recovery\OEM\Apps\Logs mkdir %OSpath%\Recovery\OEM\Apps\Logs
+if not exist %OSpath%\Recovery\OEM\Apps\Logs md %OSpath%\Recovery\OEM\Apps\Logs
 if not exist %OSpath%\Windows\Setup\Scripts md %OSpath%\Windows\Setup\Scripts
 :END_CREATE_FOLDERS
 

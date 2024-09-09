@@ -28,11 +28,7 @@ goto cont
 :bit64
 powershell.exe -ExecutionPolicy Bypass -File "%~dp0\ScanStatex64.ps1" -Verb RunAs
 :cont
-if not exist C:\Recovery\OEM\Logs md C:\Recovery\OEM\Logs
-C:\Temp\ScanState\scanstate.exe /apps /ppkg C:\Recovery\Customizations\usmt.ppkg /i:C:\Temp\ScanState\OEMCustomizations.xml /config:C:\Temp\ScanState\Config_AppsAndSettings.xml /o /c /v:13 /l:C:\Recovery\OEM\Logs\ScanState.log
-rd C:\Temp /s /q
 pause
-powercfg.exe /batteryreport
-move battery-report.html %UserProfile%\Desktop
-%UserProfile%\Desktop\battery-report.html
+if exist %SystemDrive%\Recovery\OEM\Apps\pbr.ps1 powershell -ExecutionPolicy bypass -File %SystemDrive%\Recovery\OEM\Apps\pbr.ps1 -Verb RunAs
+shutdown /r
 (goto) 2>nul & del "%~f0"

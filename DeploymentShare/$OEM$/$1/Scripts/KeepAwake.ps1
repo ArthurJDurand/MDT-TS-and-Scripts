@@ -1,5 +1,6 @@
-$wsh = New-Object -ComObject WScript.Shell
-while (1) {
-    $wsh.SendKeys('+{F15}')
-    Start-Sleep -seconds 59
+# Keep the system awake
+Add-Type -AssemblyName System.Windows.Forms
+while ($true) {
+    [System.Windows.Forms.SendKeys]::SendWait('+{F15}')
+    Start-Sleep -Seconds 59
 }

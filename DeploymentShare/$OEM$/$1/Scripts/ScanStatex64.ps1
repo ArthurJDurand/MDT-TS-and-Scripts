@@ -1,14 +1,131 @@
-powercfg -setacvalueindex scheme_current sub_pciexpress ee12f906-d277-404b-b6da-e5fa1a576df5 0
+# Function to move child-items from a source to a destination, removing existing items at the destination
+function Move-ItemifExist {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$SourcePath,
+        [Parameter(Mandatory=$true)]
+        [string]$DestinationPath
+    )
+    if (Test-Path $SourcePath) {
+        Get-ChildItem -Path $SourcePath | ForEach-Object {
+            $ItemPath = Join-Path -Path $DestinationPath -ChildPath $_.Name
+            if (Test-Path $ItemPath) {
+                Remove-Item -Path $ItemPath -Recurse -Force
+            }
+            Move-Item -Path $_.FullName -Destination $ItemPath -Force
+        }
+    }
+}
+
+# Function to create a directory if it doesn't exist
+function New-DirectoryIfNotExists {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$Path
+    )
+    if (-not (Test-Path -Path $Path)) {
+        New-Item -Path $Path -ItemType Directory
+    }
+}
+
+# Function to remove an existing item at a given path
+function Remove-ItemifExist {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$Path,
+        [switch]$Recurse
+    )
+    if (Test-Path $Path) {
+        Remove-Item $Path -Force -Recurse:$Recurse
+    }
+}
+
+# Open the Windows Security app
 Start-Process 'windowsdefender:' -WindowStyle Maximized
 
-if (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}") {
-    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" -Name "EnableUlps" -Value 0
+# Uninstall the Dell SupportAssist modern app
+$SupportAssistUWP = Get-AppxPackage | Where-Object { $_.Name -Match 'DellInc.DellSupportAssistforPCs' }
+if ($SupportAssistUWP) {
+    Remove-AppxPackage -Package $SupportAssistUWP -AllUsers
 }
 
-if (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}") {
-    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}" -Name "PerformanceSettings" -Value 0
+# Uninstall Dell SupportAssist and restart
+$SupportAssist = Get-WmiObject -Class Win32_Product | Where-Object {$_.Name -Match 'Dell SupportAssist'}
+if ($SupportAssist) {
+    $SupportAssist.Uninstall()
+    Restart-Computer
+    Exit
 }
 
+# Remove redundant directories
+$PathsToRemove = @(
+    "C:\Temp",
+    "C:\Recovery\Customizations",
+    "C:\Recovery\OEM\Point_*"
+)
+
+foreach ($Path in $PathsToRemove) {
+    Remove-ItemifExist -Path $Path -Recurse
+}
+
+# Define the base scanstate path
+$ScanStatePath = $null
+while (-not $ScanStatePath) {
+    if (Test-Path "\\SERVER\Shared\ScanState") {
+        $BaseScanStatePath = "\\SERVER\Shared\ScanState"
+    } else {
+        $DeploymentDriveLetter = (Get-Volume | Where-Object { $_.FileSystemLabel -Like "Deploy" }).DriveLetter
+        if ($DeploymentDriveLetter) {
+            $BaseScanStatePath = Join-Path -Path "${DeploymentDriveLetter}:" -ChildPath "ScanState"
+        } else {
+            Write-Host "Please switch on the deployment server or connect the deployment flash drive and press any key to continue."
+            Read-Host "Press any key to continue."
+            $BaseScanStatePath = $null
+        }
+    }
+
+    # Define the scanstate path based on the OS version
+    if ($BaseScanStatePath) {
+        $OSCaption = (Get-CimInstance -ClassName Win32_OperatingSystem).Caption
+        if ($OSCaption -like "*Windows 11*") {
+            $ScanStatePath = Join-Path -Path $BaseScanStatePath -ChildPath "Win11\*"
+        } elseif ($OSCaption -like "*Windows 10*") {
+            $ScanStatePath = Join-Path -Path $BaseScanStatePath -ChildPath "Win10\x64\*"
+        } else {
+            $ScanStatePath = $null
+        }
+    }
+}
+
+# Copy files needed to deploy push button reset features to a temporary location
+if ($BaseScanStatePath -and $ScanStatePath) {
+    New-DirectoryIfNotExists -Path "C:\Temp\ScanState"
+    Copy-Item -Path $ScanStatePath -Destination C:\Temp\ScanState -Force -Recurse
+    Copy-Item -Path (Join-Path -Path $BaseScanStatePath -ChildPath "Custom\*.xml") -Destination C:\Temp\ScanState -Force
+    Remove-ItemifExist -Path C:\Windows\Setup\Scripts -Recurse
+    New-DirectoryIfNotExists -Path "C:\Windows\Setup\Scripts"
+    Copy-Item -Path (Join-Path -Path $BaseScanStatePath -ChildPath "Custom\SetupComplete.cmd") -Destination C:\Windows\Setup\Scripts -Force
+    if (Test-Path C:\Recovery\OEM) {
+        New-DirectoryIfNotExists -Path "C:\Temp\OEM"
+        Copy-Item -Path (Join-Path -Path $BaseScanStatePath -ChildPath "Custom\pre.ps1") -Destination C:\Temp\OEM -Force
+    }
+    if (Test-Path C:\Recovery\OEM\Apps\pbr.ps1) {
+        New-DirectoryIfNotExists -Path "C:\Temp\OEM\Apps"
+        Copy-Item -Path (Join-Path -Path $BaseScanStatePath -ChildPath "Custom\pbr.reg") -Destination C:\Temp\OEM\Apps -Force
+    }
+}
+
+# Disable PCI Express Link State Power Management
+powercfg -setacvalueindex scheme_current sub_pciexpress ee12f906-d277-404b-b6da-e5fa1a576df5 0
+
+# Disable Ulps and Performance Settings for specific network adapters
+$NetworkAdapterRegistryPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}"
+if (Test-Path $NetworkAdapterRegistryPath) {
+    Set-ItemProperty -Path $NetworkAdapterRegistryPath -Name "EnableUlps" -Value 0
+    Set-ItemProperty -Path $NetworkAdapterRegistryPath -Name "PerformanceSettings" -Value 0
+}
+
+# Disable specific services
 if (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Services\amdkmpfd") {
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\amdkmpfd" -Name "Start" -Value 0
 }
@@ -17,385 +134,117 @@ if (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Services\nvlddmkm") {
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\nvlddmkm" -Name "TdrLevel" -Value 0
 }
 
-$SystemDiskNumber = Get-Volume | Where {$_.FileSystemLabel -Like "System"} | Get-Partition | Select DiskNumber
-$RecoveryVolume = Get-Volume | Where {$_.FileSystemLabel -Like "Recovery"} | Get-Partition | Select PartitionNumber
-if (!([string]::IsNullOrWhiteSpace($RecoveryVolume)))
-{
-    Set-Partition $SystemDiskNumber.DiskNumber $RecoveryVolume.PartitionNumber  -NewDriveletter R
-}
-
-$DriversPath = "C:\Recovery\OEM\Drivers\"
-
-$BaseBoardProduct = Get-WmiObject Win32_BaseBoard | Select Product
-if ((!([string]::IsNullOrWhiteSpace($BaseBoardProduct))) -or ($BaseBoardProduct.Product -eq 'Not Available'))
-{
-    [String]$Model = ($BaseBoardProduct.Product).ToString()
-}
-
-$ProductVersion = Get-WmiObject -Class:Win32_ComputerSystemProduct | select Version
-if ((!([string]::IsNullOrWhiteSpace($ProductVersion))) -or ($ProductVersion.Version -eq 'System Version') -or ($ProductVersion.Version -eq 'To be filled by O.E.M.'))
-{
-    [String]$Model = ($ProductVersion.Version).ToString()
-}
-
-$SystemModel = Get-WmiObject -Class:Win32_ComputerSystem | select Model
-if ((!([string]::IsNullOrWhiteSpace($SystemModel))) -or ($SystemModel.Model -eq 'System Product Name') -or ($SystemModel.Model -eq 'To be filled by O.E.M.'))
-{
-    [String]$Model = ($SystemModel.Model).ToString()
-}
-
-$SystemManufacturer = Get-WmiObject -Class:Win32_ComputerSystem | select Manufacturer
-if ((!([string]::IsNullOrWhiteSpace($SystemManufacturer))) -or ($SystemManufacturer.Manufacturer -eq 'Not Available') -or ($SystemManufacturer.Manufacturer -eq 'System manufacturer') -or ($SystemManufacturer.Manufacturer -eq 'To be filled by O.E.M.'))
-{
-    [String]$Manufacturer = ($SystemManufacturer.Manufacturer).ToString()
-}
-
-if ($Manufacturer -like '*Lenovo*')
-{
-    $ProductVersion = Get-WmiObject -Class:Win32_ComputerSystemProduct | select Version
-    [String]$Model = ($ProductVersion.Version).ToString()
-}
-
-[String]$Drivers = ($DriversPath).ToString() + "$Model"
-
-if (!(Test-Path $Drivers))
-{
-    New-Item $Drivers -itemType Directory
-    pnputil /export-driver * $Drivers
-    Remove-Item $Drivers\prn* -Force -Recurse
-}
-
-if (!(Test-Path C:\Temp\Drivers))
-{
-    New-Item C:\Temp\Drivers -itemType Directory
-}
-
-if (Test-Path $Drivers\iaAHCI*)
-{
-    Copy-Item -Path $Drivers\iaAHCI* -Destination C:\Temp\Drivers -Force -Recurse
-}
-
-if (Test-Path $Drivers\iaRVMD*)
-{
-    Copy-Item -Path $Drivers\iaRVMD* -Destination C:\Temp\Drivers -Force -Recurse
-}
-
-if (Test-Path $Drivers\iaStor*)
-{
-    Copy-Item -Path $Drivers\iaStor* -Destination C:\Temp\Drivers -Force -Recurse
-}
-
-if (!(Test-Path C:\Temp\WindowsRE))
-{
-    New-Item C:\Temp\WindowsRE -itemType Directory
-}
-
-if ((Test-Path R:\Recovery\WindowsRE\winre.wim) -and (Test-Path C:\Temp\Drivers\*))
-{
-    Mount-WindowsImage -ImagePath R:\Recovery\WindowsRE\winre.wim -index 1 -Path C:\Temp\WindowsRE
-    Add-WindowsDriver -Path C:\Temp\WindowsRE -Driver C:\Temp\Drivers -recurse
-    Dismount-WindowsImage -Path C:\Temp\WindowsRE -Save
-    Export-WindowsImage -SourceImagePath R:\Recovery\WindowsRE\winre.wim -SourceIndex 1 -DestinationImagePath C:\Temp\WindowsRE\winre.wim
-    Move-Item -Path C:\Temp\WindowsRE\winre.wim -Destination R:\Recovery\WindowsRE -Force
-}
-
-if (Test-Path R:\$Recycle.Bin)
-{
-    Remove-Item R:\$Recycle.Bin -Force -Recurse
-}
-
-if (!([string]::IsNullOrWhiteSpace($RecoveryVolume)))
-{
-    Get-Volume -Drive R | Get-Partition | Remove-PartitionAccessPath -accesspath R:\
-}
-
-if (Test-Path C:\Temp\WindowsRE)
-{
-    Remove-Item C:\Temp\WindowsRE -Force -Recurse
-}
-
-$ScanStatePath = $null
-$DeployVolumeLetter = Get-Volume | Where-Object {$_.FileSystemLabel -Like "Deploy"} | Select-Object -ExpandProperty DriveLetter
-while ($ScanStatePath -eq $null) {
-    if (Test-Path '\\SERVER\Shared\ScanState') {
-        $ScanStatePath = '\\SERVER\Shared\ScanState'
-    }
-    elseif (Test-Path "$DeployVolumeLetter`:\ScanState") {
-        $DeployVolumeLetter = Get-Volume | Where-Object {$_.FileSystemLabel -Like "Deploy"} | Select-Object -ExpandProperty DriveLetter
-        $ScanStatePath = "$DeployVolumeLetter`:\ScanState"
-    }
-    else {
-        Write-Host "Please switch on the deployment server or connect the deployment flash drive and press any key to continue."
-        $null = Read-Host "Press any key to continue."
-    }
-}
-
-$OSCaption = (Get-WmiObject -class Win32_OperatingSystem).Caption
-if (($OSCaption -like "*Windows 11*") -and (!(Test-Path C:\Temp\ScanState)))
-{
-    New-Item C:\Temp\ScanState -itemType Directory
-    Copy-Item -Path "$ScanStatePath\Win11\*" -Destination C:\Temp\ScanState -Force -Recurse
-    Copy-Item -Path "$ScanStatePath\Custom\*.xml" -Destination C:\Temp\ScanState -Force -Recurse
-}
-
-$OSCaption = (Get-WmiObject -class Win32_OperatingSystem).Caption
-if (($OSCaption -like "*Windows 10*") -and (!(Test-Path C:\Temp\ScanState)))
-{
-    New-Item C:\Temp\ScanState -itemType Directory
-    Copy-Item -Path "$ScanStatePath\Win10\x64\*" -Destination C:\Temp\ScanState -Force -Recurse
-    Copy-Item -Path "$ScanStatePath\Custom\*.xml" -Destination C:\Temp\ScanState -Force -Recurse
-}
-
-if (Test-Path C:\Users\Default\AppData\Local\Microsoft\Windows\Themes)
-{
-    Remove-Item C:\Users\Default\AppData\Local\Microsoft\Windows\Themes -Force -Recurse
-}
-
-if (Test-Path C:\Users\Default\AppData\Roaming\Microsoft\Windows\Themes)
-{
-    Remove-Item C:\Users\Default\AppData\Roaming\Microsoft\Windows\Themes -Force -Recurse
-}
-
-if (Test-Path C:\Windows\Setup\FirstLogon)
-{
-    Remove-Item C:\Windows\Setup\FirstLogon -Force -Recurse
-}
-
-if (Test-Path C:\Windows\Setup\FirstRun)
-{
-    Remove-Item C:\Windows\Setup\FirstRun -Force -Recurse
-}
-
-if (Test-Path C:\Windows\Setup\Scripts)
-{
-    Remove-Item C:\Windows\Setup\Scripts -Force -Recurse
-}
-
-if (Test-Path C:\Recovery\AutoApply)
-{
-    takeown /F C:\Recovery\AutoApply /R /D Y /SKIPSL
-    icacls C:\Recovery\AutoApply /T /C /L /Q /RESET
-}
-
-if (Test-Path C:\Recovery\Customizations)
-{
-    takeown /F C:\Recovery\Customizations /R /D Y /SKIPSL
-    icacls C:\Recovery\Customizations /T /C /L /Q /RESET
-    Remove-Item C:\Recovery\Customizations -Force -Recurse
-}
-
-if (Test-Path C:\Recovery\OEM)
-{
-    takeown /F C:\Recovery\OEM /R /D Y /SKIPSL
-    icacls C:\Recovery\OEM /T /C /L /Q /RESET
-}
-
-if (Test-Path C:\Recovery\OEM\Point_B)
-{
-    Remove-Item C:\Recovery\OEM\Point_B -Force -Recurse
-}
-
-if (Test-Path C:\Recovery\OEM\Point_D)
-{
-    Remove-Item C:\Recovery\OEM\Point_D -Force -Recurse
-}
-
-if (!(Test-Path C:\Recovery\OEM))
-{
-    New-Item C:\Recovery\OEM -itemType Directory
-}
-
-if (!(Test-Path C:\Recovery\AutoApply))
-{
-    New-Item C:\Recovery\AutoApply -itemType Directory
-}
-
-if (Test-Path C:\Recovery\OEM\unattend.xml)
-{
-    Move-Item -Path C:\Recovery\OEM\unattend.xml -Destination C:\Recovery\AutoApply -Force
-}
-
-if (Test-Path C:\Windows\OEM\TaskbarLayoutModification.xml)
-{
-    Copy-Item -Path C:\Windows\OEM\TaskbarLayoutModification.xml -Destination C:\Recovery\AutoApply -Force
-}
-
-if (Test-Path C:\Users\Default\AppData\Local\Microsoft\Windows\Shell\LayoutModification.*)
-{
-    Copy-Item -Path C:\Users\Default\AppData\Local\Microsoft\Windows\Shell\LayoutModification.* -Destination C:\Recovery\AutoApply -Force
-}
-
-if (!(Test-Path C:\Recovery\AutoApply\OOBE))
-{
-    New-Item C:\Recovery\AutoApply\OOBE -itemType Directory
-}
-
-if (Test-Path C:\Windows\System32\oobe\info\*)
-{
-    Copy-Item -Path C:\Windows\System32\oobe\info\* -Destination C:\Recovery\AutoApply\OOBE -Force -Recurse
-}
-
-if (!(Test-Path C:\Recovery\AutoApply\OOBE\*))
-{
-    Remove-Item C:\Recovery\AutoApply\OOBE -Force -Recurse
-}
-
-if (!(Test-Path C:\Recovery\AutoApply\*))
-{
-    Remove-Item C:\Recovery\AutoApply -Force -Recurse
-}
-
-if (Test-Path C:\Recovery\OEM\Apps\Logs)
-{
-    Remove-Item C:\Recovery\OEM\Apps\Logs\*.* -Force
-}
-
-if (Test-Path "C:\Recovery\OEM\Apps\App Installer")
-{
-    Remove-Item "C:\Recovery\OEM\Apps\App Installer" -Force -Recurse
-}
-
-if (Test-Path "C:\Recovery\OEM\Apps\Media Extensions")
-{
-    Remove-Item "C:\Recovery\OEM\Apps\Media Extensions" -Force -Recurse
-}
-
-if (Test-Path "C:\Recovery\OEM\Apps\Microsoft News")
-{
-    Remove-Item "C:\Recovery\OEM\Apps\Microsoft News" -Force -Recurse
-}
-
-if (Test-Path "C:\Recovery\OEM\Apps\Microsoft Store")
-{
-    Remove-Item "C:\Recovery\OEM\Apps\Microsoft Store" -Force -Recurse
-}
-
-if (Test-Path "C:\Recovery\OEM\Apps\Microsoft To Do")
-{
-    Remove-Item "C:\Recovery\OEM\Apps\Microsoft To Do" -Force -Recurse
-}
-
-if (Test-Path "C:\Recovery\OEM\Apps\Windows Terminal")
-{
-    Remove-Item "C:\Recovery\OEM\Apps\Windows Terminal" -Force -Recurse
-}
-
-if (Test-Path C:\Recovery\OEM\Apps)
-{
-    Remove-Item C:\Recovery\OEM\Apps\*.cmd -Force
-    Remove-Item C:\Recovery\OEM\Apps\*.exe -Force
-    Remove-Item C:\Recovery\OEM\Apps\*.msi -Force
-    Remove-Item C:\Recovery\OEM\Apps\*.reg -Force
-}
-
-if (Test-Path C:\Recovery\OEM\Apps\DK*.*)
-{
-    Remove-Item C:\Recovery\OEM\Apps\DK*.* -Force
-}
-
-if (Test-Path C:\Recovery\OEM\Customizations)
-{
-    Remove-Item C:\Recovery\OEM\Customizations -Force -Recurse
-}
-
-if (Test-Path C:\Recovery\OEM\Drivers)
-{
-    Remove-Item C:\Recovery\OEM\Drivers -Force -Recurse
-}
-
-if (Test-Path C:\Recovery\OEM\LGPO)
-{
-    Remove-Item C:\Recovery\OEM\LGPO -Force -Recurse
-}
-
-if (Test-Path C:\Recovery\OEM\StoreContent)
-{
-    Remove-Item C:\Recovery\OEM\StoreContent -Force -Recurse
-}
-
-if (Test-Path C:\Recovery\OEM\Win10)
-{
-    Remove-Item C:\Recovery\OEM\Win10 -Force -Recurse
-}
-
-if (Test-Path C:\Recovery\OEM\Win11)
-{
-    Remove-Item C:\Recovery\OEM\Win11 -Force -Recurse
-}
-
-if (!(Test-Path C:\Windows\Setup\Scripts))
-{
-    New-Item C:\Windows\Setup\Scripts -itemType Directory
-}
-
-if (Test-Path C:\Recovery\OEM)
-{
-    Remove-Item C:\Recovery\OEM\*.7z -Force
-	Remove-Item C:\Recovery\OEM\*.cmd -Exclude "Office.cmd", "Windows.cmd)" -Force
-    Remove-Item C:\Recovery\OEM\*.ps1 -Force
-    Remove-Item C:\Recovery\OEM\*.reg -Force
-    Remove-Item C:\Recovery\OEM\LayoutModification.* -Force
-	Remove-Item C:\Recovery\OEM\TaskbarLayoutModification.* -Force
-	Remove-Item C:\Recovery\OEM\Reset*.* -Force
-    Copy-Item -Path $ScanStatePath\Custom\pre.ps1 -Destination C:\Recovery\OEM -Force
-    Copy-Item -Path $ScanStatePath\Custom\SetupComplete.cmd -Destination C:\Windows\Setup\Scripts -Force
-}
-
-if (!(Test-Path C:\Recovery\Customizations))
-{
-    New-Item C:\Recovery\Customizations -itemType Directory
-}
-
-if ((!(Test-Path C:\Scripts\*)) -and (Test-Path C:\Scripts))
-{
-    Remove-Item C:\Scripts -Force
-}
-
-$ServicingPath = $null
-$DeployVolumeLetter = Get-Volume | Where-Object {$_.FileSystemLabel -Like "Deploy"} | Select-Object -ExpandProperty DriveLetter
-while ($ServicingPath -eq $null) {
-    if (Test-Path '\\SERVER\Shared\Servicing') {
-        $ServicingPath = '\\SERVER\Shared\Servicing'
-    }
-    elseif (Test-Path "$DeployVolumeLetter`:\Servicing") {
-        $DeployVolumeLetter = Get-Volume | Where-Object {$_.FileSystemLabel -Like "Deploy"} | Select-Object -ExpandProperty DriveLetter
-        $ServicingPath = "$DeployVolumeLetter`:\Servicing"
-    }
-    else {
-        Write-Host "Please switch on the deployment server or connect the deployment flash drive and press any key to continue."
-        $null = Read-Host "Press any key to continue."
-    }
-}
-
-if ((Test-Path $ServicingPath) -and (!(Test-Path C:\Temp\Servicing)))
-{
-    New-Item C:\Temp\Servicing -itemType Directory
-}
-
-$OSCaption = (Get-WmiObject -class Win32_OperatingSystem).Caption
-if (($OSCaption -like "*Windows 11*") -and (Test-Path $ServicingPath))
-{
-    Copy-Item -Path $ServicingPath\Win11\* -Destination C:\Temp\Servicing -Force -Recurse
-}
-
-$OSCaption = (Get-WmiObject -class Win32_OperatingSystem).Caption
-if (($OSCaption -like "*Windows 10*") -and (Test-Path $ServicingPath))
-{
-    Copy-Item -Path $ServicingPath\Win10\x64\* -Destination C:\Temp\Servicing -Force -Recurse
-}
-
+# Repair Windows image health if necessary
 $WindowsImageHealth = Repair-WindowsImage -Online -CheckHealth
-if (($WindowsImageHealth.ImageHealthState -eq 'Repairable') -and (Test-Path 'C:\Temp\Servicing\*'))
-{
-    Repair-WindowsImage -Online -RestoreHealth -Source C:\Temp\Servicing\Windows -LimitAccess
-}
-
-$WindowsImageHealth = Repair-WindowsImage -Online -CheckHealth
-if ($WindowsImageHealth.ImageHealthState -eq 'Repairable')
-{
+if ($WindowsImageHealth.ImageHealthState -eq 'Repairable') {
     Repair-WindowsImage -Online -RestoreHealth
 }
 
+# Run System File Checker
 SFC /SCANNOW
 
+# Deploy the provisioning package
+if (Test-Path "C:\Temp\ScanState\scanstate.exe") {
+    New-DirectoryIfNotExists -Path "C:\Recovery\OEM\Logs"
+    & C:\Temp\ScanState\scanstate.exe /apps /ppkg C:\Recovery\Customizations\usmt.ppkg /i:C:\Temp\ScanState\OEMCustomizations.xml /config:C:\Temp\ScanState\Config_AppsAndSettings.xml /o /c /v:13 /l:C:\Recovery\OEM\Logs\ScanState.log
+    Remove-ItemifExist -Path "C:\Temp\ScanState" -Recurse
+}
+
+# Vaidate the USMT provisioning package
+if (Test-Path "C:\Recovery\Customizations\usmt.ppkg" -PathType Leaf) {
+    # Create autoapply folders and remove the extensibility points if the USMT provisioning package is valid
+    $ProvisioningPackageInfo = & DISM /Online /Get-ProvisioningPackageInfo /PackagePath:"C:\Recovery\Customizations\usmt.ppkg"
+    if ($ProvisioningPackageInfo -match "The operation completed successfully") {
+        if (Test-Path C:\Recovery\OEM\unattend.xml) {
+            New-DirectoryIfNotExists -Path "C:\Recovery\AutoApply"
+            Move-Item -Path C:\Recovery\OEM\unattend.xml -Destination C:\Recovery\AutoApply -Force
+        }
+
+        $OSCaption = (Get-CimInstance -ClassName Win32_OperatingSystem).Caption
+        if ($OSCaption -like "*Windows 11*") {
+            if (Test-Path C:\Users\Default\AppData\Local\Microsoft\Windows\Shell\LayoutModification.json) {
+                New-DirectoryIfNotExists -Path "C:\Recovery\AutoApply"
+                Copy-Item -Path C:\Users\Default\AppData\Local\Microsoft\Windows\Shell\LayoutModification.json -Destination C:\Recovery\AutoApply -Force
+            }
+            if (Test-Path C:\Windows\OEM\TaskbarLayoutModification.xml) {
+                New-DirectoryIfNotExists -Path "C:\Recovery\AutoApply"
+                Copy-Item -Path C:\Windows\OEM\TaskbarLayoutModification.xml -Destination C:\Recovery\AutoApply -Force
+            }
+        }
+
+        if ($OSCaption -like "*Windows 10*") {
+            if (Test-Path C:\Users\Default\AppData\Local\Microsoft\Windows\Shell\LayoutModification.xml) {
+                New-DirectoryIfNotExists -Path "C:\Recovery\AutoApply"
+                Copy-Item -Path C:\Users\Default\AppData\Local\Microsoft\Windows\Shell\LayoutModification.xml -Destination C:\Recovery\AutoApply -Force
+            }
+        }
+
+        if (Get-ChildItem "C:\Windows\System32\oobe\info" -Recurse | Where-Object { $_.PSIsContainer -or $_ }) {
+            New-DirectoryIfNotExists -Path "C:\Recovery\AutoApply\OOBE"
+            Copy-Item -Path C:\Windows\System32\oobe\info\* -Destination C:\Recovery\AutoApply\OOBE -Force -Recurse
+        }
+
+        $PathsToRemove = @(
+            "C:\Recovery\OEM\Apps\BingNews",
+            "C:\Recovery\OEM\Apps\Extensions",
+            "C:\Recovery\OEM\Apps\Todos",
+            "C:\Recovery\OEM\Customizations",
+            "C:\Recovery\OEM\Drivers",
+            "C:\Recovery\OEM\LGPO",
+            "C:\Recovery\OEM\StoreContent"
+        )
+
+        foreach ($Path in $PathsToRemove) {
+            Remove-ItemifExist -Path $Path -Recurse
+        }
+
+        $FilesToRemove = @(
+            "C:\Recovery\OEM\*.7z",
+            "C:\Recovery\OEM\*.cmd",
+            "C:\Recovery\OEM\*.ps1",
+            "C:\Recovery\OEM\*.reg",
+            "C:\Recovery\OEM\LayoutModification.*",
+            "C:\Recovery\OEM\TaskbarLayoutModification.*",
+            "C:\Recovery\OEM\Reset*.*",
+            "C:\Recovery\OEM\Apps\Logs\*.*",
+            "C:\Recovery\OEM\Apps\*.cmd",
+            "C:\Recovery\OEM\Apps\*.exe",
+            "C:\Recovery\OEM\Apps\*.msi",
+            "C:\Recovery\OEM\Apps\*.reg",
+            "C:\Recovery\OEM\Apps\DymaxIO*.*"
+        )
+
+        foreach ($File in $FilesToRemove) {
+            Remove-ItemifExist -Path $File
+        }
+
+        Move-ItemifExist -SourcePath "C:\Temp\OEM\Apps" -DestinationPath "C:\Recovery\OEM\Apps"
+        Remove-ItemifExist -Path "C:\Temp\OEM\Apps" -Recurse
+        Move-ItemifExist -SourcePath "C:\Temp\OEM" -DestinationPath "C:\Recovery\OEM"
+        Remove-ItemifExist -Path "C:\Temp\OEM" -Recurse
+    }
+
+    # Remove the following if the USMT provisioning package is invalid
+    if ($PPkgInfo -match "The data is invalid") {
+        Remove-ItemifExist -Path "C:\Recovery\Customizations" -Recurse
+        Remove-ItemifExist -Path "C:\Recovery\OEM\Logs\MigLog.xml"
+        Remove-ItemifExist -Path "C:\Recovery\OEM\Logs\ScanState.log"
+    }
+}
+
+# Generate a battery report and save it to the desktop of the current user
+$DesktopPath = [Environment]::GetFolderPath('Desktop')
+$BatteryPresent = Get-CimInstance -ClassName Win32_Battery
+if ($BatteryPresent) {
+    # Generate the battery report and save it to the desktop
+    $ReportPath = Join-Path -Path $DesktopPath -ChildPath "Battery-Report.html"
+    powercfg /batteryreport /output $ReportPath
+}
+
+# Remove the temporary directory
+if (-not (Get-ChildItem "C:\Temp" -Recurse | Where-Object { $_.PSIsContainer -or $_ })) {
+    Remove-ItemifExist C:\Temp -Recurse
+}
+
+# Remove this script
 Remove-Item $PSCommandPath -Force

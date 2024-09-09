@@ -1,437 +1,351 @@
+# Function to get installed application
+function Get-InstalledApplication {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$AppName
+    )
+
+    $registryPaths = @(
+        "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
+        "HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
+    )
+
+    foreach ($Path in $registryPaths) {
+        $App = Get-ItemProperty -Path $Path -ErrorAction Stop | Where-Object { $_.DisplayName -match $AppName }
+        if ($App) {
+            return $App
+        }
+    }
+}
+
+# Function to import registry settings for an application if installed
+function Import-AppRegistrySettingsIfInstalled {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$AppName,
+        [Parameter(Mandatory=$true)]
+        [string]$RegFilePath
+    )
+    $App = Get-InstalledApplication -AppName $AppName
+    if ($App) {
+        reg LOAD HKLM\temp C:\Users\Default\ntuser.dat
+        reg import $RegFilePath
+        reg UNLOAD HKLM\temp
+    }
+}
+
+# Function to import registry settings if files exist
+function Import-RegistrySettings {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string[]]$Files,
+        [Parameter(Mandatory=$true)]
+        [string]$Path
+    )
+    foreach ($File in $Files) {
+        $FilePath = Join-Path -Path $Path -ChildPath $File
+        if (Test-Path $FilePath) {
+            reg import $FilePath
+        }
+    }
+}
+
+# Function to install appx packages if not already installed
+function InstallAppxPackage {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$PackageName,
+        [Parameter(Mandatory=$true)]
+        [string]$PackageFolderPath,
+        [Parameter(Mandatory=$true)]
+        [string]$LogFileName
+    )
+
+    if (-not (Get-AppxPackage | Where-Object { $_.Name -match $PackageName })) {
+        $Package = Get-ChildItem -File "$PackageFolderPath\$PackageName*.*" | Select-Object -ExpandProperty FullName
+        $Log = Join-Path -Path C:\Recovery\OEM\Apps\Logs -ChildPath $LogFileName
+        $DependencyFolderPath = "$PackageFolderPath\Dependencies"
+        $Dependencies = Get-ChildItem -Path $DependencyFolderPath -Filter "*.appx" | Select-Object -ExpandProperty FullName
+        Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -LogPath $Log
+    }
+}
+
+# Function to install an application if not already installed
+function Install-ApplicationIfNotInstalled {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$AppName,
+        [Parameter(Mandatory=$true)]
+        [string]$InstallerPath,
+        [Parameter(Mandatory=$true)]
+        [string]$Arguments
+    )
+    $App = Get-InstalledApplication -AppName $AppName
+    if (-not $App) {
+        Start-Process $InstallerPath -ArgumentList $Arguments -Wait
+    }
+}
+
+# Function to create a directory if it doesn't exist
+function New-DirectoryIfNotExists {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$Path
+    )
+    if (-not (Test-Path -Path $Path)) {
+        New-Item -Path $Path -ItemType Directory
+    }
+}
+
+# Function to remove an existing item at a given path
+function Remove-ItemifExist {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$Path,
+        [switch]$Recurse
+    )
+    if (Test-Path $Path) {
+        Remove-Item $Path -Force -Recurse:$Recurse
+    }
+}
+
+# Function to create or update registry values
+function Set-RegistryValue {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$Path,
+        [Parameter(Mandatory=$true)]
+        [string]$Name,
+        [Parameter(Mandatory=$true)]
+        [string]$Value,
+        [Parameter(Mandatory=$true)]
+        [string]$Type
+    )
+
+    $CurrentValue = Get-ItemProperty -Path $Path -Name $Name -ErrorAction SilentlyContinue
+
+    if ($null -eq $CurrentValue) {
+        New-ItemProperty -Path $Path -Name $Name -Value $Value -PropertyType $Type -Force
+    } else {
+        Set-ItemProperty -Path $Path -Name $Name -Value $Value -Force
+    }
+}
+
+# Create directories if they do not exist
+New-DirectoryIfNotExists -Path "C:\Recovery\OEM\Apps\Logs"
+New-DirectoryIfNotExists -Path "C:\Users\Default\AppData\Local\Microsoft\Windows\Shell"
+
+# Enable PUA Protection and add the recovery environment to Windows Security's exclusions
 Set-MPPreference -PUAProtection Enabled
-Add-MpPreference -ExclusionPath C:\Recovery
+Add-MpPreference -ExclusionPath "C:\Recovery"
 
-if (Test-Path "HKCR:\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}")
-{
-    Remove-Item -Path "HKCR:\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" -Force -Recurse
+# Import group policy settings
+& "C:\Recovery\OEM\LGPO\LGPO.exe" /g "C:\Recovery\OEM\LGPO\Backup"
+
+# Get system information and define the system model
+$BaseBoardProduct = (Get-CimInstance Win32_BaseBoard).Product.Trim()
+$ComputerSystemProductVersion = (Get-CimInstance Win32_ComputerSystemProduct).Version.Trim()
+$ComputerSystemModel = (Get-CimInstance Win32_ComputerSystem).Model.Trim()
+$InvalidModelValues = 'Default string', 'Not Applicable', 'Not Available', 'System Product Name', 'System Version', 'To be filled by O.E.M.', 'Type1ProductConfigId'
+$Model = $BaseBoardProduct, $ComputerSystemProductVersion, $ComputerSystemModel | Where-Object {
+    $_ -notin $InvalidModelValues -and -not [string]::IsNullOrWhiteSpace($_)
+} | Sort-Object Length -Descending | Select-Object -First 1
+
+# Install OEM drivers if present
+$DriversPath = "C:\Recovery\OEM\Drivers"
+if ($Model) {
+    $OEMDrivers = Join-Path -Path $DriversPath -ChildPath $Model
+
+    # Add the OEM drivers if present
+    if (Test-Path $OEMDrivers) {
+        Get-ChildItem -Path $OEMDrivers -Recurse -Filter *.inf | ForEach-Object {
+            pnputil /add-driver $_.FullName /install
+        }
+    }
 }
 
-if (Test-Path "HKCR:\CLSID\{04271989-C4D2-5507-C554-ABE25D4BDDBA}")
-{
-    Remove-Item -Path "HKCR:\CLSID\{04271989-C4D2-5507-C554-ABE25D4BDDBA}" -Force -Recurse
+# Install WLAN drivers if present
+$WLANDrivers = Join-Path -Path $DriversPath -ChildPath WLAN
+if (Test-Path $WLANDrivers) {
+    Get-ChildItem -Path $WLANDrivers -Recurse -Filter *.inf | ForEach-Object {
+        pnputil /add-driver $_.FullName /install
+    }
 }
 
-if (Test-Path "HKCR:\CLSID\{04271989-C4D2-F87B-1507-C086E2EFC9C8")
-{
-    Remove-Item -Path "HKCR:\CLSID\{04271989-C4D2-F87B-1507-C086E2EFC9C8}" -Force -Recurse
+# Install Storage drivers if present and necessary
+if ($CPUName -match "\b(10|[1-9][0-9])th Gen\b") {
+    $StorageDrivers = Join-Path -Path $DriversPath -ChildPath Storage
+    if (Test-Path $StorageDrivers) {
+        Get-ChildItem -Path $StorageDrivers -Recurse -Filter *.inf | ForEach-Object {
+            pnputil /add-driver $_.FullName /install
+        }
+    }
 }
 
-if (Test-Path "HKCR:\Wow6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}")
-{
-    Remove-Item -Path "HKCR:\Wow6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" -Force -Recurse
-}
-
-if (Test-Path "HKCR:\Wow6432Node\CLSID\{04271989-C4D2-5507-C554-ABE25D4BDDBA}")
-{
-    Remove-Item -Path "HKCR:\Wow6432Node\CLSID\{04271989-C4D2-5507-C554-ABE25D4BDDBA}" -Force -Recurse
-}
-
-if (Test-Path "HKCR:\Wow6432Node\CLSID\{04271989-C4D2-F87B-1507-C086E2EFC9C8}")
-{
-    Remove-Item -Path "HKCR:\Wow6432Node\CLSID\{04271989-C4D2-F87B-1507-C086E2EFC9C8}" -Force -Recurse
-}
-
-if (Test-Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace")
-{
-    Remove-Item -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace" -Force -Recurse
-}
-
+# Load the default user's registry hive
 reg LOAD HKLM\temp C:\Users\Default\ntuser.dat
-if (Test-Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace)
-{
-    Remove-Item -Path HKLM:\temp\Software\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace -Force -Recurse
+
+# Import additional registry settings if files exist
+Import-RegistrySettings -Files @("DesktopIcons.reg", "gpsFix.reg", "OEMInfo.reg", "RegionalSettings.reg") -Path "C:\Recovery\OEM"
+
+# Set OEM model information in the registry
+if ($Model) {
+    Set-RegistryValue -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation" -Name "Model" -Value $Model -Type  "String"
 }
 
-$OSCaption = (Get-WmiObject -class Win32_OperatingSystem).Caption
-if ($OSCaption -like "*Windows 10*")
-{
-    New-ItemProperty -Path HKLM:\temp\Software\Microsoft\Windows\CurrentVersion\Feeds -Name ShellFeedsTaskbarOpenOnHover -Value 0 -PropertyType DWord
-    Set-ItemProperty -Path HKLM:\temp\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name DisablePreviewDesktop -Value 0 -Force
-    Set-ItemProperty -Path HKLM:\temp\Software\Microsoft\Windows\CurrentVersion\Feeds -Name ShellFeedsTaskbarOpenOnHover -Value 0 -Force
-    Set-ItemProperty -Path HKLM:\temp\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager -Name SubscribedContent-338388Enabled -Value 0 -Force
+# Get the Windows version
+$OSCaption = (Get-CimInstance -ClassName Win32_OperatingSystem).Caption
+
+# Apply settings for Windows 10
+if ($OSCaption -like "*Windows 10*") {
+    Set-RegistryValue -Path "HKLM:\temp\Software\Microsoft\Windows\CurrentVersion\Feeds" -Name "ShellFeedsTaskbarOpenOnHover" -Value 0 -Type "DWord"
+    Set-RegistryValue -Path "HKLM:\temp\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "DisablePreviewDesktop" -Value 0 -Type "DWord"
+    Set-RegistryValue -Path "HKLM:\temp\Software\Microsoft\Windows\CurrentVersion\Feeds" -Name "ShellFeedsTaskbarOpenOnHover" -Value 0 -Type "DWord"
+    Set-RegistryValue -Path "HKLM:\temp\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -Name "SubscribedContent-338388Enabled" -Value 0 -Type "DWord"
 }
+
+# Unload the registry hive
 reg UNLOAD HKLM\temp
 
-if (Test-Path C:\Recovery\OEM\OEMInfo.reg)
-{
-    reg import C:\Recovery\OEM\OEMInfo.reg
+if ($OSCaption -like "*Windows 11*") {
+    # Check and copy LayoutModification.json if it doesn't already exist
+    if ((Test-Path C:\Recovery\OEM\LayoutModification.json) -and -not (Test-Path C:\Users\Default\AppData\Local\Microsoft\Windows\Shell\LayoutModification.json)) {
+        Copy-Item C:\Recovery\OEM\LayoutModification.json -Destination C:\Users\Default\AppData\Local\Microsoft\Windows\Shell -Force
+    }
+    # Check and copy TaskbarLayoutModification.xml if it doesn't already exist
+    if ((Test-Path C:\Recovery\OEM\TaskbarLayoutModification.xml) -and -not (Test-Path C:\Windows\OEM\TaskbarLayoutModification.xml)) {
+        New-DirectoryIfNotExists -Path "C:\Windows\OEM"
+        Copy-Item C:\Recovery\OEM\TaskbarLayoutModification.xml -Destination C:\Windows\OEM -Force
+    }
+    # Set the Taskbar layout if the file exists
+    if (Test-Path C:\Windows\OEM\TaskbarLayoutModification.xml) {
+        Set-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer -Name LayoutXMLPath -Value C:\Windows\OEM\TaskbarLayoutModification.xml -Force
+        Import-StartLayout -LayoutPath C:\Windows\OEM\TaskbarLayoutModification.xml -Mountpath $env:SystemDrive\
+    }
+} elseif ($OSCaption -like "*Windows 10*") {
+    # Check and copy LayoutModification.xml if it doesn't already exist
+    if ((Test-Path C:\Recovery\OEM\LayoutModification.xml) -and -not (Test-Path C:\Users\Default\AppData\Local\Microsoft\Windows\Shell\LayoutModification.xml)) {
+        Copy-Item C:\Recovery\OEM\LayoutModification.xml -Destination C:\Users\Default\AppData\Local\Microsoft\Windows\Shell -Force
+    }
 }
 
-if (Test-Path C:\Recovery\OEM\gpsFix.reg)
-{
-    reg import C:\Recovery\OEM\gpsFix.reg
-}
-
-if (!(Test-Path C:\Recovery\OEM\Apps\Logs))
-{
-    New-Item C:\Recovery\OEM\Apps\Logs -itemType Directory
-}
-
-if ((Test-Path C:\Recovery\OEM\LayoutModification.*) -and (!(Test-Path C:\Windows\OEM)))
-{
-    New-Item C:\Windows\OEM -itemType Directory
-}
-
-if ((Test-Path C:\Recovery\OEM\LayoutModification.*) -and (!(Test-Path C:\Users\Default\AppData\Local\Microsoft\Windows\Shell)))
-{
-    New-Item C:\Users\Default\AppData\Local\Microsoft\Windows\Shell -itemType Directory
-}
-
-$OSCaption = (Get-WmiObject -class Win32_OperatingSystem).Caption
-if (($OSCaption -like "*Windows 11*") -and (Test-Path C:\Recovery\OEM\LayoutModification.xml))
-{
-    Remove-Item C:\Recovery\OEM\LayoutModification.xml -Force
-}
-
-$OSCaption = (Get-WmiObject -class Win32_OperatingSystem).Caption
-if (($OSCaption -like "*Windows 10*") -and (Test-Path C:\Recovery\OEM\LayoutModification.json))
-{
-    Remove-Item C:\Recovery\OEM\LayoutModification.json -Force
-}
-
-$OSCaption = (Get-WmiObject -class Win32_OperatingSystem).Caption
-if (($OSCaption -like "*Windows 10*") -and (Test-Path C:\Recovery\OEM\TaskbarLayoutModification.xml))
-{
-    Remove-Item C:\Recovery\OEM\TaskbarLayoutModification.xml -Force
-}
-
-$OSCaption = (Get-WmiObject -class Win32_OperatingSystem).Caption
-if (($OSCaption -like "*Windows 11*") -and (Test-Path C:\Recovery\OEM\LayoutModification.json) -and (!(Test-Path C:\Users\Default\AppData\Local\Microsoft\Windows\Shell\LayoutModification.json)))
-{
-    Copy-Item C:\Recovery\OEM\LayoutModification.json -Destination C:\Users\Default\AppData\Local\Microsoft\Windows\Shell -Force
-}
-
-$OSCaption = (Get-WmiObject -class Win32_OperatingSystem).Caption
-if (($OSCaption -like "*Windows 11*") -and (Test-Path C:\Recovery\OEM\TaskbarLayoutModification.xml) -and (!(Test-Path C:\Windows\OEM\TaskbarLayoutModification.xml)))
-{
-    Copy-Item C:\Recovery\OEM\TaskbarLayoutModification.xml -Destination C:\Windows\OEM -Force
-    Set-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer -Name LayoutXMLPath -Value C:\Windows\OEM\TaskbarLayoutModification.xml -Force
-    Import-StartLayout -LayoutPath C:\Recovery\OEM\TaskbarLayoutModification.xml -Mountpath $env:SystemDrive\
-}
-
-$OSCaption = (Get-WmiObject -class Win32_OperatingSystem).Caption
-if (($OSCaption -like "*Windows 10*") -and (Test-Path C:\Recovery\OEM\LayoutModification.xml) -and (!(Test-Path C:\Users\Default\AppData\Local\Microsoft\Windows\Shell\LayoutModification.xml)))
-{
-    Copy-Item C:\Recovery\OEM\LayoutModification.xml -Destination C:\Users\Default\AppData\Local\Microsoft\Windows\Shell -Force
-}
-
-$Todos = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.Todos' })
-if ([string]::IsNullOrWhiteSpace($Todos))
-{
-    $PackageFolderPath = "C:\Recovery\OEM\Apps\Microsoft To Do"
-    $Package = Get-ChildItem -File $PackageFolderPath | Select-Object -ExpandProperty FullName
-    $DependencyFolderPath = "C:\Recovery\OEM\Apps\Microsoft To Do\Dependencies"
-    $Dependencies = Get-ChildItem -Path $DependencyFolderPath -Filter "*.appx" | Select-Object -ExpandProperty FullName
-    $Log = "C:\Recovery\OEM\Apps\Logs\Todos_UWP.log"
-    Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
-}
-
-$BingNews = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.BingNews' })
-$OSCaption = (Get-WmiObject -class Win32_OperatingSystem).Caption
-if (($OSCaption -like "*Windows 10*") -and ([string]::IsNullOrWhiteSpace($BingNews)))
-{
-    $PackageFolderPath = "C:\Recovery\OEM\Apps\Microsoft News"
-    $Package = Get-ChildItem -File $PackageFolderPath | Select-Object -ExpandProperty FullName
-    $DependencyFolderPath = "C:\Recovery\OEM\Apps\Microsoft News\Dependencies"
-    $Dependencies = Get-ChildItem -Path $DependencyFolderPath -Filter "*.appx" | Select-Object -ExpandProperty FullName
-    $Log = "C:\Recovery\OEM\Apps\Logs\News_UWP.log"
-    Add-AppxProvisionedPackage -Online -PackagePath $Package -SkipLicense -logpath $Log
-}
-
-$PackageFolderPath = "C:\Recovery\OEM\Apps\Media Extensions"
-$DependencyFolderPath = "C:\Recovery\OEM\Apps\Media Extensions\Dependencies"
-$Dependencies = Get-ChildItem -Path $DependencyFolderPath -Filter "*.appx" | Select-Object -ExpandProperty FullName
-
-$AV1VideoExtension = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.AV1VideoExtension' })
-if ([string]::IsNullOrWhiteSpace($AV1VideoExtension))
-{
-    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.AV1VideoExtension*.appxbundle" | Select-Object -ExpandProperty FullName
-    $Log = "C:\Recovery\OEM\Apps\Logs\AV1VideoExtension_UWP.log"
-    Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
-}
-
-$HEIFImageExtension = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.HEIFImageExtension' })
-if ([string]::IsNullOrWhiteSpace($HEIFImageExtension))
-{
-    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.HEIFImageExtension*.appxbundle" | Select-Object -ExpandProperty FullName
-    $Log = "C:\Recovery\OEM\Apps\Logs\HEIFImageExtension_UWP.log"
-    Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
-}
-
-$HEVCVideoExtensions = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.HEVCVideoExtensions' })
-if ([string]::IsNullOrWhiteSpace($HEVCVideoExtensions))
-{
-    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.HEVCVideoExtensions*.appxbundle" | Select-Object -ExpandProperty FullName
-    $Log = "C:\Recovery\OEM\Apps\Logs\HEVCVideoExtension_UWP.log"
-    Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
-}
-
-$MPEG2VideoExtension = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.MPEG2VideoExtension' })
-if ([string]::IsNullOrWhiteSpace($MPEG2VideoExtension))
-{
-    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.MPEG2VideoExtension*.appxbundle" | Select-Object -ExpandProperty FullName
-    $Log = "C:\Recovery\OEM\Apps\Logs\MPEG2VideoExtension_UWP.log"
-    Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
-}
-
-$RawImageExtension = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.RawImageExtension' })
-if ([string]::IsNullOrWhiteSpace($RawImageExtension))
-{
-    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.RawImageExtension_2.1*.appxbundle" | Select-Object -ExpandProperty FullName
-    $Log = "C:\Recovery\OEM\Apps\Logs\RawImageExtension_UWP.log"
-    Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
-}
-
-$RawImageExtension = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.RawImageExtension' })
-if ([string]::IsNullOrWhiteSpace($RawImageExtension))
-{
-    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.RawImageExtension_2.0*.appxbundle" | Select-Object -ExpandProperty FullName
-    $Log = "C:\Recovery\OEM\Apps\Logs\RawImageExtension_UWP.log"
-    Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
-}
-
-$VP9VideoExtensions = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.VP9VideoExtensions' })
-if ([string]::IsNullOrWhiteSpace($VP9VideoExtensions))
-{
-    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.VP9VideoExtensions*.appxbundle" | Select-Object -ExpandProperty FullName
-    $Log = "C:\Recovery\OEM\Apps\Logs\VP9VideoExtensions_UWP.log"
-    Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
-}
-
-$WebMediaExtensions = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.WebMediaExtensions' })
-if ([string]::IsNullOrWhiteSpace($WebMediaExtensions))
-{
-    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.WebMediaExtensions*.appxbundle" | Select-Object -ExpandProperty FullName
-    $Log = "C:\Recovery\OEM\Apps\Logs\WebMediaExtensions.log"
-    Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
-}
-
-$WebpImageExtension = (Get-AppxPackage | Where { $_.Name -Match 'Microsoft.WebpImageExtension' })
-if ([string]::IsNullOrWhiteSpace($WebpImageExtension))
-{
-    $Package = Get-ChildItem -File $PackageFolderPath -Filter "Microsoft.WebpImageExtension*.appxbundle" | Select-Object -ExpandProperty FullName
-    $Log = "C:\Recovery\OEM\Apps\Logs\WebpImageExtension_UWP.log"
-    Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -logpath $Log
-}
-
-& C:\Recovery\OEM\LGPO\LGPO.exe /g C:\Recovery\OEM\LGPO\Backup
-reg LOAD HKLM\temp C:\Users\Default\ntuser.dat
-reg import C:\Recovery\OEM\RegionalSettings.reg
-reg UNLOAD HKLM\temp
-
-$BaseBoardProduct = Get-WmiObject Win32_BaseBoard | Where-Object {$_.Product -ne 'Not Available'} | Select-Object -ExpandProperty Product
-if (!([string]::IsNullOrWhiteSpace($BaseBoardProduct)))
-{
-    $Model = $BaseBoardProduct
-}
-
-$ProductVersion = Get-WmiObject -Class:Win32_ComputerSystemProduct | Where-Object {$_.Version -ne 'System Version' -and $_.Version -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Version
-if (!([string]::IsNullOrWhiteSpace($ProductVersion)))
-{
-    $Model = $ProductVersion
-}
-
-$SystemModel = Get-WmiObject -Class:Win32_ComputerSystem | Where-Object {$_.Model -ne 'System Product Name' -and $_.Model -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Model
-if (!([string]::IsNullOrWhiteSpace($SystemModel)))
-{
-    $Model = $SystemModel
-}
-
-$SystemManufacturer = Get-WmiObject -Class:Win32_ComputerSystem | Where-Object {$_.Manufacturer -ne 'Not Available' -and $_.Manufacturer -ne 'System manufacturer' -and $_.Manufacturer -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Manufacturer
-if (!([string]::IsNullOrWhiteSpace($SystemManufacturer)))
-{
-    $Manufacturer = $SystemManufacturer
-}
-
-if ($Manufacturer -like '*Lenovo*')
-{
-    $ProductVersion = Get-WmiObject -Class:Win32_ComputerSystemProduct | Select-Object -ExpandProperty Version
-    $Model = $ProductVersion
-}
-
-if (!([string]::IsNullOrWhiteSpace($Model)))
-{
-    Set-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation -Name Model -Value "$Model" -Force
-}
-
-$OPK = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKey
-$OPKDesc = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKeyDescription
-
-if (($OPKDesc -like "*Professional*") -and (!([string]::IsNullOrWhiteSpace($OPKDesc))))
-{
+# Activate Windows with the original product key if present
+$SLS = Get-CimInstance -ClassName SoftwareLicensingService
+$OPKD = $SLS.OA3xOriginalProductKeyDescription
+$OPK = $SLS.OA3xOriginalProductKey
+if ($OPKD -like "*Professional*" -and -not [string]::IsNullOrWhiteSpace($OPK)) {
     cscript C:\Windows\System32\slmgr.vbs /ipk $OPK
     cscript C:\Windows\System32\slmgr.vbs /ato
 }
 
-if ([string]::IsNullOrWhiteSpace($OPKDesc) -or (!($OPKDesc -like "*Professional*")) -and (Test-Path C:\Recovery\OEM\Activation\HWID_Activation.cmd))
-{
-    & cmd /c "C:\Recovery\OEM\Activation\HWID_Activation.cmd /HWID-NoEditionChange"
+# Activate Windows with a digital license if not already activated with a digital license
+$LicenseInfo = Get-CimInstance -ClassName SoftwareLicensingProduct -Filter "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL" | Select-Object -First 1 LicenseStatus
+$IsKMSActivated = $LicenseInfo.Description -like "*KMS*"
+if ($LicenseInfo.LicenseStatus -ne 1 -or $IsKMSActivated) {
+    if (Test-Path "C:\Recovery\OEM\Activation\HWID_Activation.cmd") {
+        & cmd /c "C:\Recovery\OEM\Activation\HWID_Activation.cmd /HWID"
+    }
 }
 
-$Office365 = (Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'Microsoft 365 - en-us' })
-if ([string]::IsNullOrWhiteSpace($Office365))
-{
-    Set-Location C:\Recovery\OEM\Apps\Office365
-    Start-Process C:\Recovery\OEM\Apps\Office365\setup.exe -ArgumentList "/configure C:\Recovery\OEM\Apps\Office365\configuration.xml" -Wait
+# Install or reinstall Office if necessary
+$Office365 = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object { $_.DisplayName -Match 'Microsoft 365 - en-us' }
+$Office365Path = "C:\Recovery\OEM\Apps\Office365"
+
+if ([string]::IsNullOrWhiteSpace($Office365) -and (Test-Path $Office365Path) -and (Test-Path "$Office365Path\setup.exe")) {
+    Push-Location -Path $Office365Path
+    & .\setup.exe /configure .\configuration.xml
+    Pop-Location
 }
 
-$7Zip = (Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match '7-Zip' })
-if ([string]::IsNullOrWhiteSpace($7Zip))
-{
-    Start-Process C:\Recovery\OEM\Apps\7z.exe -ArgumentList "/S" -Wait
+# Copy Office app shortcuts to the all user's desktop
+$AppNames = "Access", "Excel", "PowerPoint", "Project", "Publisher", "Visio", "Word"
+foreach ($AppName in $AppNames) {
+    $SourcePath = "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\$AppName.lnk"
+    $DestinationPath = "C:\Users\Public\Desktop\$AppName.lnk"
+    if ((Test-Path $SourcePath) -and (-not (Test-Path $DestinationPath))) {
+        Copy-Item -Path $SourcePath -Destination $DestinationPath -Force
+    }
 }
 
-$WinRAR = (Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'WinRAR' })
-if ([string]::IsNullOrWhiteSpace($WinRAR))
-{
-    Start-Process C:\Recovery\OEM\Apps\winrar.exe -ArgumentList "/s" -Wait
-    Start-Process C:\Recovery\OEM\Apps\rarreg.exe -Wait
+# Install To Do if not present
+$Todos = Get-AppxPackage | Where-Object { $_.Name -match 'Microsoft.Todos' }
+if (-not $Todos) {
+    InstallAppxPackage -PackageName "Microsoft.Todos" -PackageFolderPath "C:\Recovery\OEM\Apps\Todos" -LogFileName "Todos_UWP.log"
 }
 
-$WinRAR = (Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'WinRAR' })
-if (![string]::IsNullOrWhiteSpace($WinRAR))
-{
-    reg LOAD HKLM\temp C:\Users\Default\ntuser.dat
-    reg import C:\Recovery\OEM\Apps\WinRARSettings.reg
-    reg UNLOAD HKLM\temp
+# Install Bing News if not present on Windows 10
+$OSCaption = (Get-CimInstance -ClassName Win32_OperatingSystem).Caption
+if ($OSCaption -like "*Windows 10*") {
+    $BingNews = Get-AppxPackage | Where-Object { $_.Name -match 'Microsoft.BingNews' }
+    if (-not $BingNews) {
+        InstallAppxPackage -PackageName "Microsoft.BingNews" -PackageFolderPath "C:\Recovery\OEM\Apps\BingNews" -LogFileName "News_UWP.log"
+    }
 }
 
-$Diskeeper = (Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'Diskeeper' })
-if ([string]::IsNullOrWhiteSpace($Diskeeper))
-{
-    Start-Process C:\Recovery\OEM\Apps\Diskeeper.exe -ArgumentList '/s /v"/qn"' -Wait
-    Start-Process powershell.exe -ArgumentList "-ExecutionPolicy bypass -File C:\Recovery\OEM\Apps\DKLicense.ps1 -Verb RunAs" -Wait
+# Install various extensions if not present
+$Extensions = @(
+    @{Name="Microsoft.AV1VideoExtension"; Log="AV1VideoExtension_UWP.log"},
+    @{Name="Microsoft.HEIFImageExtension"; Log="HEIFImageExtension_UWP.log"},
+    @{Name="Microsoft.HEVCVideoExtensions"; Log="HEVCVideoExtension_UWP.log"},
+    @{Name="Microsoft.MPEG2VideoExtension"; Log="MPEG2VideoExtension_UWP.log"},
+    @{Name="Microsoft.RawImageExtension"; Log="RawImageExtension_UWP.log"},
+    @{Name="Microsoft.VP9VideoExtensions"; Log="VP9VideoExtensions_UWP.log"},
+    @{Name="Microsoft.WebMediaExtensions"; Log="WebMediaExtensions.log"},
+    @{Name="Microsoft.WebpImageExtension"; Log="WebpImageExtension_UWP.log"}
+)
+
+foreach ($Extension in $Extensions) {
+    InstallAppxPackage -PackageName $Extension.Name -PackageFolderPath "C:\Recovery\OEM\Apps\Extensions" -LogFileName $Extension.Log
 }
 
-$Diskeeper = (Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'Diskeeper' })
-if (![string]::IsNullOrWhiteSpace($Diskeeper))
-{
-    reg LOAD HKLM\temp C:\Users\Default\ntuser.dat
-    reg import C:\Recovery\OEM\Apps\DiskeeperSettings.reg
-    reg UNLOAD HKLM\temp
-}
-
-$HDD = Get-PhysicalDisk | select DeviceID, Friendlyname, BusType, MediaType | Where MediaType -eq 'HDD' | Select -ExpandProperty DeviceID
-$DriveMonitor = (Get-ItemProperty HKLM:Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'Acronis Drive Monitor' })
-if ((!([string]::IsNullOrWhiteSpace($HDD))) -and ([string]::IsNullOrWhiteSpace($DriveMonitor)))
-{
-    Start-Process C:\Recovery\OEM\Apps\DriveMonitor.msi -ArgumentList "/qn /norestart /l*v C:\Recovery\OEM\Apps\Logs\DriveMonitor_Install.log" -Wait
-    Remove-Item "C:\Users\Public\Desktop\Acronis Drive Monitor.lnk" -Force
-}
-
-$DriveMonitor = (Get-ItemProperty HKLM:Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'Acronis Drive Monitor' })
-if (![string]::IsNullOrWhiteSpace($DriveMonitor))
-{
-    reg import C:\Recovery\OEM\Apps\DriveMonitor.reg
-}
-
-$pnputil = "$env:WINDIR\System32\pnputil.exe"
-
-$DriversPath = "C:\Recovery\OEM\Drivers\"
-$WLAN = "C:\Recovery\OEM\Drivers\WLAN"
-
-[String]$OEMDrivers = ($DriversPath).ToString() + "$Model"
-if (Test-Path $OEMDrivers)
-{
-    Get-ChildItem $OEMDrivers -Recurse -Filter "*.cer" | ForEach-Object { Import-Certificate -FilePath $_.FullName -CertStoreLocation Cert:\LocalMachine\TrustedPublisher }
-    Get-ChildItem $OEMDrivers -Recurse -Filter "*.inf" | ForEach-Object { & $pnputil /add-driver $_.FullName /install }
-}
-
-if (Test-Path $WLAN)
-{
-    Get-ChildItem $WLAN -Recurse -Filter "*.cer" | ForEach-Object { Import-Certificate -FilePath $_.FullName -CertStoreLocation Cert:\LocalMachine\TrustedPublisher }
-    Get-ChildItem $WLAN -Recurse -Filter "*.inf" | ForEach-Object { & $pnputil /add-driver $_.FullName /install }
-}
-
-$CPUName = WMIC CPU Get Name
-if ((!([string]::IsNullOrWhiteSpace($CPUName))) -and ($CPUName -like "*11th Gen*"))
-{
-    $StorageDrivers = "C:\Recovery\OEM\Drivers\Storage\Intel\VMD\19.5.2.1049.5"
-}
-
-$CPUName = WMIC CPU Get Name
-if ((!([string]::IsNullOrWhiteSpace($CPUName))) -and ($CPUName -like "*12th Gen*"))
-{
-    $StorageDrivers = "C:\Recovery\OEM\Drivers\Storage\Intel\VMD\19.5.2.1049.5"
-}
-
-$CPUName = WMIC CPU Get Name
-if ((!([string]::IsNullOrWhiteSpace($CPUName))) -and ($CPUName -like "*13th Gen*"))
-{
-    $StorageDrivers = "C:\Recovery\OEM\Drivers\Storage\Intel\VMD\19.5.2.1049.5"
-}
-
-if ((Test-Path $StorageDrivers) -and (!(Test-Path $OEMDrivers)))
-{
-    Get-ChildItem $StorageDrivers -Recurse -Filter "*.cer" | ForEach-Object { Import-Certificate -FilePath $_.FullName -CertStoreLocation Cert:\LocalMachine\TrustedPublisher }
-    Get-ChildItem $StorageDrivers -Recurse -Filter "*.inf" | ForEach-Object { & $pnputil /add-driver $_.FullName /install }
-}
-
-$AnyDesk = (Get-ItemProperty HKLM:Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Where { $_.DisplayName -Match 'AnyDesk' })
-if ([string]::IsNullOrWhiteSpace($AnyDesk))
-{
+$AnyDesk = Get-ItemProperty HKLM:Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object { $_.DisplayName -Match 'AnyDesk' }
+if (-not $AnyDesk) {
+    Get-Process -Name "AnyDesk" -ErrorAction SilentlyContinue | Stop-Process -Force
     & cmd /c C:\Recovery\OEM\Apps\AnyDesk.cmd
 }
 
-if (Test-Path C:\_SMSTaskSequence)
-{
-    Remove-Item C:\_SMSTaskSequence -Force -Recurse
+# Install 7-Zip if not installed
+Install-ApplicationIfNotInstalled -AppName '7-Zip' -InstallerPath "C:\Recovery\OEM\Apps\7z.exe" -Arguments "/S"
+
+# Install WinRAR if not installed and import settings
+Install-ApplicationIfNotInstalled -AppName 'WinRAR' -InstallerPath "C:\Recovery\OEM\Apps\winrar.exe" -Arguments "/s"
+Start-Process C:\Recovery\OEM\Apps\rarreg.exe -Wait
+
+# Import WinRAR settings if installed
+Import-AppRegistrySettingsIfInstalled -AppName 'WinRAR' -RegFilePath "C:\Recovery\OEM\Apps\WinRARSettings.reg"
+
+# Install DymaxIO if not installed
+Install-ApplicationIfNotInstalled -AppName 'DymaxIO' -InstallerPath "C:\Recovery\OEM\Apps\DymaxIO.exe" -Arguments '/s /v"/qn"'
+powershell -ExecutionPolicy bypass -File C:\Recovery\OEM\Apps\DymaxIOLicense.ps1
+
+# Import DymaxIO settings if installed
+Import-AppRegistrySettingsIfInstalled -AppName 'DymaxIO' -RegFilePath "C:\Recovery\OEM\Apps\DymaxIO.reg"
+
+# Install Acronis Drive Monitor not already installed and if necessary
+$HDD = Get-PhysicalDisk | Select-Object DeviceID, Friendlyname, BusType, MediaType | Where-Object MediaType -eq 'HDD'
+if ($HDD) {
+    Install-ApplicationIfNotInstalled -AppName 'Acronis Drive Monitor' -InstallerPath "C:\Recovery\OEM\Apps\DriveMonitor.msi" -Arguments "/qn /norestart /l*v C:\Recovery\OEM\Apps\Logs\DriveMonitor_Install.log"
+    Remove-ItemifExist -Path "C:\Users\Public\Desktop\Acronis Drive Monitor.lnk"
 }
 
-if (Test-Path C:\MININT)
-{
-    Remove-Item C:\MININT -Force -Recurse
+# Import Acronis Drive Monitor settings if installed
+Import-AppRegistrySettingsIfInstalled -AppName 'Acronis Drive Monitor' -RegFilePath "C:\Recovery\OEM\Apps\DriveMonitor.reg"
+
+# Check the Windows RE status and enable Windows RE if disabled
+$WinREStatus = (reagentc /info | Select-String -Pattern "Windows RE status").ToString().Split(":")[1].Trim()
+if ($WinREStatus -eq "Disabled") {
+    reagentc.exe /enable
 }
 
-if (Test-Path C:\Users\Default\AppData\Roaming\Microsoft\Windows\Themes)
-{
-    Remove-Item C:\Users\Default\AppData\Roaming\Microsoft\Windows\Themes -Recurse -Force
-}
-
-if (Test-Path C:\LTIBootstrap.vbs)
-{
-    Remove-Item C:\LTIBootstrap.vbs -Force
-}
-
-$SystemDiskNumber = Get-Volume | Where {$_.FileSystemLabel -Like "System"} | Get-Partition | Select DiskNumber
-$RecoveryVolume = Get-Volume | Where {$_.FileSystemLabel -Like "Recovery"} | Get-Partition | Select PartitionNumber
-if (!([string]::IsNullOrWhiteSpace($RecoveryVolume)))
-{
-    Set-Partition $SystemDiskNumber.DiskNumber $RecoveryVolume.PartitionNumber  -NewDriveLetter R
-}
-
-if (!(Test-Path R:\Recovery\WindowsRE))
-{
-    New-Item R:\Recovery\WindowsRE -itemType Directory
-}
-
-if (!(Test-Path R:\Recovery\WindowsRE\Winre.wim) -and (Test-Path C:\Recovery\WindowsRE\Winre.wim))
-{
-    Copy-Item C:\Recovery\WindowsRE\Winre.wim -Destination R:\Recovery\WindowsRE -Force
-}
-
-if (!(Test-Path R:\Recovery\WindowsRE\Winre.wim) -and (Test-Path C:\Windows\System32\Recovery\Winre.wim))
-{
-    Copy-Item C:\Windows\System32\Recovery\Winre.wim -Destination R:\Recovery\WindowsRE -Force
-}
-
-if (Test-Path R:\Recovery\WindowsRE\Winre.wim)
-{
-    reagentc /setreimage /path R:\Recovery\WindowsRE
-    reagentc /enable
-}
-
-if (Test-Path R:\$Recycle.Bin)
-{
-    Remove-Item R:\$Recycle.Bin -Force -Recurse
-}
-
-if (!([string]::IsNullOrWhiteSpace($RecoveryVolume)))
-{
-    Get-Volume -Drive R | Get-Partition | Remove-PartitionAccessPath -accesspath R:\
-}
-
+# Set attributes for the Default user and its contents
 attrib C:\Users\Default +h +r
 attrib C:\Users\Default\NTUSER.DAT +a +h +i
 attrib C:\Users\Default\AppData +h
+
+# Remove files and folders
+Remove-ItemifExist -Path "C:\_SMSTaskSequence" -Recurse
+Remove-ItemifExist -Path "C:\MININT" -Recurse
+Remove-ItemifExist -Path "C:\LTIBootstrap.vbs"
+
+# Disable BitLocker
 Get-BitLockerVolume | Disable-BitLocker

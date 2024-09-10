@@ -51,7 +51,7 @@ function Import-RegistrySettings {
 }
 
 # Function to install appx packages if not already installed
-function InstallAppxPackage {
+function Install-AppxPackageIfNotInstalled {
     param (
         [Parameter(Mandatory=$true)]
         [string]$PackageName,
@@ -64,7 +64,7 @@ function InstallAppxPackage {
     if (-not (Get-AppxPackage | Where-Object { $_.Name -match $PackageName })) {
         $Package = Get-ChildItem -File "$PackageFolderPath\$PackageName*.*" | Select-Object -ExpandProperty FullName
         $Log = Join-Path -Path C:\Recovery\OEM\Apps\Logs -ChildPath $LogFileName
-        $DependencyFolderPath = "$PackageFolderPath\Dependencies"
+        $DependencyFolderPath = "C:\Recovery\OEM\Apps\Dependencies"
         $Dependencies = Get-ChildItem -Path $DependencyFolderPath -Filter "*.appx" | Select-Object -ExpandProperty FullName
         Add-AppxProvisionedPackage -Online -PackagePath $Package -DependencyPackagePath $Dependencies -SkipLicense -LogPath $Log
     }
@@ -270,7 +270,7 @@ foreach ($AppName in $AppNames) {
 # Install To Do if not present
 $Todos = Get-AppxPackage | Where-Object { $_.Name -match 'Microsoft.Todos' }
 if (-not $Todos) {
-    InstallAppxPackage -PackageName "Microsoft.Todos" -PackageFolderPath "C:\Recovery\OEM\Apps\Todos" -LogFileName "Todos_UWP.log"
+    Install-AppxPackageIfNotInstalled -PackageName "Microsoft.Todos" -PackageFolderPath "C:\Recovery\OEM\Apps\Todos" -LogFileName "Todos_UWP.log"
 }
 
 # Install Bing News if not present on Windows 10
@@ -278,7 +278,7 @@ $OSCaption = (Get-CimInstance -ClassName Win32_OperatingSystem).Caption
 if ($OSCaption -like "*Windows 10*") {
     $BingNews = Get-AppxPackage | Where-Object { $_.Name -match 'Microsoft.BingNews' }
     if (-not $BingNews) {
-        InstallAppxPackage -PackageName "Microsoft.BingNews" -PackageFolderPath "C:\Recovery\OEM\Apps\BingNews" -LogFileName "News_UWP.log"
+        Install-AppxPackageIfNotInstalled -PackageName "Microsoft.BingNews" -PackageFolderPath "C:\Recovery\OEM\Apps\BingNews" -LogFileName "News_UWP.log"
     }
 }
 
@@ -290,12 +290,12 @@ $Extensions = @(
     @{Name="Microsoft.MPEG2VideoExtension"; Log="MPEG2VideoExtension_UWP.log"},
     @{Name="Microsoft.RawImageExtension"; Log="RawImageExtension_UWP.log"},
     @{Name="Microsoft.VP9VideoExtensions"; Log="VP9VideoExtensions_UWP.log"},
-    @{Name="Microsoft.WebMediaExtensions"; Log="WebMediaExtensions.log"},
+    @{Name="Microsoft.WebMediaExtensions"; Log="WebMediaExtensions_UWP.log"},
     @{Name="Microsoft.WebpImageExtension"; Log="WebpImageExtension_UWP.log"}
 )
 
 foreach ($Extension in $Extensions) {
-    InstallAppxPackage -PackageName $Extension.Name -PackageFolderPath "C:\Recovery\OEM\Apps\Extensions" -LogFileName $Extension.Log
+    Install-AppxPackageIfNotInstalled -PackageName $Extension.Name -PackageFolderPath "C:\Recovery\OEM\Apps\Extensions" -LogFileName $Extension.Log
 }
 
 $AnyDesk = Get-ItemProperty HKLM:Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object { $_.DisplayName -Match 'AnyDesk' }

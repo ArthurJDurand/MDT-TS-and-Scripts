@@ -1,69 +1,51 @@
-$WindowsVolumeLetter = Get-Volume -FileSystemLabel Windows | Select DriveLetter
-[String]$WindowsImage = ($WindowsVolumeLetter.Driveletter).ToString() + ":\"
-[String]$WLAN = ($WindowsVolumeLetter.Driveletter).ToString() + ":\Recovery\OEM\Drivers\WLAN"
-[String]$DriversPath = ($WindowsVolumeLetter.Driveletter).ToString() + ":\Recovery\OEM\Drivers\"
+# Get the Windows drive letter
+$WindowsDriveLetter = (Get-Volume -FileSystemLabel Windows).DriveLetter
 
-$BaseBoardProduct = Get-WmiObject Win32_BaseBoard | Where-Object {$_.Product -ne 'Not Available'} | Select-Object -ExpandProperty Product
-if (!([string]::IsNullOrWhiteSpace($BaseBoardProduct)))
-{
-    $Model = $BaseBoardProduct
-}
+# Define the paths
+if ($WindowsDriveLetter) {
+    $WindowsImage = "${WindowsDriveLetter}:"
+    $Drivers = "${WindowsDriveLetter}:\Recovery\OEM\Drivers"
+    $WLANDrivers = Join-Path -Path $Drivers -ChildPath "WLAN"
 
-$ProductVersion = Get-WmiObject -Class:Win32_ComputerSystemProduct | Where-Object {$_.Version -ne 'System Version' -and $_.Version -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Version
-if (!([string]::IsNullOrWhiteSpace($ProductVersion)))
-{
-    $Model = $ProductVersion
-}
+    # Get system information and define the system model
+    $BaseBoardProduct = (Get-CimInstance Win32_BaseBoard).Product.Trim()
+    $ComputerSystemProductVersion = (Get-CimInstance Win32_ComputerSystemProduct).Version.Trim()
+    $ComputerSystemModel = (Get-CimInstance Win32_ComputerSystem).Model.Trim()
+    $InvalidModelValues = 'Default string', 'Not Applicable', 'Not Available', 'System Product Name', 'System Version', 'To be filled by O.E.M.', 'Type1ProductConfigId'
 
-$SystemModel = Get-WmiObject -Class:Win32_ComputerSystem | Where-Object {$_.Model -ne 'System Product Name' -and $_.Model -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Model
-if (!([string]::IsNullOrWhiteSpace($SystemModel)))
-{
-    $Model = $SystemModel
-}
+    $Model = $BaseBoardProduct, $ComputerSystemProductVersion, $ComputerSystemModel | Where-Object {
+        $_ -notin $InvalidModelValues -and -not [string]::IsNullOrWhiteSpace($_)
+    } | Sort-Object Length -Descending | Select-Object -First 1
 
-$SystemManufacturer = Get-WmiObject -Class:Win32_ComputerSystem | Where-Object {$_.Manufacturer -ne 'Not Available' -and $_.Manufacturer -ne 'System manufacturer' -and $_.Manufacturer -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Manufacturer
-if (!([string]::IsNullOrWhiteSpace($SystemManufacturer)))
-{
-    $Manufacturer = $SystemManufacturer
-}
+    # Define the OEM drivers path
+    if ($Model) {
+        $OEMDrivers = Join-Path -Path $Drivers -ChildPath $Model
 
-if ($Manufacturer -like '*Lenovo*')
-{
-    $ProductVersion = Get-WmiObject -Class:Win32_ComputerSystemProduct | Select-Object -ExpandProperty Version
-    $Model = $ProductVersion
-}
+        # Add the OEM drivers if they exist
+        if (Test-Path $OEMDrivers) {
+            DISM /Image:$WindowsImage /Add-Driver /Driver:$OEMDrivers /recurse
+        }
 
-[String]$SrcDrivers = ($DriversPath).ToString() + "$Model"
+        # Add the WLAN drivers if they exist
+        if (Test-Path $WLANDrivers) {
+            DISM /Image:$WindowsImage /Add-Driver /Driver:$WLANDrivers /recurse
+        }
 
-if (Test-Path $SrcDrivers\*)
-{
-    DISM /Image:$WindowsImage /Add-Driver /Driver:$SrcDrivers /recurse
-}
+        # Get the CPU name
+        $CPUName = (Get-CimInstance -ClassName Win32_Processor).Name
 
-if (Test-Path $WLAN)
-{
-    DISM /Image:$WindowsImage /Add-Driver /Driver:$WLAN /recurse
-}
+        # Define the storage driver based on processor name
+        if ($CPUName -match "\bCore Ultra\b") {
+            $StorageDrivers = Join-Path -Path $Drivers -ChildPath "Storage\Intel\VMD\20.0.0.1038.3"
+        } elseif ($CPUName -match "\b(11|12|13)th Gen\b") {
+            $StorageDrivers = Join-Path -Path $Drivers -ChildPath "Storage\Intel\VMD\19.5.2.1049.5"
+        }
 
-$CPUName = WMIC CPU Get Name
-if ((!([string]::IsNullOrWhiteSpace($CPUName))) -and ($CPUName -like "*11th Gen*"))
-{
-    [String]$StorageDrivers = ($WindowsVolumeLetter.Driveletter).ToString() + ":\Recovery\OEM\Drivers\Storage\Intel\VMD"
-}
-
-$CPUName = WMIC CPU Get Name
-if ((!([string]::IsNullOrWhiteSpace($CPUName))) -and ($CPUName -like "*12th Gen*"))
-{
-    [String]$StorageDrivers = ($WindowsVolumeLetter.Driveletter).ToString() + ":\Recovery\OEM\Drivers\Storage\Intel\VMD"
-}
-
-$CPUName = WMIC CPU Get Name
-if ((!([string]::IsNullOrWhiteSpace($CPUName))) -and ($CPUName -like "*13th Gen*"))
-{
-    [String]$StorageDrivers = ($WindowsVolumeLetter.Driveletter).ToString() + ":\Recovery\OEM\Drivers\Storage\Intel\VMD"
-}
-
-if ((!([string]::IsNullOrWhiteSpace($CPUName))) -and (Test-Path $StorageDrivers\*))
-{
-    DISM /Image:$WindowsImage /Add-Driver /Driver:$StorageDrivers /recurse
+        # Add the Storage Drivers if they exist
+        if ($StorageDrivers) {
+            if (Test-Path $StorageDrivers) {
+                DISM /Image:$WindowsImage /Add-Driver /Driver:$StorageDrivers /recurse
+            }
+        }
+    }
 }

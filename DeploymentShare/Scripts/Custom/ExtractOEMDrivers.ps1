@@ -1,61 +1,58 @@
+# Define the path to WinRAR
 $WinRAR = "X:\Program Files\WinRAR\WinRAR.exe"
-$WindowsVolumeLetter = Get-Volume -FileSystemLabel Windows | Select DriveLetter
-$DeployVolumeLetter = Get-Volume | Where {$_.FileSystemLabel -Like "Deploy"} | select Driveletter
 
-if (!([string]::IsNullOrWhiteSpace($DeployVolumeLetter)))
-{
-    $SrcDriversPath = ($DeployVolumeLetter.DriveLetter).ToString() + ":\DriverPacks\"
+# Get the Windows drive letter
+$WindowsDriveLetter = (Get-Volume -FileSystemLabel Windows).DriveLetter
+
+# Define the source path for OEM drivers
+$SrcDriversPath = if (Test-Path "\\SERVER\Shared\DriverPacks\*") {
+    "\\SERVER\Shared\DriverPacks"
+} else {
+    $DeploymentDriveLetter = (Get-Volume | Where-Object { $_.FileSystemLabel -Like "Deploy" }).DriveLetter
+    if ($DeploymentDriveLetter) {
+        Join-Path -Path "${DeploymentDriveLetter}:" -ChildPath "DriverPacks"
+    } else {
+        $null
+    }
 }
 
-if (Test-Path \\SERVER\Shared\DriverPacks\)
-{
-    $SrcDriversPath = "\\SERVER\Shared\DriverPacks\"
-}
+# Define the source and destination driver paths and extract the drivers if the Windows drive letter and the source driver path is present
+if ($WindowsDriveLetter -and $SrcDriversPath) {
+    # Get system information and define the system model
+    $BaseBoardProduct = (Get-CimInstance Win32_BaseBoard).Product.Trim()
+    $ComputerSystemProductVersion = (Get-CimInstance Win32_ComputerSystemProduct).Version.Trim()
+    $ComputerSystemModel = (Get-CimInstance Win32_ComputerSystem).Model.Trim()
+    $InvalidModelValues = 'Default string', 'Not Applicable', 'Not Available', 'System Product Name', 'System Version', 'To be filled by O.E.M.', 'Type1ProductConfigId'
+    $Model = $BaseBoardProduct, $ComputerSystemProductVersion, $ComputerSystemModel | Where-Object {
+        $_ -notin $InvalidModelValues -and -not [string]::IsNullOrWhiteSpace($_)
+    } | Sort-Object Length -Descending | Select-Object -First 1
 
-$BaseBoardProduct = Get-WmiObject Win32_BaseBoard | Where-Object {$_.Product -ne 'Not Available'} | Select-Object -ExpandProperty Product
-if (!([string]::IsNullOrWhiteSpace($BaseBoardProduct)))
-{
-    $Model = $BaseBoardProduct
-}
+    # Get CPU name and generation
+    $CPUName = (Get-CimInstance -ClassName Win32_Processor).Name
+    $Gen = $CPUName | Select-String -Pattern "(\d+th Gen Intel)" | ForEach-Object { $_.Matches } | ForEach-Object { $_.Value } | Select-Object -First 1
 
-$ProductVersion = Get-WmiObject -Class:Win32_ComputerSystemProduct | Where-Object {$_.Version -ne 'System Version' -and $_.Version -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Version
-if (!([string]::IsNullOrWhiteSpace($ProductVersion)))
-{
-    $Model = $ProductVersion
-}
+    # Define the source drivers to extract
+    $SrcDriversWithGen = if ($Gen) { Join-Path -Path $SrcDriversPath -ChildPath "$Model $Gen.7z" } else { $null }
+    $SrcDriversWithoutGen = Join-Path -Path $SrcDriversPath -ChildPath "$Model.7z"
 
-$SystemModel = Get-WmiObject -Class:Win32_ComputerSystem | Where-Object {$_.Model -ne 'System Product Name' -and $_.Model -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Model
-if (!([string]::IsNullOrWhiteSpace($SystemModel)))
-{
-    $Model = $SystemModel
-}
+    if ($SrcDriversWithGen -and (Test-Path $SrcDriversWithGen)) {
+        $SrcDrivers = $SrcDriversWithGen
+    } elseif (Test-Path $SrcDriversWithoutGen) {
+        $SrcDrivers = $SrcDriversWithoutGen
+    } else {
+        $SrcDrivers = $null
+    }
 
-$SystemManufacturer = Get-WmiObject -Class:Win32_ComputerSystem | Where-Object {$_.Manufacturer -ne 'Not Available' -and $_.Manufacturer -ne 'System Manufacturer' -and $_.Manufacturer -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Manufacturer
-if (!([string]::IsNullOrWhiteSpace($SystemManufacturer)))
-{
-    $Manufacturer = $SystemManufacturer
-}
+    # Define the destination driver path
+    $DstDriversPath = Join-Path -Path "$($WindowsDriveLetter):" -ChildPath "Recovery\OEM\Drivers"
 
-if ($Manufacturer -like '*Lenovo*')
-{
-    $ProductVersion = Get-WmiObject -Class:Win32_ComputerSystemProduct | Select-Object -ExpandProperty Version
-    $Model = $ProductVersion
-}
+    # Create the destination directory if it doesn't exist
+    if (-not (Test-Path $DstDriversPath)) {
+        New-Item -Path $DstDriversPath -ItemType Directory
+    }
 
-[String]$SrcDrivers = "$SrcDriversPath" + "$Model.7z"
-
-if (!([string]::IsNullOrWhiteSpace($WindowsVolumeLetter)))
-{
-    [String]$WindowsImage = ($WindowsVolumeLetter.Driveletter).ToString() + ":\"
-    [String]$DstDriversPath = ($WindowsVolumeLetter.Driveletter).ToString() + ":\Recovery\OEM\Drivers"
-}
-
-if (!(Test-Path $DstDriversPath))
-{
-    New-Item $DstDriversPath -itemType Directory
-}
-
-if ((Test-Path $SrcDrivers) -and (Test-Path $DstDriversPath))
-{
-    Start-Process $WinRAR -ArgumentList "x -o+ `"$SrcDrivers`" $DstDriversPath" -Wait
+    # Extract the source drivers
+    if ($SrcDrivers) {
+        Start-Process -FilePath $WinRAR -ArgumentList "x -o+ `"$SrcDrivers`" `"$DstDriversPath`"" -Wait
+    }
 }

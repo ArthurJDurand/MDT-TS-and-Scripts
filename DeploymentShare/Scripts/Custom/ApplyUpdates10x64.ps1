@@ -1,29 +1,37 @@
-$WindowsVolumeLetter = Get-Volume -FileSystemLabel Windows | Select DriveLetter
-$DeployVolumeLetter = Get-Volume | Where {$_.FileSystemLabel -Like "Deploy"} | select Driveletter
+# Get the Windows drive letter
+$WindowsDriveLetter = (Get-Volume -FileSystemLabel Windows).DriveLetter
 
-if (!([string]::IsNullOrWhiteSpace($DeployVolumeLetter)))
-{
-    [String]$UpdateSource = ($DeployVolumeLetter.DriveLetter).ToString() + ":\Updates\Win10\x64\*"
+# Define the Windows update source path
+$UpdateSource = if (Test-Path "\\SERVER\Shared\Updates\Win10\x64") {
+    "\\SERVER\Shared\Updates\Win10\x64"
+} else {
+    $DeploymentDriveLetter = (Get-Volume | Where-Object { $_.FileSystemLabel -Like "Deploy" }).DriveLetter
+    if ($DeploymentDriveLetter) {
+        Join-Path -Path "${DeploymentDriveLetter}:" -ChildPath "Updates\Win10\x64"
+    } else {
+        $null
+    }
 }
 
-if (Test-Path \\SERVER\Shared\Updates\Win10\x64\*)
-{
-    $UpdateSource = "\\SERVER\Shared\Updates\Win10\x64\*"
-}
+# Update the Windows image if update packages are present in the update source
+if ($WindowsDriveLetter -and $UpdateSource) {
+    $WindowsImage = "${WindowsDriveLetter}:"
+    $ScratchDir = Join-Path -Path "${WindowsDriveLetter}:" -ChildPath "Scratch"
+    $Updates = Join-Path -Path "${WindowsDriveLetter}:" -ChildPath "Updates"
 
-if (!([string]::IsNullOrWhiteSpace($WindowsVolumeLetter)))
-{
-    [String]$WindowsImage = ($WindowsVolumeLetter.DriveLetter).ToString() + ":\"
-    [String]$ScratchDir = ($WindowsVolumeLetter.DriveLetter).ToString() + ":\Scratch"
-    [String]$Updates = ($WindowsVolumeLetter.DriveLetter).ToString() + ":\Updates"
-}
+    if ((Test-Path "$UpdateSource\*.msu") -or (Test-Path "$UpdateSource\*.cab")) {
+        # Create necessary directories
+        New-Item -Path $ScratchDir -ItemType Directory -Force
+        New-Item -Path $Updates -ItemType Directory -Force
 
-if ((Test-Path $UpdateSource) -and (!([string]::IsNullOrWhiteSpace($WindowsVolumeLetter))))
-{
-    New-Item $ScratchDir -itemType Directory
-    New-Item $Updates -itemType Directory
-    Copy-Item -Path $UpdateSource -Destination $Updates -Recurse
-    & DISM.exe /Image:$WindowsImage /Add-Package /PackagePath:$Updates /ScratchDir:$ScratchDir
-    Remove-Item $Updates -Force -Recurse
-    Remove-Item $ScratchDir -Force -Recurse
+        # Copy update packages from source to Updates directory
+        Copy-Item -Path "$UpdateSource\*" -Destination $Updates -Recurse
+
+        # Add update packages to Windows image
+        & DISM.exe /Image:$WindowsImage /Add-Package /PackagePath:$Updates /ScratchDir:$ScratchDir
+
+        # Clean up directories
+        Remove-Item -Path $Updates -Force -Recurse
+        Remove-Item -Path $ScratchDir -Force -Recurse
+    }
 }

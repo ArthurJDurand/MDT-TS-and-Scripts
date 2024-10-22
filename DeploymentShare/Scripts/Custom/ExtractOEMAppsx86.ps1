@@ -1,101 +1,55 @@
+# Define the path to WinRAR
 $WinRAR = "X:\Program Files\WinRAR\WinRAR.exe"
-$WindowsVolumeLetter = Get-Volume -FileSystemLabel Windows | Select DriveLetter
-$DeployVolumeLetter = Get-Volume | Where {$_.FileSystemLabel -Like "Deploy"} | select Driveletter
 
-if (!([string]::IsNullOrWhiteSpace($DeployVolumeLetter)))
-{
-    $OEMAppsSrcPath = ($DeployVolumeLetter.DriveLetter).ToString() + ":\OEM\x86\"
+# Get the Windows drive letter
+$WindowsDriveLetter = (Get-Volume -FileSystemLabel Windows).DriveLetter
+
+# Define the source path for OEM apps
+$OEMAppsSourcePath = if (Test-Path "\\SERVER\OEM\x86") {
+    "\\SERVER\OEM\x86"
+} else {
+    $DeploymentDriveLetter = (Get-Volume | Where-Object { $_.FileSystemLabel -Like "Deploy" }).DriveLetter
+    if ($DeploymentDriveLetter) {
+        Join-Path -Path "${DeploymentDriveLetter}:" -ChildPath "OEM\x86"
+    } else {
+        $null
+    }
 }
 
-if (Test-Path \\SERVER\OEM\x86)
-{
-    $OEMAppsSrcPath = "\\SERVER\OEM\x86\"
-}
+# Define the destination path for OEM apps if the WIndows drive letter is present
+if ($WindowsDriveLetter) {
+    $OEMAppsDestinationPath = Join-Path -Path "${WindowsDriveLetter}:\" -ChildPath "Recovery\OEM"
 
-if (!([string]::IsNullOrWhiteSpace($WindowsVolumeLetter)))
-{
-    [String]$OEMDestination = ($WindowsVolumeLetter.Driveletter).ToString() + ":\Recovery\OEM"
-}
+    # Get system information and define the system manufacturer
+    $BaseBoardManufacturer = (Get-CimInstance Win32_BaseBoard).Manufacturer.Trim()
+    $ComputerSystemPackageVendor = (Get-CimInstance -ClassName CIM_ComputerSystemPackage).Vendor.Trim()
+    $ComputerSystemManufacturer = (Get-CimInstance -ClassName CIM_ComputerSystem).Manufacturer.Trim()
+    $InvalidManufacturerValues = 'Default string', 'Not Applicable', 'Not Available', 'System Manufacturer', 'To be filled by O.E.M.'
+    $Manufacturer = $BaseBoardManufacturer, $ComputerSystemPackageVendor, $ComputerSystemManufacturer | Where-Object {
+        $_ -notin $InvalidManufacturerValues -and -not [string]::IsNullOrWhiteSpace($_)
+    } | Group-Object | Sort-Object Count -Descending | Select-Object -First 1 -ExpandProperty Name
 
-$BaseBoardManufacturer = Get-WmiObject Win32_BaseBoard | Where-Object {$_.Manufacturer -ne 'Not Available' -and $_.Manufacturer -ne 'System Manufacturer' -and $_.Manufacturer -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Manufacturer
-if (!([string]::IsNullOrWhiteSpace($BaseBoardManufacturer)))
-{
-    $Manufacturer = $BaseBoardManufacturer
-}
+    # Create the destination directory if it doesn't exist
+    if (-not (Test-Path $OEMAppsDestinationPath)) {New-Item $OEMAppsDestinationPath -itemType Directory}
 
-$ProductManufacturer = Get-WmiObject -Class:Win32_ComputerSystemProduct | Where-Object {$_.Manufacturer -ne 'Not Available' -and $_.Manufacturer -ne 'System Manufacturer' -and $_.Manufacturer -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Vendor
-if (!([string]::IsNullOrWhiteSpace($ProductManufacturer)))
-{
-    $Manufacturer = $ProductManufacturer
-}
+    # Determine the appropriate OEM apps based on the manufacturer
+    $OEMAppPath = switch -Wildcard ($Manufacturer) {
+        {$_ -like '*Acer*'} {Join-Path -Path $OEMAppsSourcePath -ChildPath "Acer.7z"}
+        {$_ -like '*ASUS*'} {Join-Path -Path $OEMAppsSourcePath -ChildPath "ASUS.7z"}
+        {$_ -like '*Dell*'} {Join-Path -Path $OEMAppsSourcePath -ChildPath "Dell.7z"}
+        {$_ -like '*Dynabook*'} {Join-Path -Path $OEMAppsSourcePath -ChildPath "Dynabook.7z"}
+        {$_ -like '*Gigabyte*'} {Join-Path -Path $OEMAppsSourcePath -ChildPath "Gigabyte.7z"}
+        {$_ -like '*HP*' -or $_ -like '*Hewlett Packard*' -or $_ -like '*Hewlett-Packard*'} {Join-Path -Path $OEMAppsSourcePath -ChildPath "HP.7z"}
+        {$_ -like '*Huawei*'} {Join-Path -Path $OEMAppsSourcePath -ChildPath "Huawei.7z"}
+        {$_ -like '*Lenovo*'} {Join-Path -Path $OEMAppsSourcePath -ChildPath "Lenovo.7z"}
+        {$_ -like '*Microsoft*'} {Join-Path -Path $OEMAppsSourcePath -ChildPath "Microsoft.7z"}
+        {$_ -like '*Micro-Star*' -or $_ -like '*MicroStar*' -or $_ -like '*MSI*'} {Join-Path -Path $OEMAppsSourcePath -ChildPath "MSI.7z"}
+        {$_ -like '*Proline*'} {Join-Path -Path $OEMAppsSourcePath -ChildPath "Proline.7z"}
+        default {Join-Path -Path $OEMAppsSourcePath -ChildPath "Default.7z"}
+    }
 
-$SystemManufacturer = Get-WmiObject -Class:Win32_ComputerSystem | Where-Object {$_.Manufacturer -ne 'Not Available' -and $_.Manufacturer -ne 'System Manufacturer' -and $_.Manufacturer -ne 'To be filled by O.E.M.'} | Select-Object -ExpandProperty Manufacturer
-if (!([string]::IsNullOrWhiteSpace($SystemManufacturer)))
-{
-    $Manufacturer = $SystemManufacturer
-}
-
-if (!(Test-Path $OEMDestination))
-{
-    New-Item $OEMDestination -itemType Directory
-}
-
-If ($Manufacturer -like '*Acer*')
-{
-    $OEMApps = "$OEMAppsSrcPath" + "Acer.7z"
-}
-
-If ($Manufacturer -like '*ASUS*')
-{
-    $OEMApps = "$OEMAppsSrcPath" + "ASUS.7z"
-}
-
-If ($Manufacturer -like '*Dell*')
-{
-    $OEMApps = "$OEMAppsSrcPath" + "Dell.7z"
-}
-
-If ($Manufacturer -like '*Dynabook*')
-{
-    $OEMApps = "$OEMAppsSrcPath" + "Dynabook.7z"
-}
-
-If ($Manufacturer -like '*Gigabyte*')
-{
-    $OEMApps = "$OEMAppsSrcPath" + "Gigabyte.7z"
-}
-
-If (($Manufacturer -like '*HP*') -or ($Manufacturer -like '*Hewlett Packard*') -or ($Manufacturer -like '*Hewlett-Packard*'))
-{
-    $OEMApps = "$OEMAppsSrcPath" + "HP.7z"
-}
-
-If ($Manufacturer -like '*Huawei*')
-{
-    $OEMApps = "$OEMAppsSrcPath" + "Huawei.7z"
-}
-
-If ($Manufacturer -like '*Lenovo*')
-{
-    $OEMApps = "$OEMAppsSrcPath" + "Lenovo.7z"
-}
-
-If ($Manufacturer -like '*Microsoft*')
-{
-    $OEMApps = "$OEMAppsSrcPath" + "Microsoft.7z"
-}
-
-If (($Manufacturer -like '*Micro-Star*') -or ($Manufacturer -like '*MicroStar*') -or ($Manufacturer -like '*MSI*'))
-{
-    $OEMApps = "$OEMAppsSrcPath" + "MSI.7z"
-}
-
-If ($Manufacturer -like '*Proline*')
-{
-    $OEMApps = "$OEMAppsSrcPath" + "Proline.7z"
-}
-
-If ((Test-Path $OEMApps) -and (Test-Path $OEMDestination))
-{
-    & Start-Process $Winrar -ArgumentList "x -o+ `"$OEMApps`" $OEMDestination" -Wait
+    # Extract the appropriate OEM apps to the destination if both exists
+    if ((Test-Path $OEMAppPath) -and (Test-Path $OEMAppsDestinationPath)) {
+        Start-Process $WinRAR -ArgumentList "x -o+ `"$OEMAppPath`" $OEMAppsDestinationPath" -Wait
+    }
 }

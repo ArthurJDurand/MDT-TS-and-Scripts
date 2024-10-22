@@ -1,36 +1,28 @@
-#Defalt Value
+# Initialize OS Disk
 $OSDisk = 0
 
-#Retrieve SSD
-$SSD = Get-PhysicalDisk | Where MediaType -eq 'SSD'
+# Get Physical Disks excluding USB drives
+$PhysicalDisks = Get-PhysicalDisk | Where-Object { $_.BusType -ne 'USB' }
 
-#Multiple SSDs
-if (@($SSD).count -gt 1)
-{
-    #multiple nvme SSD, choose the smallest one
-    if (@($SSD | where bustype -like 'nvme').count -gt 1)
-    {
-        $OSDisk = $SSD | Sort-Object -Property Size | Select-Object -ExpandProperty DeviceID -First 1 
-    }
-    elseif (@($SSD | where bustype -like 'nvme').count -eq 1)
-    {
-        $OSDisk = ($SSD | where bustype -like 'nvme').deviceid
-    }
-}
+# Get SSDs
+$SSDs = $PhysicalDisks | Where-Object { $_.MediaType -eq 'SSD' }
 
-#Single SSD
-elseif (@($SSD).count -eq 1)
-    {
-    #multiple physical disks, choose SSD
-    if (@(get-physicaldisk).count -gt 1)
-    {
-        $OSDisk = ($SSD).deviceid
+# Set the first available NVMe or SATA SSD as the OS Disk
+if ($SSDs.Count -gt 0) {
+    $NVMeSSDs = $SSDs | Where-Object { $_.BusType -eq 'NVMe' }
+    if ($NVMeSSDs.Count -gt 0) {
+        $OSDisk = $NVMeSSDs | Sort-Object -Property Size | Select-Object -First 1 -ExpandProperty DeviceID
+    } else {
+        $OSDisk = $SSDs | Sort-Object -Property Size | Select-Object -First 1 -ExpandProperty DeviceID
     }
-#single pysical disks
-    else
-    {
+} else {
+    # Set the first available non-SSD drive as the OS Disk if no SSDs are found
+    if ($PhysicalDisks.Count -gt 0) {
+        $OSDisk = $PhysicalDisks | Sort-Object -Property Size | Select-Object -First 1 -ExpandProperty DeviceID
+    } else {
         $OSDisk = 0
     }
 }
 
+# Set the OS Disk Index
 (New-Object -COMObject Microsoft.SMS.TSEnvironment).Value('OSDDiskIndex') = $OSDisk

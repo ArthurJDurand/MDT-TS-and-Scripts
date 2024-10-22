@@ -1,6 +1,2 @@
-$Disk = Get-Disk | Where-Object -FilterScript {$_.Bustype -Ne "USB"}
-
-if (!([string]::IsNullOrWhiteSpace($Disk)))
-{
-    $Disk | Clear-Disk -RemoveData -RemoveOEM -Confirm:$false
-}
+# Clean all non USB drives
+Get-Disk | Where-Object { $_.Bustype -Ne "USB" } | Clear-Disk -RemoveData -RemoveOEM -Confirm:$false

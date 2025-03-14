@@ -4,12 +4,12 @@ $OSDisk = 0
 # Get Physical Disks excluding USB drives
 $PhysicalDisks = Get-PhysicalDisk | Where-Object { $_.BusType -ne 'USB' }
 
-# Get SSDs
-$SSDs = $PhysicalDisks | Where-Object { $_.MediaType -eq 'SSD' }
+# Get SSDs, ensuring the output is an array
+$SSDs = @( $PhysicalDisks | Where-Object { $_.MediaType -eq 'SSD' } )
 
 # Set the first available NVMe or SATA SSD as the OS Disk
 if ($SSDs.Count -gt 0) {
-    $NVMeSSDs = $SSDs | Where-Object { $_.BusType -eq 'NVMe' }
+    $NVMeSSDs = @( $SSDs | Where-Object { $_.BusType -eq 'NVMe' } )
     if ($NVMeSSDs.Count -gt 0) {
         $OSDisk = $NVMeSSDs | Sort-Object -Property Size | Select-Object -First 1 -ExpandProperty DeviceID
     } else {

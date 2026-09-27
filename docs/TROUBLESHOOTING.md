@@ -14,7 +14,7 @@ If you cannot find your issue here, see [Getting Help](#getting-help) at the bot
 - [Task Sequence Phase Failures](#task-sequence-phase-failures)
 - [Script-Specific Issues](#script-specific-issues)
 - [OOBE and SetupComplete Issues](#oobe-and-setupcomplete-issues)
-- [Payload Updater Issues](#payload-updater-issues)
+- [Framework Issues](#framework-issues)
 - [Hardware-Specific Issues](#hardware-specific-issues)
 - [Post-Deployment Issues](#post-deployment-issues)
 - [Useful Diagnostic Commands](#useful-diagnostic-commands)
@@ -24,38 +24,35 @@ If you cannot find your issue here, see [Getting Help](#getting-help) at the bot
 
 ## Log Locations
 
-Different phases of the deployment write logs to different locations. Knowing where to look cuts troubleshooting time dramatically.
+Different phases write logs to different locations. Knowing where to look cuts troubleshooting time dramatically.
 
 | Phase | Log Location | Notes |
 |---|---|---|
-| **WinPE** (Initialization through Postinstall) | `X:\MININT\SMSOSD\OSDLOGS\` | This is the WinPE RAM disk — logs are lost on reboot unless copied |
-| **WinPE — consolidated** | `X:\MININT\SMSOSD\OSDLOGS\BDD.log` | The single most useful log. Starts here. |
+| **WinPE** (Initialization through Postinstall) | `X:\MININT\SMSOSD\OSDLOGS\` | WinPE RAM disk — logs lost on reboot unless copied |
+| **WinPE — consolidated** | `X:\MININT\SMSOSD\OSDLOGS\BDD.log` | The single most useful log. Start here. |
 | **Full OS** (State Restore and later) | `C:\MININT\SMSOSD\OSDLOGS\` | Persists until `CleanupScripts.ps1` removes `MININT` |
-| **MDT summary** | `C:\Windows\Temp\DeploymentLogs\` | Human-readable summary of the deployment |
-| **OOBE / SetupComplete** | `C:\ProgramData\OEM\Logs\SetupComplete.log` | Orchestration log for the post-OOBE chain |
-| **pre.ps1 transcript** | `C:\ProgramData\OEM\Logs\pre_<timestamp>.log` | Detailed OEM setup log |
-| **Payload updaters** | `C:\ProgramData\OEM\Logs\AppsArchive_*.log`, `DriversArchive_*.log`, `LGPOArchive_*.log` | One per payload update run |
-| **DISM (offline image)** | `C:\Windows\Logs\DISM\dism.log` | Only exists after first boot into the deployed OS |
+| **MDT summary** | `C:\Windows\Temp\DeploymentLogs\` | Human-readable deployment summary |
+| **OOBE orchestration** | `C:\ProgramData\OEM\Logs\SetupComplete.log` | Post-OOBE chain runner |
+| **`pre.ps1` transcript** | `C:\ProgramData\OEM\Logs\pre_<timestamp>.log` | Detailed OEM setup log |
+| **Framework shared log** | `C:\ProgramData\OEM\Logs\PBR_Deployment.log` | Shared structured log for both framework phases |
+| **Framework transcript** | `C:\ProgramData\OEM\Logs\Master_<Phase>_<PID>_<timestamp>.log` | Per-phase PowerShell transcript |
+| **Framework per-app** | `C:\ProgramData\OEM\Logs\<AppName>.log` | Only for apps the framework actually worked on |
+| **DISM (offline image)** | `C:\Windows\Logs\DISM\dism.log` | Only after first boot into the deployed OS |
 | **DISM (WinRE)** | `C:\Temp\WinREWork\dism_driver.log` | Created by `WinRE.ps1`, removed on success |
 | **Deployment share** | `\\SERVER\DeploymentShare$\Logs\` | Server-side log of deployments (if configured) |
 
 ### Retrieving WinPE logs before reboot
 
-The WinPE logs in `X:\` are lost when the machine reboots. To preserve them:
+WinPE logs in `X:\` are lost when the machine reboots. To preserve them:
 
-**Option 1 — Set the task sequence to capture them automatically.** Add a task sequence step that runs:
-
-```cmd
-net use Z: \\SERVER\Logs$\%ComputerName%
-copy X:\MININT\SMSOSD\OSDLOGS\*.log Z:\
-```
-
-**Option 2 — Before rebooting, press F8** during the deployment and select **Command Prompt**, then:
+**Option 1 — Add a task sequence step** that runs:
 
 ```cmd
 net use Z: \\SERVER\Logs$\%ComputerName%
 copy X:\MININT\SMSOSD\OSDLOGS\*.log Z:\
 ```
+
+**Option 2 — Before rebooting, press F8** during the deployment and select **Command Prompt**, then run the same commands.
 
 **Option 3 — View the logs directly.** In WinPE, run:
 
@@ -84,7 +81,7 @@ The critical field is `type`:
 
 ### Quick filtering
 
-To find all errors and warnings in a log:
+Find all errors and warnings in a log:
 
 ```powershell
 Select-String -Path "C:\MININT\SMSOSD\OSDLOGS\BDD.log" -Pattern 'type="[34]"' | Select-Object -Last 50
@@ -129,7 +126,7 @@ When a task sequence step fails:
 3. Confirm the client can ping the server on the deployment VLAN.
 4. Verify `TFTP` traffic (UDP 69) is allowed through any firewall.
 
-### PXE client downloads the boot image but the machine hangs at "Windows is loading files..."
+### PXE client downloads the boot image but hangs at "Windows is loading files..."
 
 **Cause:** The boot image is incompatible with the client hardware, or a needed driver is missing.
 
@@ -146,7 +143,7 @@ When a task sequence step fails:
 **Fix:**
 
 1. Enter BIOS/UEFI and confirm network boot is first.
-2. If the OS is already installed, some firmware will prefer the local disk. Use the boot menu (F12, F9, F10, or Esc during POST) to force network boot.
+2. If the OS is already installed, some firmware prefers the local disk. Use the boot menu (F12, F9, F10, or Esc during POST) to force network boot.
 3. On UEFI systems, verify PXE is enabled and Secure Boot is either disabled or properly configured.
 
 ### LiteTouch WinPE boots but no task sequence picker appears
@@ -158,7 +155,6 @@ When a task sequence step fails:
 1. Open `Control\CustomSettings.ini` in the deployment share.
 2. Locate `SkipTaskSequence=YES`.
 3. Either change to `SkipTaskSequence=NO`, or set `TaskSequenceID=WIN11PROX64` (or your preferred TS) so the correct sequence is picked automatically.
-4. If no picker appears but the deployment starts, this is by design — the configuration is skipping the wizard.
 
 ### "Unable to find a Deployment Share" error
 
@@ -185,7 +181,7 @@ When a task sequence step fails:
 
 #### "Check BIOS" step fails
 
-**Cause:** The BIOS/UEFI detection returns an unexpected value, or the script cannot read the firmware type.
+**Cause:** BIOS/UEFI detection returns an unexpected value, or the script cannot read the firmware type.
 
 **Fix:**
 
@@ -195,7 +191,7 @@ When a task sequence step fails:
 
 #### "Validate" step fails on hardware
 
-**Cause:** The target machine does not meet the minimum requirements in `CustomSettings.ini`.
+**Cause:** The target does not meet the minimum requirements in `CustomSettings.ini`.
 
 **Fix:**
 
@@ -212,7 +208,7 @@ When a task sequence step fails:
 **Fix:**
 
 1. Check `X:\MININT\SMSOSD\OSDLOGS\ZTIUserState.log`.
-2. Verify `USMTOfflineMigration` is not set to `TRUE` for a Refresh deployment (see `CustomSettings.ini`).
+2. Verify `USMTOfflineMigration` is not set to `TRUE` for a Refresh deployment.
 3. For New Computer deployments, user state capture is skipped by design.
 
 ### Preinstall phase
@@ -281,7 +277,7 @@ When a task sequence step fails:
    ```cmd
    online disk
    ```
-5. If the drive is a USB device that is being wiped unintentionally, disconnect it before deployment.
+5. If the drive is a USB device being wiped unintentionally, disconnect it before deployment.
 
 #### "Create Recovery Partition" fails
 
@@ -292,7 +288,7 @@ When a task sequence step fails:
 1. Check `X:\MININT\SMSOSD\OSDLOGS\ZTIDiskpart.log`.
 2. Confirm the Windows partition has at least 1 GB of free space after apply. Adjust partition sizes in the task sequence if needed:
    - `OSDPartitions1Size` (Windows partition size as `%` of disk)
-3. If diskpart fails to shrink due to unmovable files, run defragmentation on the target first, or increase the recovery partition size beyond the minimum.
+3. If `diskpart` fails to shrink due to unmovable files, run defragmentation on the target first, or increase the recovery partition size beyond the minimum.
 
 ### Install phase
 
@@ -311,7 +307,7 @@ When a task sequence step fails:
    ```cmd
    dism /Get-WimInfo /WimFile:install.wim
    ```
-4. Verify `Unattend.xml` references the correct `IMAGE/INDEX`.
+4. Verify the task sequence's `Install Operating System` step points at the correct OS entry.
 
 #### "Apply Updates" fails
 
@@ -341,21 +337,21 @@ When a task sequence step fails:
 **Fix:**
 
 1. Check `X:\MININT\SMSOSD\OSDLOGS\BDD.log` for `CopyOEM` entries.
-2. Verify `$OEM$` exists in the deployment share root, task sequence folder, or architecture folder.
+2. Verify `$OEM$` exists under `<DeployRoot>\x64\` or `<DeployRoot>\x86\` (not at the deployment share root).
 3. Verify the destination Windows volume is mounted and writable.
 
 #### "Extract OEM Apps" fails
 
-**Cause:** 7-Zip is not available, or the vendor `.7z` is not found.
+**Cause:** 7-Zip is not available in WinPE, or the vendor `.7z` is not found.
 
 **Fix:**
 
 1. Check `X:\MININT\SMSOSD\OSDLOGS\BDD.log`.
-2. Verify 7-Zip is present:
+2. Verify 7-Zip is present in the boot image:
    ```powershell
    Test-Path "X:\Program Files\7-Zip\7z.exe"
    ```
-3. If missing, ensure 7-Zip is included in the boot image (add `7-Zip` to `Boot.x64.ExtraDirectory`).
+3. If missing, ensure `Boot.x64.ExtraDirectory` in `Settings.xml` points to `...\Boot\Addon\x64` and that the folder contains the 7-Zip files.
 4. Verify the source path exists:
    ```powershell
    Test-Path "\\SERVER\Shared\OEM\x64"
@@ -438,7 +434,7 @@ When a task sequence step fails:
    ```powershell
    Get-Process | Where-Object Path -like "*MININT*"
    ```
-3. If cleanup consistently fails, the machine will have leftover MDT files. Delete them manually after the deployment completes.
+3. If cleanup consistently fails, delete the leftover MDT files manually after the deployment completes.
 
 ### State Restore phase
 
@@ -486,15 +482,15 @@ When a task sequence step fails:
 
 ## Script-Specific Issues
 
-### `LoadWinPEDrivers.ps1`
+### LoadWinPEDrivers.ps1
 
 #### No VMD driver loaded even though the CPU is 11th Gen or newer
 
-**Symptoms:** Log shows `No VMD driver loaded` or the script exits without loading.
+**Symptoms:** Log shows no VMD driver activity, or the script exits without loading.
 
 **Possible causes and fixes:**
 
-1. **Storage is already visible.** The script checks diskpart first. If any disk is visible, it exits. Verify the target actually has storage that requires VMD:
+1. **Storage is already visible.** The script checks `diskpart` first. If any disk is visible, it exits. Verify the target actually needs VMD:
    ```cmd
    diskpart
    list disk
@@ -505,25 +501,24 @@ When a task sequence step fails:
    ```powershell
    Test-Path "\\SERVER\Shared\Drivers\WinPE\Storage\Intel\x64\20.2.6.1025.3"
    ```
-   If missing, download the Intel VMD driver and place it at that path.
 
 3. **CPU detection failed.** Check the CPU name reported:
    ```powershell
    (Get-ItemProperty 'HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0').ProcessorNameString
    ```
-   If the CPU is not recognized (e.g. a very new generation), add a mapping in `Get-IntelProcessorGeneration`.
+   If the CPU is not recognized, add a mapping in `Get-IntelProcessorGeneration`.
 
 4. **Generation-specific mapping is missing.** For a new CPU generation, add it to the switch:
    ```powershell
    $IntelVMDVersion = switch ($IntelGen) {
-       { $_ -ge 16 } { "22.x.x.xxxx" }   # hypothetical new version
+       { $_ -ge 16 } { "22.x.x.xxxx" }
        { $_ -ge 12 } { "20.2.6.1025.3" }
        11            { "19.5.8.1059.2" }
        default       { $null }
    }
    ```
 
-### `SetTargetOSDisk.ps1`
+### SetTargetOSDisk.ps1
 
 #### The wrong disk is selected as the target
 
@@ -535,13 +530,13 @@ When a task sequence step fails:
    ```powershell
    Get-PhysicalDisk | Select-Object DeviceId, FriendlyName, BusType, MediaType, Size
    ```
-2. If the USB reports `BusType = USB` (correct), it will be excluded.
-3. If the sort order is wrong (you want the largest SSD, not the smallest), edit the script:
+   If the USB reports `BusType = USB` (correct), it will be excluded.
+2. If the sort order is wrong (you want the largest SSD, not the smallest), edit the script:
    ```powershell
    $OSDisk = $NVMeSSDs | Sort-Object -Property Size -Descending | Select-Object -First 1 -ExpandProperty DeviceID
    ```
 
-### `ExtractOEMDrivers.ps1`
+### ExtractOEMDrivers.ps1
 
 #### Wrong driver pack extracted
 
@@ -549,16 +544,15 @@ When a task sequence step fails:
 
 **Fix:**
 
-1. The script sorts candidates by filename length (descending) then archive size (descending). This means the longest matching filename wins.
+1. The script sorts candidates by filename length (descending) then archive size (descending). The longest matching filename wins.
 2. To force a specific pack, use a longer, more specific name:
    ```
    Dell Latitude 5430 12th Gen Intel (2024-11).7z   ← wins over
    Dell Latitude 5430 12th Gen Intel.7z
    Dell Latitude 5430.7z
    ```
-3. Check the log to see which candidates were considered. `ExtractOEMDrivers.ps1` logs the pattern list it tries.
 
-### `ApplyOEMDrivers.ps1`
+### ApplyOEMDrivers.ps1
 
 #### Drivers are applied but hardware still has missing drivers
 
@@ -576,7 +570,7 @@ When a task sequence step fails:
    ```
 3. Missing categories: check the source driver pack. Add missing drivers and re-archive.
 
-### `WinRE.ps1`
+### WinRE.ps1
 
 #### WinRE is not deployed, or VMD is not injected into WinRE
 
@@ -607,9 +601,9 @@ When a task sequence step fails:
    ```
    If not, `WinRE.ps1` should assign one — check for errors in the log.
 
-### `pre.ps1`
+### pre.ps1
 
-#### AnyDesk installation fails or password configuration fails
+#### AnyDesk installation or password configuration fails
 
 **Cause:** AnyDesk installer is missing, or the installer does not exit cleanly.
 
@@ -631,7 +625,7 @@ When a task sequence step fails:
 
 #### Office installation fails
 
-**Cause:** Setup.exe or configuration.xml is missing, or the installer exits non-zero.
+**Cause:** `setup.exe` or `configuration.xml` is missing, or the installer exits non-zero.
 
 **Fix:**
 
@@ -640,7 +634,7 @@ When a task sequence step fails:
    ```powershell
    Test-Path "C:\Recovery\OEM\Apps\Office365"
    ```
-3. Verify both `setup.exe` and `configuration.xml` are present in the folder.
+3. Verify both `setup.exe` and `configuration.xml` are present.
 4. Test the installer manually:
    ```cmd
    cd C:\Recovery\OEM\Apps\Office365
@@ -654,12 +648,11 @@ When a task sequence step fails:
 
 **Fix:**
 
-1. This is intentional. The gate `Test-OfficeSafeForActivation` ensures Ohook does not run while Office is open.
+1. This is intentional. The gate ensures Ohook does not run while Office is open.
 2. If you need to force activation, run the Ohook script manually as SYSTEM after OOBE:
    ```cmd
    C:\Recovery\OEM\Activation\Ohook_Activation.cmd /Ohook
    ```
-3. To retry activation on the next boot, add a scheduled task that runs `pre.ps1 -RetryActivationOnly` (you would need to add this mode yourself — the current script does not support it).
 
 #### Windows activation fails
 
@@ -667,7 +660,7 @@ When a task sequence step fails:
 
 **Fix:**
 
-1. Check the activation log:
+1. Check the activation status:
    ```cmd
    slmgr /dlv
    ```
@@ -679,9 +672,7 @@ When a task sequence step fails:
    ```powershell
    (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').EditionID
    ```
-4. Compare with `OA3xOriginalProductKeyDescription`. If they do not match, the machine is licensed for a different edition. Either:
-   - Deploy the matching edition, or
-   - Activate manually via HWID fallback (which should already run).
+4. Compare with `OA3xOriginalProductKeyDescription`. If they do not match, the machine is licensed for a different edition. Either deploy the matching edition, or rely on the HWID fallback that `Activate-Windows` already tries.
 
 #### UWP app installation fails with "Element not found" or "0xc1570118"
 
@@ -690,19 +681,19 @@ When a task sequence step fails:
 **Fix:**
 
 1. This is expected behavior. The script catches these errors and treats the app as already installed.
-2. If you want to force downgrade, you must remove the existing provisioned package first:
+2. To force a downgrade, remove the existing provisioned package first:
    ```powershell
    Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like "*PackageName*" | Remove-AppxProvisionedPackage -Online
    ```
 
-#### `Wait-SystemIdle` shows "CPU counters unavailable; using fixed 5s settle delay"
+#### "CPU counters unavailable; using fixed 5s settle delay"
 
-**Cause:** Performance counters are broken or unstable. This is expected on some systems with third-party drivers.
+**Cause:** Performance counters are broken or unstable. Expected on some systems with third-party drivers.
 
 **Fix:**
 
 1. This is not a fatal error. The script falls back gracefully.
-2. If it happens frequently, you can disable the `Wait-SystemIdle` call in `pre.ps1` — it is a nicety, not a requirement.
+2. If it happens frequently, you can disable the `Wait-SystemIdle` call in `pre.ps1`. It is a nicety, not a requirement.
 
 ---
 
@@ -718,8 +709,8 @@ When a task sequence step fails:
    ```powershell
    Test-Path "C:\Windows\Setup\Scripts\SetupComplete.cmd"
    ```
-2. If missing, the `$OEM$\$$\Setup\` folder is not being copied to the target. Verify `CopyOEM.wsf` runs and the `$OEM$` folder structure is correct.
-3. Verify `SetupComplete.cmd` is present in your deployment share at `$OEM$\$$\Setup\`.
+2. If missing, the `$OEM$\$$\Setup\` folder was not copied to the target. Verify `CopyOEM.wsf` runs and the `$OEM$` folder structure is correct under `<arch>\$OEM$`.
+3. Verify `SetupComplete.cmd` is present in your deployment share at `<arch>\$OEM$\$$\Setup\Scripts\`.
 
 ### SetupComplete.cmd runs but pre.ps1 does not
 
@@ -727,7 +718,7 @@ When a task sequence step fails:
 
 **Fix:**
 
-1. Check the SetupComplete.log:
+1. Check the SetupComplete log:
    ```powershell
    Get-Content "C:\ProgramData\OEM\Logs\SetupComplete.log"
    ```
@@ -739,7 +730,7 @@ When a task sequence step fails:
    ```cmd
    powershell.exe -Command "Get-Host"
    ```
-4. If ExecutionPolicy blocks the script, verify the `-ExecutionPolicy Bypass` flag is in SetupComplete.cmd (it should be by default).
+4. If ExecutionPolicy blocks the script, verify the `-ExecutionPolicy Bypass` flag is in `SetupComplete.cmd`.
 
 ### pre.ps1 runs but fails partway through
 
@@ -752,102 +743,110 @@ When a task sequence step fails:
    Get-Content "C:\ProgramData\OEM\Logs\pre_*.log" | Select-String -Pattern "ERROR|FATAL"
    ```
 2. Because `pre.ps1` continues on error, a partial failure does not stop the deployment. Review the log for specific failures and address them individually.
-3. If `pre.ps1` aborts entirely (the top-level catch fires), check the log for the message:
-   ```
-   [FATAL] pre.ps1 aborted: <reason>
-   ```
+3. If `pre.ps1` aborts entirely (the top-level catch fires), look for `[FATAL] pre.ps1 aborted:` in the log.
 4. Common causes: missing 7-Zip, missing activation scripts, missing LGPO tool.
 
-### Customizations.ps1 or pbr.ps1 does not run
+### Customizations.ps1 does not run
 
-**Cause:** The files do not exist, or `SetupComplete.cmd` exited early.
+**Cause:** The file does not exist, or `SetupComplete.cmd` exited early.
 
 **Fix:**
 
-1. These files are placeholders by default. If you have not created them, SetupComplete.cmd skips them silently.
-2. If you have created them, verify they exist:
+1. Verify the file exists:
    ```powershell
    Test-Path "C:\Recovery\OEM\Customizations.ps1"
-   Test-Path "C:\Recovery\OEM\Apps\pbr.ps1"
    ```
-3. If `pre.ps1` hangs, SetupComplete.cmd waits indefinitely. Check the log for signs of hanging.
+2. If `pre.ps1` hangs, `SetupComplete.cmd` waits indefinitely. Check the log for signs of hanging.
 
 ---
 
-## Payload Updater Issues
+## Framework Issues
 
-### Apps.ps1 / Drivers.ps1 / LGPO.ps1 fail with "hash retrieval failed"
+### Framework phases do not converge
 
-**Cause:** The Gist URL is not reachable, or the Gist has been deleted.
-
-**Fix:**
-
-1. Test the Gist URL in a browser:
-   ```
-   https://gist.github.com/52250179/74758d92957c683c282c2670892609f6/raw
-   ```
-2. If the URL returns a 404, the Gist is gone. Replace the `$GistUrl` variable in the script with your own Gist containing a valid SHA-256 hash.
-3. If the URL is reachable but returns unexpected content, verify the Gist contains a 64-character hex string.
-
-### Payload updaters fail with "No files matching pattern found"
-
-**Cause:** The companion GitHub repository has no `.7z.00x` files, or the repository has moved.
+**Symptoms:** `USER_DONE` marker is never written. Health check fails. Apps appear in `FailedApps` in the summary.
 
 **Fix:**
 
-1. Test the GitHub API:
-   ```
-   https://api.github.com/repos/52250179/Update-PBR-Extensibility-Apps/contents/
-   ```
-2. If the response is empty or the repo does not exist, update `$RepoOwner` and `$RepoName` in the script to point to your own repository.
-3. If the response contains files but they do not match the pattern, verify the pattern:
+1. Check the shared log:
    ```powershell
-   $FilePattern = '^Apps\.7z\.\d+$'
+   Get-Content "C:\ProgramData\OEM\Logs\PBR_Deployment.log" | Select-String -Pattern "ERROR|FAILED"
    ```
-   The files must be named `Apps.7z.001`, `Apps.7z.002`, etc.
+2. Check the phase transcript:
+   ```powershell
+   Get-ChildItem "C:\ProgramData\OEM\Logs\Master_*.log" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+   ```
+3. Look for the outcome line format:
+   ```
+   OUTCOME: <AppName> — Failed (reason)
+   ```
+4. Common causes:
+   - An app declared `Required: true` failed
+   - The health check found a missing app after USER phase
+   - The `Set-DeploymentStage` write failed (registry issue)
 
-### Payload updaters fail with "Downloaded content is an HTML page"
+### Winget installs fail in USER phase
 
-**Cause:** The download URL returns a GitHub 404 page instead of the file.
+**Cause:** Winget is missing, the bypass setting is not configured, or the package source is unavailable.
 
 **Fix:**
 
-1. This is a safety check working correctly. The file you requested does not exist.
-2. Verify the file name matches exactly (case-sensitive on some systems).
-3. Verify the branch name in the URL is correct (`main` vs `master`).
+1. Check that winget is available:
+   ```powershell
+   winget --version
+   ```
+2. Check the framework's winget log within the phase transcript.
+3. If winget requires admin bypass and it is not enabled, check the framework's session log for `Initialize-WinGetSession` and whether it detected a known-disabled baseline.
+4. For winget-source issues, run:
+   ```powershell
+   winget source update
+   ```
 
-### 7-Zip fails with "Unexpected end of archive"
+### Resume task does not fire
 
-**Cause:** One or more split archive parts are missing or corrupt.
+**Cause:** The scheduled task was not registered, or the principal or trigger is wrong.
 
 **Fix:**
 
-1. Check all parts are present:
+1. Check for the task:
    ```powershell
-   Get-ChildItem "C:\Temp\OEM\Apps.7z.*" | Sort-Object Name
+   Get-ScheduledTask -TaskName "*PBR*"
    ```
-2. Verify the parts are sequential (001, 002, 003...).
-3. Test the archive integrity:
-   ```cmd
-   "C:\Program Files\7-Zip\7z.exe" t "C:\Temp\OEM\Apps.7z.001"
+2. Check its last run result:
+   ```powershell
+   Get-ScheduledTaskInfo -TaskName "<Profile.ResumeTaskName>"
    ```
-4. If the test fails, re-download all parts and try again.
-5. If the parts are correct but the test still fails, the source archive on GitHub is corrupt. Rebuild and re-upload.
+3. Verify the trigger is `AtLogOn` and the principal is `Administrators` at `Highest`.
+4. If the task was never registered, check the SYSTEM phase log for errors in `Register-ResumeTask`.
 
-### 7-Zip fails with "Not enough space"
+### AutoApply ownership is not honored
 
-**Cause:** The staging folder is on the system drive and the system drive is full.
+**Cause:** The `C:\Recovery\AutoApply` folder is missing or incomplete.
 
 **Fix:**
 
-1. Verify free space:
+1. Verify the folder exists:
    ```powershell
-   Get-PSDrive C
+   Test-Path "C:\Recovery\AutoApply"
    ```
-2. Change the `$Destination` variable in the updater to a drive with more space:
+2. The framework checks for the expected file set per OS version:
+   - Windows 10: `LayoutModification.xml`
+   - Windows 11: `LayoutModification.json` and `TaskbarLayoutModification.xml`
+3. If the folder exists but is incomplete, the framework takes ownership. Complete the file set or remove the folder entirely.
+
+### Stage marker is missing or wrong
+
+**Cause:** Registry write failed, or the phase did not complete.
+
+**Fix:**
+
+1. Read the marker directly:
    ```powershell
-   $Destination = "D:\Temp\OEM\Apps"
+   Get-ItemProperty "HKLM:\SOFTWARE\OEM\<Brand>" -Name "DeploymentStage"
    ```
+2. Expected values: `NONE` (or absent), `SYSTEM_DONE`, `USER_DONE`.
+3. If missing, check the framework transcript for `Set-DeploymentStage` errors.
+4. If the value is unexpected (e.g. `SYSTEM_DONE` on a machine that previously had `USER_DONE`), see the marker-downgrade note in [docs/APPS-FRAMEWORK.md](APPS-FRAMEWORK.md#known-limitations).
 
 ---
 
@@ -861,7 +860,7 @@ When a task sequence step fails:
 
 **Fix:** See [LoadWinPEDrivers.ps1 troubleshooting](#loadwinpedriversps1) above.
 
-**Alternative:** Disable VMD in BIOS/UEFI. This is not recommended for production (VMD provides RAID and power benefits) but is a valid workaround for testing.
+**Alternative:** Disable VMD in BIOS/UEFI. Not recommended for production — VMD provides RAID and power benefits — but a valid workaround for testing.
 
 ### Intel 11th Gen and newer
 
@@ -886,7 +885,7 @@ When a task sequence step fails:
 
 #### Ryzen systems are treated as Intel or unknown
 
-**Cause:** The `Get-IntelProcessorGeneration` function correctly returns `$null` for AMD — this is by design.
+**Cause:** `Get-IntelProcessorGeneration` correctly returns `$null` for AMD — this is by design.
 
 **Fix:**
 
@@ -894,7 +893,7 @@ When a task sequence step fails:
    ```
    HP EliteBook 845 G9 Ryzen 7.7z
    ```
-2. For AMD RAID/NVMe, add specific handling to `LoadWinPEDrivers.ps1` if needed.
+2. For AMD RAID or NVMe, add specific handling to `LoadWinPEDrivers.ps1` if needed.
 
 ### Modern Intel platforms with storage requirements
 
@@ -904,8 +903,7 @@ When a task sequence step fails:
 
 **Fix:**
 
-1. Download the latest VMD driver from Intel:
-   [https://www.intel.com/content/www/us/en/download/720755/intel-rapid-storage-technology-driver-installation-software-with-intel-optane-memory.html](https://www.intel.com/content/www/us/en/download/720755/intel-rapid-storage-technology-driver-installation-software-with-intel-optane-memory.html)
+1. Download the latest VMD driver from Intel.
 2. Place the extracted driver at `\\SERVER\Shared\Drivers\WinPE\Storage\Intel\x64\<new-version>\` and at `\\SERVER\Shared\DriverPacks\Storage\Intel\<new-version>\` inside the applicable model pack.
 3. Update the generation → version mapping in `LoadWinPEDrivers.ps1` and `ApplyOEMDrivers.ps1`.
 
@@ -922,7 +920,7 @@ When a task sequence step fails:
    ```
    HP EliteBook 840 G10 13th Gen Intel.7z
    ```
-3. If the pattern still does not match, add a new simplification rule to `Get-HPSimplifiedModel`.
+3. If the pattern still does not match, add a simplification rule to `Get-HPSimplifiedModel`.
 
 ### Lenovo ThinkPads
 
@@ -965,7 +963,7 @@ When a task sequence step fails:
 
 **Fix:**
 
-1. Check `Device Manager` for unknown devices.
+1. Check **Device Manager** for unknown devices.
 2. Note the hardware ID of the missing device:
    ```
    Properties → Details → Hardware Ids
@@ -1034,13 +1032,33 @@ When a task sequence step fails:
    ```powershell
    Get-ChildItem "C:\Recovery\OEM\Apps"
    ```
-2. If empty, the extraction step failed. Check the deployment log under `X:\MININT\SMSOSD\OSDLOGS\` or `C:\MININT\SMSOSD\OSDLOGS\` (whichever applied).
+2. If empty, the extraction step failed. Check the deployment log under `X:\MININT\SMSOSD\OSDLOGS\` or `C:\MININT\SMSOSD\OSDLOGS\`.
 3. Install the apps manually:
    ```powershell
    Get-ChildItem "C:\Recovery\OEM\Apps" -Filter *.exe | ForEach-Object {
        Start-Process $_.FullName -ArgumentList "/S" -Wait
    }
    ```
+
+### Post-deployment scripts fail
+
+**Cause:** The scripts expect content on `\\SERVER\Shared` or a `DEPLOY`-labeled USB.
+
+**Fix:**
+
+1. Check which script failed and read the script itself:
+   ```powershell
+   Get-Content "C:\Scripts\<ScriptName>.cmd"
+   ```
+2. Verify the network share is reachable:
+   ```powershell
+   Test-Path "\\SERVER\Shared\ScanState"
+   ```
+3. Verify the USB is labeled `DEPLOY` if using offline media:
+   ```powershell
+   Get-Volume | Where-Object FileSystemLabel -eq 'DEPLOY'
+   ```
+4. For `4ScanState.cmd` failures, verify the USMT tool is present under `\\SERVER\Shared\ScanState\amd64\`.
 
 ---
 
@@ -1065,10 +1083,6 @@ reg query "HKLM\HARDWARE\DESCRIPTION\System\CentralProcessor\0" /v ProcessorName
 reg query "HKLM\HARDWARE\DESCRIPTION\System\BIOS" /v SystemProductName
 reg query "HKLM\HARDWARE\DESCRIPTION\System\BIOS" /v SystemManufacturer
 
-:: Check if a VMD driver is loaded
-drvload /?
-:: List loaded drivers (indirect — check disk visibility instead)
-
 :: Read a log
 notepad X:\MININT\SMSOSD\OSDLOGS\BDD.log
 ```
@@ -1091,6 +1105,9 @@ Get-AppxProvisionedPackage -Online | Select-Object DisplayName, Version
 # Check OEM logs
 Get-ChildItem "C:\ProgramData\OEM\Logs"
 
+# Check framework stage marker
+Get-ItemProperty "HKLM:\SOFTWARE\OEM\<Brand>" -Name "DeploymentStage"
+
 # Check applied LGPO policies
 gpresult /r /scope:computer
 
@@ -1111,7 +1128,7 @@ net use \\SERVER\DeploymentShare$
 Test-Path "\\SERVER\Shared\OEM\x64\Dell.7z"
 
 # List task sequences on the share
-Get-ChildItem "\\SERVER\DeploymentShare$\Task Sequences"
+Get-ChildItem "\\SERVER\DeploymentShare$\Control\Task Sequences"
 
 # List drivers in the share
 Get-ChildItem "\\SERVER\DeploymentShare$\Out-of-box Drivers" -Directory
@@ -1120,14 +1137,17 @@ Get-ChildItem "\\SERVER\DeploymentShare$\Out-of-box Drivers" -Directory
 ### Reading logs on the fly
 
 ```powershell
-# Follow a log file in real time (WinPE or full OS)
+# Follow a log file in real time (full OS)
 Get-Content "C:\ProgramData\OEM\Logs\pre_*.log" -Wait -Tail 20
 
-# Show all errors from a log
+# Show all errors from pre.ps1 log
 Select-String -Path "C:\ProgramData\OEM\Logs\pre_*.log" -Pattern "ERROR|FATAL"
 
 # Show all errors from BDD.log
 Select-String -Path "C:\MININT\SMSOSD\OSDLOGS\BDD.log" -Pattern 'type="[34]"'
+
+# Show all FAILED outcomes in the framework log
+Select-String -Path "C:\ProgramData\OEM\Logs\PBR_Deployment.log" -Pattern "FAILED|OUTCOME:.*Failed"
 ```
 
 ---
@@ -1143,8 +1163,6 @@ If your issue is not covered here:
 
 ### What to include when asking for help
 
-The more context you provide, the faster you will get a useful answer. Include:
-
 - **What you expected to happen** — one sentence
 - **What actually happened** — one sentence, with the exact error message
 - **Where in the deployment it failed** — phase, step name, or script
@@ -1157,7 +1175,7 @@ The more context you provide, the faster you will get a useful answer. Include:
   - MDT version
   - ADK version
 - **Relevant log excerpt** — 20–30 lines around the error, not the whole log
-- **What you already tried** — so we do not repeat suggestions
+- **What you already tried** — so suggestions are not repeated
 
 **Do not paste entire logs inline.** Attach them as files or upload to a [GitHub Gist](https://gist.github.com/) and link the URL.
 
@@ -1167,4 +1185,4 @@ This is a hobby project maintained in spare time. Response times vary from hours
 
 ---
 
-*See [docs/SCRIPTS.md](SCRIPTS.md) for script documentation, [docs/SETUP.md](SETUP.md) for the initial setup walkthrough, and the [README](../README.md) for the project overview.*
+*See [docs/SCRIPTS.md](SCRIPTS.md) for script documentation, [docs/APPS-FRAMEWORK.md](APPS-FRAMEWORK.md) for the framework reference, [docs/SETUP.md](SETUP.md) for the initial setup walkthrough, and the [README](../README.md) for the project overview.*

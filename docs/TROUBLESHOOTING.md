@@ -1156,10 +1156,10 @@ Select-String -Path "C:\ProgramData\OEM\Logs\PBR_Deployment.log" -Pattern "FAILE
 
 If your issue is not covered here:
 
-1. **Search existing issues** — [github.com/ArthurJDurand/MDT-TS-and-Scripts/issues](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/issues)
-2. **Search existing discussions** — [github.com/ArthurJDurand/MDT-TS-and-Scripts/discussions](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/discussions)
-3. **Open a new discussion** for general questions — [github.com/ArthurJDurand/MDT-TS-and-Scripts/discussions/new](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/discussions/new)
-4. **Open a bug report** for reproducible issues — use the [bug report template](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/issues/new?template=bug_report.yml)
+1. **Search existing issues** — [github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/issues](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/issues)
+2. **Search existing discussions** — [github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/discussions](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/discussions)
+3. **Open a new discussion** for general questions — [github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/discussions/new](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/discussions/new)
+4. **Open a bug report** for reproducible issues — use the [bug report template](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/issues/new?template=bug_report.yml)
 
 ### What to include when asking for help
 

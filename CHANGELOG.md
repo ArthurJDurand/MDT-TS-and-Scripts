@@ -21,19 +21,9 @@ Because this is a deployment framework, version numbers have specific meaning fo
 
 ## [Unreleased]
 
-### Added
-
-### Changed
-
-### Fixed
-
-### Removed
-
-### Security
-
 ---
 
-## [1.0.0] - 2025-01-15
+## [1.0.0] - YYYY-MM-DD
 
 Initial public release.
 
@@ -64,9 +54,35 @@ Initial public release.
 - `CleanupScripts.ps1` — Removes MDT artifacts (`_SMSTaskSequence`, `MININT`, `LTIBootstrap.vbs`) after deployment.
 - `CopyOEM.wsf` — Copies `$OEM$\$1` and `$OEM$\$$` content from the deployment share to the target OS (based on Michael Niehaus's original script).
 
-#### `$OEM$` Scripts (`$OEM$\$1\Recovery\OEM\` and `$OEM$\$1\Scripts\`)
+#### `$OEM$` Orchestration Scripts (`$OEM$\$$\\Setup\`)
 
-- `pre.ps1` — Runs during `SetupComplete.cmd` to activate the OEM license and apply LGPO policies.
+- `SetupComplete.cmd` — Runs at the end of OOBE. Orchestrates `pre.ps1`, `Customizations.ps1`, and `pbr.ps1` in sequence, then cleans up MDT artifacts and sets hidden attributes on the Default user profile.
+
+#### `$OEM$` Configuration Scripts (`$OEM$\$1\Recovery\OEM\`)
+
+- `pre.ps1` — Runs during `SetupComplete.cmd`. Installs OEM drivers, WLAN, Intel VMD, applies LGPO, activates Windows and Office, installs third-party applications (7-Zip, WinRAR, AnyDesk, RustDesk, DymaxIO, Acronis Drive Monitor), configures the OEM\Update scheduled task, and sets system attributes. Maintains its own inline version history (currently v2.2.0).
+- `Customizations.ps1` — Runs after `pre.ps1` for additional OEM customizations.
+- `Apps\pbr.ps1` — Runs after `Customizations.ps1` to create the push-button reset provisioned package.
+
+#### `$OEM$` Activation Scripts (`$OEM$\$1\Recovery\OEM\Activation\`)
+
+- `HWID_Activation.cmd` — HWID-based Windows activation fallback used when the firmware OEM key fails.
+- `Ohook_Activation.cmd` — Office activation via Ohook. Called by `pre.ps1` only after `Test-OfficeSafeForActivation` confirms no Office application is running in an interactive user session.
+
+#### `$OEM$` Payload Updater Scripts (`$OEM$\$1\Recovery\OEM\`)
+
+- `Apps.ps1` — Downloads the latest Apps `.7z` split archive from the companion `Update-PBR-Extensibility-Apps` repository, verifies SHA-256 against a GitHub Gist, and extracts to `C:\Recovery\OEM\Apps`.
+- `Drivers.ps1` — Downloads the latest Drivers `.7z` split archive from the companion `Update-PBR-Extensibility-Drivers` repository, verifies SHA-256 against a GitHub Gist, and extracts to `C:\Recovery\OEM\Drivers`.
+- `LGPO.ps1` — Downloads the latest `LGPO.7z` from the companion `Update-PBR-Extensibility-LGPO` repository, verifies SHA-256 against a GitHub Gist, and extracts to `C:\Recovery\OEM\LGPO`.
+
+#### `$OEM$` Application Configurators (`$OEM$\$1\Recovery\OEM\Apps\`)
+
+- `RustDesk.ps1` — Applies RustDesk configuration after installation (password, relay server, persistence).
+- `DymaxIOLicense.ps1` — Applies the DymaxIO license after installation. Returns exit code 2 if DymaxIO is not present.
+- `Update.xml` — Task Scheduler definition imported by `pre.ps1` as the `OEM\Update` scheduled task.
+
+#### `$OEM$` Post-Deployment Scripts (`$OEM$\$1\Scripts\`)
+
 - `OEMDriversExport.ps1` — Exports drivers from the deployed OS, archives them as `.7z`, and copies to `\\SERVER\Shared\DriverPacks` or a DEPLOY USB.
 - `ScanWindowsImage64.ps1` — Cleans the Driver Store and restores the `Microsoft-OneCore-DirectX-Database-FOD-Package`.
 - `ScanStatex64.ps1` — Creates a provisioned package for push-button reset using USMT `ScanState`.
@@ -90,6 +106,23 @@ Initial public release.
 - Lenovo OEM app pack
 - Additional vendor packs as available in the shared OneDrive folder
 
+#### Third-Party Applications Installed by `pre.ps1`
+
+- 7-Zip (silent)
+- WinRAR (silent, with registry configuration)
+- AnyDesk (silent, with permanent password — see Security)
+- RustDesk (silent, with external configuration script)
+- DymaxIO (silent, with external licensing script)
+- Acronis Drive Monitor (installed only when a spinning HDD is detected)
+- Microsoft Office (installed from `C:\Recovery\OEM\Apps\Office*`, activated via Ohook)
+
+#### Windows AppX Packages Provisioned by `pre.ps1`
+
+- Microsoft.Todos
+- Microsoft.OutlookForWindows (Windows 10 only)
+- Microsoft.BingNews (Windows 10 only)
+- Media extensions: AV1, HEIF, HEVC, MPEG2, RawImage, VP9, WebMedia, Webp
+
 #### Local Group Policy (LGPO)
 
 - LGPO tool integration with preconfigured policies covering:
@@ -97,7 +130,8 @@ Initial public release.
   - Microsoft Defender Antivirus configuration (cloud protection, MAPS, PUA detection)
   - AutoPlay behavior
   - Power management
-- LGPO application via `pre.ps1` during first boot
+- LGPO application via `pre.ps1` during OOBE
+- LGPO tool delivered via `LGPO.ps1` updater from the companion repository
 
 #### Configuration
 
@@ -140,25 +174,12 @@ Initial public release.
 
 ### Security
 
-- Documented that `Bootstrap.ini` stores credentials in plaintext and requires a least-privilege deployment account with restricted share permissions.
-
----
-
-## Release Notes
-
-For each release, the corresponding section above is copied into the GitHub release description. Auto-generated release notes are categorized via `.github/release.yml`.
-
-## Reporting Issues
-
-Found a bug or have a suggestion? [Open an issue](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/issues) or start a [Discussion](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/discussions).
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for how to contribute scripts, OEM packs, and improvements. All notable changes you make should be recorded under `[Unreleased]` in this file as part of your PR.
+- Documented that `Control\Bootstrap.ini` stores credentials in plaintext and requires a least-privilege deployment account with restricted share permissions.
+- Documented that `$OEM$\$1\Recovery\OEM\pre.ps1` contains a hardcoded `$AnyDeskPassword` that must be changed before use in any non-lab environment.
+- Office activation via Ohook is gated by `Test-OfficeSafeForActivation`, which fails closed if any Office application is running in an interactive user session or if the process list cannot be enumerated.
+- Windows activation via `Activate-Windows` captures `/ipk` and `/ato` exit codes separately and falls through to HWID activation if the firmware-key path fails.
 
 ---
 
 [Unreleased]: https://github.com/ArthurJDurand/MDT-TS-and-Scripts/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/ArthurJDurand/MDT-TS-and-Scripts/releases/tag/v1.0.0
-```
-

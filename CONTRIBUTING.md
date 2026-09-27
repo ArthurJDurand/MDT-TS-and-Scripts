@@ -1,4 +1,3 @@
-```markdown
 # Contributing to MDT Task Sequences & Custom Scripts
 
 First off — **thank you** for considering a contribution. This project exists because the MDT community shares knowledge, and every improvement (a new OEM pack, a bug fix, a documentation tweak) makes it more useful for everyone.
@@ -17,6 +16,7 @@ This document explains how to contribute effectively and what standards your con
 - [Branch Naming](#branch-naming)
 - [Pull Request Process](#pull-request-process)
 - [What Reviewers Look For](#what-reviewers-look-for)
+- [Contributing to the Apps Framework](#contributing-to-the-apps-framework)
 - [Areas Where Help Is Needed](#areas-where-help-is-needed)
 - [Reporting Bugs](#reporting-bugs)
 - [License of Contributions](#license-of-contributions)
@@ -35,9 +35,9 @@ You don't have to write code to contribute. All of the following are valuable:
 | **New scripts** | A new task sequence step, a new post-deployment cleanup script, a new driver detection routine |
 | **OEM packs** | Driver packs or app archives for OEMs or models not yet covered |
 | **Hardware support** | Intel VMD or AMD storage driver updates for newer CPU generations |
+| **Framework contributions** | New OEM modules, manifest entries, or hook implementations for the Apps framework |
 | **Documentation** | Clarifying a setup step, fixing a typo, adding a troubleshooting entry |
 | **Testing** | Confirming a script works on your hardware and reporting the result |
-| **Translation** | Translations of the README or docs (open a Discussion first) |
 | **Ideas** | Feature requests, workflow suggestions, or architectural feedback |
 
 If you're unsure whether an idea is in scope, **open a [Discussion](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/discussions) first** before investing time in a PR.
@@ -52,7 +52,7 @@ Someone may already be working on the same thing. Search [open issues](https://g
 
 ### Open an issue first for large changes
 
-For anything beyond a typo or obvious bug fix — especially new scripts, task sequence changes, or new OEM packs — **open an issue to discuss the approach first**. This avoids wasted effort if the change doesn't fit the project's direction.
+For anything beyond a typo or obvious bug fix — especially new scripts, task sequence changes, new OEM packs, or framework extensions — **open an issue to discuss the approach first**. This avoids wasted effort if the change does not fit the project's direction.
 
 ### Small, focused PRs are preferred
 
@@ -69,9 +69,9 @@ To test your changes properly, you need a working MDT environment.
 - Windows Server (with DHCP + WDS) **or** Windows desktop (with AOMEI PXE Boot)
 - Windows ADK for Windows 11 + Windows PE Addon
 - Windows SDK for Windows 11
-- Microsoft Deployment Toolkit (MDT) `6.3.8456.1000`
-- PowerShell 7
-- 7-Zip installed at `C:\Program Files\7-Zip\7z.exe` (required by `pre.ps1` and the payload updater scripts)
+- Microsoft Deployment Toolkit `6.3.8456.1000`
+- PowerShell 7 on the development host
+- 7-Zip installed at `C:\Program Files\7-Zip\7z.exe`
 - A target machine for testing (physical hardware strongly preferred over a VM for driver-related changes)
 
 ### Recommended workflow
@@ -81,9 +81,9 @@ To test your changes properly, you need a working MDT environment.
    ```bash
    git clone https://github.com/<your-username>/MDT-TS-and-Scripts.git
    ```
-3. Set up a **test deployment share** separate from your production share
-4. Merge your fork's contents with your test share
-5. Test your changes end-to-end (PXE boot a client, complete a full deployment, complete OOBE)
+3. Set up a **test deployment share** separate from any production share
+4. Merge the repository's `DeploymentShare/` contents into your test share
+5. Test your changes end-to-end (PXE boot a client, complete a full deployment through OOBE, and if applicable, verify the framework phases)
 6. Commit and push to your fork
 7. Open a PR against the `main` branch
 
@@ -91,15 +91,17 @@ To test your changes properly, you need a working MDT environment.
 
 | Change Type | Testing Required |
 |---|---|
-| Documentation only | None (but proofread carefully) |
-| Script bug fix | Reproduce the bug, apply the fix, verify it's resolved, confirm no regression |
+| Documentation only | None, but proofread carefully |
+| Script bug fix | Reproduce the bug, apply the fix, verify it is resolved, confirm no regression |
 | New task sequence script | Full deployment on at least one physical machine |
 | Driver pack addition | Deploy to the target model and confirm drivers install |
-| Task sequence change | Full deployment on both BIOS and UEFI (if applicable) |
+| Task sequence change | Full deployment on both BIOS and UEFI, if applicable |
 | VMD / storage driver change | Deploy to the target CPU generation |
-| `pre.ps1` change | Full deployment through OOBE on at least one physical machine, verify the transcript log at `C:\ProgramData\OEM\Logs\` |
-| `SetupComplete.cmd` change | Full deployment through OOBE, verify all three child scripts run and log |
-| Payload updater change (`Apps.ps1`, `Drivers.ps1`, `LGPO.ps1`) | Dry run against the live companion repos and against a deliberately wrong Gist hash to confirm the failure path |
+| `pre.ps1` change | Full deployment through OOBE on at least one physical machine; verify the transcript at `C:\ProgramData\OEM\Logs\pre_*.log` |
+| `SetupComplete.cmd` change | Full deployment through OOBE; verify all three child scripts run and log |
+| Framework module change | Full deployment through both SYSTEM and USER phases; verify health check passes and convergence marker is written |
+| OEM module change | Full deployment on hardware from that OEM; verify family detection and app installation |
+| Manifest change | Full deployment on hardware from that OEM; verify the added/changed app installs and any pinning applies |
 
 **State what hardware you tested on in the PR description.** "Tested on Dell Latitude 5430, BIOS mode, Win11 Pro x64" is far more useful than "tested and works."
 
@@ -107,27 +109,24 @@ To test your changes properly, you need a working MDT environment.
 
 ## Script Standards
 
-Scripts live in two distinct execution contexts. The standards differ.
+Scripts live in several execution contexts. The standards differ per context.
 
-| Location | Execution Context | WMI/CIM Allowed? |
-|---|---|---|
-| `Scripts\Custom\` | WinPE (Preinstall, Install, Postinstall phases) | **No** unless `winpe-wmi` is added to FeaturePacks |
-| `$OEM$\$1\...` | Full OS (OOBE via `SetupComplete.cmd`) | **Yes** — WMI and CIM are available and safe |
+| Location | Execution Context | WMI/CIM | Registry Writes |
+|---|---|---|---|
+| `DeploymentShare\Scripts\Custom\` | WinPE | Only `Get-PhysicalDisk` via `winpe-storagewmi`; other WMI/CIM unavailable | `reg.exe` only |
+| `DeploymentShare\<arch>\$OEM$\$1\Recovery\OEM\` | Full OS (OOBE) | Available | `reg.exe` only |
+| `DeploymentShare\<arch>\$OEM$\$1\Scripts\` | Full OS (interactive) | Available | `reg.exe` only |
+| `DeploymentShare\<arch>\$OEM$\$1\Recovery\OEM\Apps\Framework\` | Full OS (OOBE and first logon) | Available | `reg.exe` only, via `Registry.psm1` helpers |
 
-The rules below apply to **both** unless stated otherwise.
+### 1. WinPE-safe (for `Scripts\Custom\` only)
 
-### 1. WinPE-safe (applies to `Scripts\Custom\` only)
-
-Scripts in `Scripts\Custom\` run in WinPE during the **Preinstall**, **Install**, and **Postinstall** phases. WinPE is a stripped-down environment — many cmdlets and modules are unavailable.
+Scripts in `Scripts\Custom\` run in WinPE. WinPE is a stripped-down environment.
 
 **Rules:**
 
-- Use the **registry and file system only** for hardware detection
-- **Do not use `Get-CimInstance`, `Get-WmiObject`, or `Get-PhysicalDisk`** unless `winpe-wmi` and the Storage module are explicitly added to FeaturePacks
-- Do not assume the `Microsoft.PowerShell.Storage` module is available in WinPE
-- Do not assume `Get-Volume` returns a single result — see rule 2
-
-**Instead of WMI:**
+- Use the registry and file system for hardware detection
+- **Do not use `Get-CimInstance`, `Get-WmiObject`, or `Get-PhysicalDisk`** unless `winpe-storagewmi` and the Storage module are explicitly available in the boot image
+- Do not assume `Get-Volume` returns a single result
 
 ```powershell
 # BAD — WMI is not reliable in WinPE
@@ -137,7 +136,7 @@ $model = (Get-CimInstance Win32_ComputerSystem).Model
 $model = (Get-ItemProperty 'HKLM:\HARDWARE\DESCRIPTION\System\BIOS' -Name SystemProductName).SystemProductName
 ```
 
-Scripts in `$OEM$` are **exempt** from this rule because they run in the full OS.
+Scripts in `$OEM$` and the Apps framework run in the full OS and are **exempt** from this rule.
 
 ### 2. Defensive volume and disk lookups
 
@@ -166,14 +165,14 @@ for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
 
 ### 4. Silent operation
 
-Scripts in `Scripts\Custom\` run inside a task sequence — user-facing output disrupts the deployment UI.
+Scripts in `Scripts\Custom\` run inside a task sequence. User-facing output disrupts the deployment UI.
 
 - **No `Write-Host`** unless the message is diagnostic and critical
 - **No `Write-Output`** unless the output is meant to be captured
 - Redirect verbose tool output to `$null` or a log file
 - Preserve `$LASTEXITCODE` — do not use `| Out-Null` on native commands if you need the exit code
 
-Scripts in `$OEM$` may use `Write-Host` freely for progress reporting, because they run in OOBE with no task sequence UI to disturb.
+Scripts in `$OEM$` and the framework may use `Write-Host` freely for progress reporting, because they run in OOBE or at first logon with no task sequence UI to disturb.
 
 ### 5. Preserve exit codes
 
@@ -212,7 +211,7 @@ Every script must begin with a comment block containing at minimum:
 
 ### 7. No hardcoded drive letters
 
-Never hardcode `C:`, `D:`, etc. Always discover via volume label.
+Never hardcode `C:`, `D:`, and so on. Always discover via volume label.
 
 ```powershell
 # BAD
@@ -227,17 +226,31 @@ $WindowsImage = "${WindowsDrive}:\"
 
 Scripts that read from network shares should fall back to a DEPLOY-labeled USB drive, matching the pattern used in `ApplyUpdates*.ps1` and `ExtractOEM*.ps1`.
 
-### 9. PowerShell 5.1 compatibility
+### 9. Registry writes via `reg.exe` only
 
-Scripts must run under the WinPE version of PowerShell, which is **5.1**. Do not use syntax or cmdlets exclusive to PowerShell 7 (e.g., ternary operator `? :`, `??`, `-Parallel`).
+This rule applies project-wide. Never use `New-ItemProperty` or the PowerShell Registry Provider for writes. The provider's handle retention blocks offline-hive unload, and a policy that requires per-site reasoning is a policy the next write site will violate. Reads via the provider are permitted.
 
-### 10. No `exit` in task sequence scripts
+```powershell
+# BAD — provider write
+New-ItemProperty -Path $Key -Name $Name -Value $Value -Force
 
-MDT scripts should **return** rather than `exit`, so the task sequence can capture failures. Use `exit` only when the script is intentionally standalone. Scripts invoked from `SetupComplete.cmd` are standalone and may use `exit`.
+# GOOD — reg.exe write
+& reg.exe add $Key /v $Name /t REG_SZ /d $Value /f
+```
 
-### 11. Idempotence for payload updaters
+In the Apps framework, use the `Registry.psm1` helpers (`Set-RegistryValueSilent`, `Set-OfflineHiveValueSet`).
 
-The `Apps.ps1`, `Drivers.ps1`, and `LGPO.ps1` scripts must be idempotent. Before downloading anything, they compare the current SHA-256 in the local `.sha256` file against the remote hash and exit early if they match. Any new updater must follow this pattern.
+### 10. PowerShell 5.1 compatibility
+
+Scripts must run under the WinPE and Windows OOBE versions of PowerShell, which are **5.1**. Do not use syntax or cmdlets exclusive to PowerShell 7 (ternary operator `? :`, `??`, `-Parallel`).
+
+### 11. No `exit` in task sequence scripts
+
+Task sequence scripts should return rather than `exit`, so the task sequence can capture failures. Scripts invoked from `SetupComplete.cmd` are standalone and may use `exit`.
+
+### 12. Idempotence
+
+Scripts that run repeatedly (framework phases, `pre.ps1`, orchestration scripts) must be idempotent. Re-running them must not produce different outcomes, duplicate files, or regressions.
 
 ---
 
@@ -272,7 +285,9 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/). 
 
 Use the script name or area affected:
 
-- `apply-drivers`, `apply-updates`, `winre`, `disk`, `oem`, `lgpo`, `setup`, `pre`, `apps`, `drivers`, `docs`, `readme`
+- `apply-drivers`, `apply-updates`, `winre`, `disk`, `oem`, `lgpo`, `pre`, `setupcomplete`
+- `framework`, `manifest`, `oem-module`, `layout`, `winget`
+- `docs`, `readme`, `changelog`
 
 ### Examples
 
@@ -281,6 +296,7 @@ feat(apply-drivers): add support for 14th Gen Intel VMD
 fix(winre): persist VMD marker on target OS drive
 docs(setup): clarify WDS boot image import steps
 refactor(disk): use Select-Object -First 1 for volume lookups
+feat(oem-module): add OEM.Samsung module
 ```
 
 ### Breaking changes
@@ -288,11 +304,11 @@ refactor(disk): use Select-Object -First 1 for volume lookups
 If a change breaks existing deployments, add `!` after the type/scope and include a `BREAKING CHANGE:` footer:
 
 ```
-feat(apply-updates)!: require OSDVersion TS variable
+feat(apply-updates)!: require OSDVersion task sequence variable
 
-BREAKING CHANGE: ApplyUpdates11.ps1 now reads the OSDVersion
-task sequence variable to pick the update source folder. Update
-your task sequences to set OSDVersion before upgrading.
+BREAKING CHANGE: ApplyUpdates11.ps1 now reads the OSDVersion task
+sequence variable to pick the update source folder. Update your task
+sequences to set OSDVersion before upgrading.
 ```
 
 ---
@@ -314,6 +330,7 @@ Examples:
 - `feature/intel-vmd-14th-gen`
 - `fix/winre-marker-persistence`
 - `docs/troubleshooting-section`
+- `feature/oem-samsung-module`
 
 ---
 
@@ -326,7 +343,7 @@ Examples:
 5. **Test end-to-end** on real hardware where applicable
 6. **Push** to your fork
 7. **Open a PR** against `main` with:
-   - A clear title (matching the Conventional Commits format)
+   - A clear title matching the Conventional Commits format
    - A description of **what** changed and **why**
    - The **hardware and OS** you tested on
    - A **link to the related issue** if one exists
@@ -349,7 +366,7 @@ version than 11th-13th Gen.
 
 ## Changes
 - Updated `Get-IntelVMDVersion` in ApplyOEMDrivers.ps1
-- Added 14th Gen to generation map
+- Added 14th Gen to the generation map
 - Updated LoadWinPEDrivers.ps1 to use the new version
 
 ## Testing
@@ -361,49 +378,90 @@ version than 11th-13th Gen.
 Closes #42
 
 ## Checklist
-- [x] Follows script standards (WinPE-safe where required)
+- [x] Follows script standards
 - [x] CHANGELOG.md updated under [Unreleased]
 - [x] Tested on real hardware
 - [x] No hardcoded drive letters
 - [x] Retry logic for DISM/robocopy
+- [x] Registry writes via reg.exe only
 ```
 
 ---
 
 ## What Reviewers Look For
 
-When reviewing your PR, I check:
+When reviewing a PR, the maintainer checks:
 
 | Item | Why |
 |---|---|
-| **WinPE safety** | No WMI/CIM/Storage modules in `Scripts\Custom\` unless FeaturePacks are updated |
-| **Defensive lookups** | `Select-Object -First 1` on volume/disk commands |
+| **WinPE safety** | No WMI/CIM in `Scripts\Custom\` unless a FeaturePack provides it |
+| **Defensive lookups** | `Select-Object -First 1` on volume and disk commands |
 | **Retry logic** | DISM and robocopy operations retry on failure |
-| **Silent operation** | No spurious `Write-Host` or `Write-Output` in task sequence scripts |
+| **Silent operation** | No spurious output in task sequence scripts |
 | **Exit code preservation** | Failures are visible to the caller |
-| **Header documentation** | SYNOPSIS/DESCRIPTION/NOTES block present |
+| **Header documentation** | SYNOPSIS, DESCRIPTION, NOTES block present |
 | **CHANGELOG entry** | Added under `[Unreleased]` |
 | **No drive letter hardcoding** | Paths discovered via volume labels |
 | **PowerShell 5.1 compatible** | No PS7-only syntax |
-| **Idempotence** | Payload updaters exit early when nothing changed |
+| **Registry write discipline** | All writes via `reg.exe` or framework helpers |
+| **Idempotence** | Repeated runs produce the same outcome |
 | **Tested on hardware** | PR description states the hardware used |
 | **Small, focused scope** | One logical change per PR |
 
 ---
 
+## Contributing to the Apps Framework
+
+The Apps framework — `pbr.ps1`, the `Framework\` modules, the `OEM\` modules, and the `Manifests\` files — has additional standards beyond those above.
+
+### Before you write code
+
+Read [docs/APPS-FRAMEWORK.md](docs/APPS-FRAMEWORK.md) end to end. It defines the contract between the framework, OEM modules, and manifests.
+
+### Additional rules
+
+- **Framework modules must not be edited lightly.** They are stable interfaces. If you believe a framework module needs a change, open an issue first and describe the reason.
+- **OEM modules must not write the registry directly.** Use the helpers exported by `Registry.psm1`.
+- **OEM modules must not manage the scheduled task directly** unless overriding `RegisterResumeTask`.
+- **OEM modules must not write stage markers directly.** Use `Set-DeploymentStage`.
+- **OEM modules must not log outside `LogDirectory`.** Use `Write-DeploymentLog`.
+- **Manifest additions must not introduce required fields.** Framework consumers read only the fields they know about; every other field must be optional with a documented default.
+
+### Adding a new OEM module
+
+1. Create `OEM\OEM.<Brand>.psm1` with at least a `Get-OEMProfile` function
+2. Create `Manifests\<Brand>.json` with the app list
+3. Ensure the profile's `Name` matches the module filename
+4. Ensure the profile's `ManifestFile` matches the manifest filename
+5. Ensure the profile's `MarkerRegistryPath` is distinct from every other OEM's
+6. Test on hardware from that OEM
+7. Update the OEM modules table in [docs/APPS-FRAMEWORK.md](docs/APPS-FRAMEWORK.md)
+
+### Canonical framework documentation
+
+The framework has its own design and reference documentation, maintained separately from this repository. Before making changes that affect framework invariants, ensure your change is consistent with the canonical docs. If it is not, open an issue to discuss before submitting a PR.
+
+The framework's canonical docs are not shipped here. This repository ships the framework code and a user-facing overview in [docs/APPS-FRAMEWORK.md](docs/APPS-FRAMEWORK.md).
+
+---
+
 ## Areas Where Help Is Needed
 
-Some specific things I'd love help with:
+Some specific things the maintainer would love help with:
 
 ### 1. OEM license edition detection
 
-A script that reads the OEM digital license from the BIOS (`OA3xOriginalProductKeyDescription`), determines the licensed edition (e.g., Home Single Language, Home, Pro), and sets the deployed OS edition to match during deployment.
+A script that reads the OEM digital license from the BIOS (`OA3xOriginalProductKeyDescription`), determines the licensed edition (for example, Home Single Language, Home, Pro), and sets the deployed OS edition to match during deployment.
 
-Currently, `pre.ps1` only activates if the OEM license is Professional — non-Pro licenses are not applied, and LGPO policies are applied regardless of edition.
+Currently, `pre.ps1` activates only if the OEM license is Professional. Non-Pro licenses are not applied, and LGPO policies are applied regardless of edition.
 
 **Where to hook in:** `$OEM$\$1\Recovery\OEM\pre.ps1` and the task sequence State Restore phase.
 
-### 2. Additional OEM packs
+### 2. x86 framework support
+
+The x86 tree does not have the Apps framework. It uses monolith scripts that are not part of this repository. Contributing an x86 framework implementation, or documenting the x86 monolith scripts, would close a significant gap.
+
+### 3. Additional OEM packs
 
 Driver packs and app archives for:
 
@@ -412,34 +470,25 @@ Driver packs and app archives for:
 - Samsung / LG laptops
 - Toshiba Dynabook (existing pack needs updating)
 - Clevo / Tongfang / XMG / Schenker
-- System76 / Framework (Linux-first, but Windows works)
 
-### 3. Newer Intel / AMD storage drivers
+### 4. Newer Intel and AMD storage drivers
 
 - Intel VMD for 14th Gen and beyond (Meteor Lake, Arrow Lake)
-- AMD RAID / NVMe drivers for Ryzen 7000/8000/9000 series
+- AMD RAID / NVMe drivers for Ryzen 7000, 8000, 9000 series
 
-### 4. Script improvements
+### 5. Script improvements
 
-- Refactoring `WinRE.ps1` to be less monolithic
+- Refactoring `pre.ps1` into smaller modules
+- Fixing the `Get-OSFamily` hardcoded `Win11` bug in `ExtractOEMDrivers.ps1`
 - Adding a `-DryRun` mode to destructive scripts (`CleanFixedDrives.ps1`, `FormatDataDrive.ps1`)
-- Refactoring `pre.ps1` into smaller modules — the current file is over 1000 lines
-- Adding Pester tests for pure functions (CPU generation detection, model normalization, OEM key matching)
-- Adding structured logging to a file alongside the existing transcript
-
-### 5. Payload updater improvements
-
-- Adding a fallback path to a secondary mirror when both the primary and fallback URLs fail
-- Adding a `-Force` switch to bypass the local hash check and re-download
-- Adding SHA-256 verification of each downloaded part against a manifest (currently only the assembled archive is validated with `7z t`)
-- Replacing the external Gist dependency with a signed manifest file stored in the main repo
+- Adding structured logging to a file alongside the existing logs
 
 ### 6. Documentation
 
 - Expanding `docs/TROUBLESHOOTING.md` with real-world error scenarios
 - Adding a "known working hardware" table to the README
 - Adding screenshots to the setup guide
-- Documenting the `SetupComplete.cmd` → `pre.ps1` → `Customizations.ps1` → `pbr.ps1` chain in `docs/OEM.md`
+- Authoring `docs/WINDOWS-MEDIA.md` for the UUPDump workflow
 
 If any of these interest you, **open a Discussion first** so we can scope it together.
 
@@ -462,7 +511,7 @@ Found a bug? [Open an issue](https://github.com/ArthurJDurand/MDT-TS-and-Scripts
 
 ## License of Contributions
 
-By submitting a pull request to this project, you agree that your contribution is licensed under the same [MIT License](LICENSE) that governs the project.
+By submitting a pull request to this project, you agree that your contribution is licensed under the same [MIT License](LICENSE.md) that governs the project.
 
 You confirm that:
 
@@ -491,7 +540,7 @@ In short: be respectful, be patient, assume good faith, and focus on the technic
 
 ## Thank You
 
-Whether you submit a driver pack, fix a typo, or just report a bug on a machine you have access to — **your contribution matters**. This project is built on community knowledge, and every improvement helps someone deploy Windows a little faster.
+Whether you submit a driver pack, fix a typo, or report a bug on a machine you have access to — **your contribution matters**. This project is built on community knowledge, and every improvement helps someone deploy Windows a little faster.
 
 Thank you for being part of it.
 
@@ -502,4 +551,3 @@ Thank you for being part of it.
 **Happy deploying!** 🚀
 
 </div>
-```

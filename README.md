@@ -1,4 +1,3 @@
-```markdown
 <div align="center">
 
 # MDT Task Sequences & Custom Scripts

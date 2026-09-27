@@ -7,7 +7,7 @@ This project does **not** ship Windows images. You must provide your own. There 
 - **Build your own with UUPDump** — recommended, free, produces an image that matches your scripts exactly
 - **Use an existing image** — from Microsoft, VLSC, or your organization
 
-The first path is documented in detail below. The second is a note at the end.
+The first path is documented in detail below, and expanded further in the companion repository [`MDT-Windows-Image-Builder`](https://github.com/ArthurJDurand/MDT-Windows-Image-Builder).
 
 ---
 
@@ -39,7 +39,7 @@ Building your own image with UUPDump has several advantages:
 - **Custom editions.** You pick exactly which editions appear in the ISO (Pro, Pro for Workstations, Enterprise, and so on). This project only needs Pro.
 - **.NET 3.5 integration.** UUPDump can integrate .NET Framework 3.5 into the image during the build, so your task sequence does not need to enable it separately.
 - **Ownership.** The image is yours. There is no dependency on a maintainer's cloud storage or a personal OneDrive that may disappear.
-- **Consistency.** Every technician builds from the same recipe. There is no "which OneDrive link is the latest" problem.
+- **Consistency.** Every technician builds from the same recipe. There is no "which link is the latest" problem.
 - **No rate limits.** Microsoft's CDN and UUPDump are not subject to the download limits or quota issues of personal file hosting.
 
 The one downside is that you have to run the build yourself. Expect 30–60 minutes for the first build, less on subsequent builds once the tools are cached.

@@ -1,0 +1,75 @@
+# GitHub release notes configuration
+# Docs: https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes#configuring-automatically-generated-release-notes
+#
+# This file controls how GitHub auto-generates release notes from merged
+# pull requests. When you create a release and click "Generate release notes",
+# GitHub groups the merged PRs by category using the labels defined below.
+
+changelog:
+  # Exclude PRs with these labels from release notes entirely.
+  # Useful for meta-changes that don't affect users.
+  exclude:
+    labels:
+      - ignore-for-release
+      - skip-changelog
+      - documentation
+      - dependencies
+      - github-actions
+    authors:
+      - dependabot
+      - github-actions
+      - renovate
+
+  # Categories appear in this exact order in the generated release notes.
+  # The first matching category wins; unmatched PRs go to the catch-all.
+  categories:
+    - title: ⚠️ Breaking Changes
+      labels:
+        - Semver-Major
+        - breaking-change
+        - breaking
+
+    - title: 🚀 New Features & Enhancements
+      labels:
+        - Semver-Minor
+        - enhancement
+        - feature
+        - feat
+
+    - title: 🐛 Bug Fixes
+      labels:
+        - bug
+        - fix
+        - Semver-Patch
+
+    - title: 🔧 Driver & Hardware Support
+      labels:
+        - drivers
+        - hardware
+        - intel-vmd
+        - amd
+        - oem-pack
+
+    - title: 📝 Documentation
+      labels:
+        - docs
+        - documentation
+
+    - title: 🔒 Security
+      labels:
+        - security
+        - vulnerability
+
+    - title: 🧹 Maintenance & Refactoring
+      labels:
+        - chore
+        - refactor
+        - maintenance
+        - ci
+        - build
+
+    # Catch-all category — must be last.
+    # Any merged PR not matched above lands here.
+    - title: 📦 Other Changes
+      labels:
+        - "*"

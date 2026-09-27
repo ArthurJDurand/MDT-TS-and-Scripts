@@ -58,9 +58,9 @@ representative at an online or offline event.
 
 For this project, community spaces include, but are not limited to:
 
-* The [GitHub repository](https://github.com/ArthurJDurand/MDT-TS-and-Scripts)
-* [GitHub Issues](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/issues)
-* [GitHub Discussions](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/discussions)
+* The [GitHub repository](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment)
+* [GitHub Issues](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/issues)
+* [GitHub Discussions](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/discussions)
 * Pull request review comments
 * Any other communication channel managed by the project maintainer
 
@@ -68,7 +68,7 @@ For this project, community spaces include, but are not limited to:
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement via a
-[private GitHub security advisory](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/security/advisories/new)
+[private GitHub security advisory](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/security/advisories/new)
 or by contacting the maintainer directly through their
 [GitHub profile](https://github.com/ArthurJDurand).
 

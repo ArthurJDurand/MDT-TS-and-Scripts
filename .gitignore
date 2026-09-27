@@ -4,8 +4,8 @@
 #
 # This repository intentionally ships binaries that are required at deployment
 # time: 7-Zip binaries used by the WinPE boot image, OEM app installers under
-# the $OEM$ trees, LGPO.exe, MDT Templates, the AOMEI PXE Boot installer, and
-# the pre-built offline media set. Those are documented as exceptions in the
+# the $OEM$ trees, LGPO.exe, BGInfo, the AOMEI PXE Boot installer, the MDT
+# Fixes bundle, and other tools. Those are documented as exceptions in the
 # sections below.
 #
 # Do not weaken the ignore rules in this file to work around a specific file.
@@ -181,12 +181,16 @@ credentials.json
 # driver set. Currently empty; kept here so future imports are not blocked.
 !DeploymentShare/Out-of-box Drivers/**
 
-# Prerequisites — MDT Templates self-extractor, AOMEI PXE Boot installer,
-# DHCP/WDS config templates.
-!Prerequisites/**
+# MDT stock tools shipped with the deployment share — BGInfo and the MDT
+# utility DLL. These are part of the standard MDT bootstrap process.
+!DeploymentShare/Tools/**
 
-# Offline media — the pre-built MDT media set with SWM-split OS images.
-!MDT/**/**
+# MDT templates — stock unattend templates used when generating boot images.
+!DeploymentShare/Templates/**
+
+# Prerequisites — MDT Fixes bundle, AOMEI PXE Boot installer, DHCP/WDS
+# config templates.
+!Prerequisites/**
 
 
 # ───────────────────────────────────────────────────────────────────────────
@@ -304,7 +308,23 @@ sandbox/
 
 
 # ───────────────────────────────────────────────────────────────────────────
-# 13. FINAL OVERRIDES — FILES THAT MUST ALWAYS BE TRACKED
+# 13. OFFLINE MEDIA (GENERATED LOCALLY)
+# ───────────────────────────────────────────────────────────────────────────
+# Media sets are generated on demand by the Deployment Workbench. If you
+# generate one inside the repository folder for convenience, ignore it.
+# The default generation path is C:\Deploy\MDT, outside the repository.
+
+MDT/
+Deploy/
+Media/
+
+# Split archives created when preparing a FAT32 USB
+*.7z.011
+*.7z.012
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 14. FINAL OVERRIDES — FILES THAT MUST ALWAYS BE TRACKED
 # ───────────────────────────────────────────────────────────────────────────
 # Re-include files that would otherwise be caught by the broad rules above.
 
@@ -317,12 +337,11 @@ sandbox/
 !docs/examples/**
 
 # Configuration and metadata files that must be tracked in the deployment
-# share and offline media set.
+# share.
 !DeploymentShare/Control/**
 !DeploymentShare/Scripts/**
 !DeploymentShare/Operating Systems/*.xml
 !DeploymentShare/Task Sequences/**
-!MDT/Content/Deploy/**
 
 
 # ═══════════════════════════════════════════════════════════════════════════

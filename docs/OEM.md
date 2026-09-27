@@ -1,8 +1,8 @@
 # OEM Content Guide
 
-This document describes how OEM content — driver packs, application archives, activation scripts, updates, and supporting tools — is organized on the network shares and on offline media, how the scripts consume it, and how to add new packs.
+This document describes how OEM content — driver packs, application archives, activation scripts, layout files, and supporting tools — is organized on the network shares and on offline media, how the scripts consume it, and how to add new packs.
 
-The scripts never hardcode model-specific content. They detect the target hardware at deployment time and pull the matching pack from a known folder. This document is the reference for what those folders should look like.
+The deployment scripts never hardcode model-specific content. They detect the target hardware at deployment time and pull the matching pack from a known location. This document is the reference for what those locations should look like.
 
 ---
 
@@ -15,11 +15,11 @@ The scripts never hardcode model-specific content. They detect the target hardwa
 - [Directory Reference](#directory-reference)
   - [OEM Apps](#oem-apps)
   - [Driver Packs](#driver-packs)
-  - [LGPO](#lgpo)
   - [Updates](#updates)
   - [WindowsRE](#windowsre)
   - [Servicing](#servicing)
   - [ScanState](#scanstate)
+  - [WinPE Storage Drivers](#winpe-storage-drivers)
 - [Archive Naming Conventions](#archive-naming-conventions)
 - [Driver Pack Structure](#driver-pack-structure)
 - [App Pack Structure](#app-pack-structure)
@@ -27,7 +27,6 @@ The scripts never hardcode model-specific content. They detect the target hardwa
 - [Adding a New OEM App Pack](#adding-a-new-oem-app-pack)
 - [Adding a New Driver Pack](#adding-a-new-driver-pack)
 - [Updating an Existing Driver Pack](#updating-an-existing-driver-pack)
-- [Payload Updaters and Companion Repos](#payload-updaters-and-companion-repos)
 - [Best Practices](#best-practices)
 
 ---
@@ -37,15 +36,16 @@ The scripts never hardcode model-specific content. They detect the target hardwa
 The OEM content is what makes this project more than a stock MDT deployment. It provides:
 
 - **Model-specific driver packs** — extracted and injected into the offline image during deployment
-- **Manufacturer-specific application packs** — extracted into `C:\Recovery\OEM` on the target and installed during OOBE
-- **Activation scripts** — HWID and Ohook for Windows and Office
+- **Manufacturer-specific application archives** — extracted into `C:\Recovery\OEM` on the target and installed during OOBE or by the Apps framework
+- **Activation scripts** — HWID for Windows and Ohook for Office
 - **Local Group Policy** — LGPO tool and policy backups
-- **Windows Recovery Environment** — WinRE images for BIOS/UEFI systems
+- **Windows Recovery Environment images** — per OS and architecture
 - **Offline servicing components** — DirectX FOD package for driver store cleanup
 - **ScanState** — USMT tool for push-button reset package creation
-- **Windows updates** — cumulative updates and .msu/.cab packages for offline image injection
+- **Windows updates** — cumulative updates and `.msu`/`.cab` packages for offline image injection
+- **WinPE storage drivers** — Intel VMD drivers loaded at boot when internal storage is not detected
 
-None of this content is stored in Git. It is distributed via the [companion OneDrive folder](https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6) and can be delivered either from a network share or from a DEPLOY-labeled USB flash drive for offline deployments.
+None of this content is stored in Git. It is delivered from a network share or from a `DEPLOY`-labeled USB flash drive for offline deployments.
 
 ---
 
@@ -55,17 +55,17 @@ OEM content is consumed from two locations, in this priority order:
 
 | Priority | Location | Used When |
 |---|---|---|
-| 1 | **Network share** | The deployment has network connectivity (server-based or desktop-based PXE) |
-| 2 | **DEPLOY USB flash drive** | The deployment is fully offline (no server, no network) |
+| 1 | **Network share** | The deployment has network connectivity |
+| 2 | **DEPLOY USB flash drive** | The deployment is fully offline |
 
-Every extraction script checks the network share first and falls back to the USB. You can populate both, or just one.
+Every extraction script checks the network share first and falls back to the USB. Populate both, or just one.
 
 ### Network shares
 
 | Share | Purpose |
 |---|---|
 | `\\SERVER\Shared\OEM\x64` | 64-bit OEM application archives |
-| `\\SERVER\Shared\OEM\x86` | 32-bit OEM application archives (if any) |
+| `\\SERVER\Shared\OEM\x86` | 32-bit OEM application archives |
 | `\\SERVER\Shared\DriverPacks` | Model-specific driver `.7z` archives |
 | `\\SERVER\Shared\Updates\Win10\x64` | Windows 10 x64 cumulative updates |
 | `\\SERVER\Shared\Updates\Win10\x86` | Windows 10 x86 cumulative updates |
@@ -73,9 +73,7 @@ Every extraction script checks the network share first and falls back to the USB
 | `\\SERVER\Shared\WindowsRE\<OS>\<arch>` | WinRE images |
 | `\\SERVER\Shared\Servicing` | Offline servicing components (DirectX FOD) |
 | `\\SERVER\Shared\ScanState` | USMT ScanState tool |
-| `\\SERVER\Shared\Drivers\WinPE\Storage\Intel\x64\<version>` | Intel VMD drivers for WinPE boot image |
-
-> **Note:** The path for OEM apps is `\\SERVER\Shared\OEM\x64` in the scripts. If your deployment was set up with `\\SERVER\OEM` as a standalone share, either create the `Shared\OEM` structure or edit `Get-SourceOEMAppPath` in `ExtractOEMAppsx64.ps1` and `ExtractOEMAppsx86.ps1` to match your layout.
+| `\\SERVER\Shared\Drivers\WinPE\Storage\Intel\x64\<version>` | Intel VMD drivers for the WinPE boot image |
 
 ### Share permissions
 
@@ -90,6 +88,8 @@ All shares are **read-only** for the deployment service account. No write access
 | `\\SERVER\Shared\WindowsRE` | `Network User` — Read |
 | `\\SERVER\Shared\Servicing` | `Network User` — Read |
 | `\\SERVER\Shared\ScanState` | `Network User` — Read |
+
+The `Administrators` write access on `DriverPacks` is used by `3OEMDriversExport.cmd` when a technician exports drivers from a deployed machine.
 
 ---
 
@@ -111,7 +111,7 @@ All shares are **read-only** for the deployment service account. No write access
 │   │   ├── MSI.7z
 │   │   └── Proline.7z
 │   └── x86\
-│       └── (x86 app packs if you support 32-bit hardware)
+│       └── ... (x86 app packs for vendors you support on 32-bit)
 │
 ├── DriverPacks\
 │   ├── Dell Latitude 5430 12th Gen Intel.7z
@@ -125,12 +125,12 @@ All shares are **read-only** for the deployment service account. No write access
 │   ├── Win10\
 │   │   ├── x64\
 │   │   │   ├── windows10.0-kb50xxxxx-x64.msu
-│   │   │   └── ... (all cumulative and SSU packages)
+│   │   │   └── ... (cumulative and SSU packages)
 │   │   └── x86\
 │   │       └── ...
 │   └── Win11\
 │       ├── windows11.0-kb50xxxxx-x64.msu
-│       └── ... (all cumulative and SSU packages)
+│       └── ...
 │
 ├── WindowsRE\
 │   ├── Win10\
@@ -153,7 +153,7 @@ All shares are **read-only** for the deployment service account. No write access
 │   │   └── ... (USMT components)
 │   └── x86\
 │       ├── scanstate.exe
-│       └── ... (USMT components for x86)
+│       └── ...
 │
 └── Drivers\
     └── WinPE\
@@ -176,37 +176,22 @@ For deployments without a server, the same content lives on a USB flash drive la
 
 ```
 DEPLOY (USB root)\
+├── Content\              (MDT media set — generated or pre-built)
 ├── OEM\
 │   ├── x64\
-│   │   └── ... (same .7z archives as the network share)
 │   └── x86\
-│       └── ...
-│
 ├── DriverPacks\
-│   └── ... (same .7z driver archives)
-│
 ├── Updates\
 │   ├── Win10\
-│   │   ├── x64\
-│   │   └── x86\
 │   └── Win11\
-│
 ├── WindowsRE\
-│   └── ... (same structure as network share)
-│
 ├── Servicing\
-│   └── Microsoft-OneCore-DirectX-Database-FOD-Package\
-│
 ├── ScanState\
-│   └── ... (amd64 and x86 subfolders)
-│
-└── Content\
-    └── ... (MDT offline media payload — this is what gets written by MDT when you generate media)
+└── Drivers\
+    └── WinPE\
 ```
 
-The USB drive is FAT32, which has a **4 GB per-file limit**. Any archive larger than 4 GB must be split into `.7z.001`, `.7z.002`, ... parts. The payload updater scripts split files automatically when generating archives.
-
-> **NTFS alternative:** If your target machines support UEFI NTFS boot, you can format the USB as NTFS and skip the split-archive complexity. However, most pre-UEFI hardware will not boot from an NTFS USB drive, and the MDT boot image layout assumes FAT32.
+The USB is FAT32, which has a **4 GB per-file limit**. Any archive larger than 4 GB must be split into `.7z.001`, `.7z.002`, ... parts. See [Handling FAT32's 4 GB limit](OFFLINE-MEDIA.md#handling-fat32s-4-gb-limit).
 
 ---
 
@@ -220,21 +205,20 @@ The USB drive is FAT32, which has a **4 GB per-file limit**. Any archive larger 
 
 **Purpose:** Per-vendor application installers, bundled as `.7z` archives. The correct archive is selected by matching the target machine's manufacturer string.
 
-**Contents of each `.7z`:** Whatever you want installed on the target. By convention:
+**Contents of each `.7z`:** Whatever you want extracted into `C:\Recovery\OEM`. By convention:
 
 ```
 <vendor>.7z
 ├── Apps\
 │   ├── <vendor>CommandUpdate.exe
 │   ├── <vendor>SupportAssistant.exe
-│   └── ... (OEM utilities)
-├── LGPO\
-│   └── ... (vendor-specific policy files)
-├── pre.ps1            (optional vendor-specific setup script)
+│   └── ...
+├── Drivers\
+│   └── ... (optional, if you bundle drivers with apps)
 └── ... (any other content)
 ```
 
-The exact structure inside the `.7z` is up to you — `ExtractOEMAppsx64.ps1` simply extracts the archive into `C:\Recovery\OEM`, preserving the internal folder structure.
+The exact structure is up to you — `ExtractOEMAppsx64.ps1` extracts the archive into `C:\Recovery\OEM` preserving its internal folder structure.
 
 **One `.7z` per vendor.** The scripts do not combine archives.
 
@@ -244,58 +228,27 @@ The exact structure inside the `.7z` is up to you — `ExtractOEMAppsx64.ps1` si
 **Consumed by:** `ExtractOEMDrivers.ps1`
 **Extracted to:** `C:\Recovery\OEM\Drivers` on the target
 
-**Purpose:** One archive per supported model, containing all drivers for that model. The correct archive is selected by matching the target machine's model and CPU generation against the archive filename.
+**Purpose:** One archive per supported model containing all drivers for that model. The correct archive is selected by matching the target machine's model and CPU generation against the archive filename.
 
-**Naming convention:** The filename is the primary matching surface. See [Archive Naming Conventions](#archive-naming-conventions) for the exact patterns the scripts use.
-
-### LGPO
-
-**Path:** Downloaded by `LGPO.ps1` from the companion repo, extracted to `C:\Temp\OEM\LGPO`
-**Consumed by:** `pre.ps1` (looks in `C:\Recovery\OEM\LGPO\LGPO.exe`)
-**Purpose:** The Microsoft Local Group Policy Object utility plus a `Backup` folder containing `.pol` files that LGPO applies.
-
-**Structure after staging:**
-
-```
-C:\Recovery\OEM\LGPO\
-├── LGPO.exe
-├── Backup\
-│   ├── {GUID}\DomainSysvol\GPO\User\...
-│   └── {GUID}\DomainSysvol\GPO\Machine\...
-└── (any other policy files)
-```
-
-**Applying policies:** `pre.ps1` runs:
-
-```powershell
-LGPO.exe /g C:\Recovery\OEM\LGPO\Backup
-```
-
-**Creating your own policy backup:** On a reference machine with the policies you want applied, run:
-
-```powershell
-LGPO.exe /b C:\LGPO-Backup
-```
-
-Then replace the contents of `Backup\` in your staged `LGPO` folder with the generated files.
+**Naming convention:** The filename is the primary matching surface. See [Archive Naming Conventions](#archive-naming-conventions).
 
 ### Updates
 
 **Path:** `\\SERVER\Shared\Updates\Win10\x64`, `\\SERVER\Shared\Updates\Win10\x86`, or `\\SERVER\Shared\Updates\Win11`
 **Consumed by:** `ApplyUpdates10x64.ps1`, `ApplyUpdates10x86.ps1`, `ApplyUpdates11.ps1`
-**Applied to:** the offline Windows image via DISM, before first boot
+**Applied to:** The offline Windows image via DISM, before first boot
 
 **Purpose:** Cumulative updates, servicing stack updates, .NET updates, and any other `.msu` or `.cab` packages you want baked into the image.
 
 **Sources:**
 
-- [Microsoft Update Catalog](https://www.catalog.update.microsoft.com/) — download cumulative updates and SSUs directly
-- [WSUS Offline Update](http://www.wsusoffline.net/) — a well-known tool that downloads all updates for a target OS
-- Your existing WSUS server export
+- [Microsoft Update Catalog](https://www.catalog.update.microsoft.com/)
+- [WSUS Offline Update](http://www.wsusoffline.net/)
+- An export from your WSUS server
 
-**Important:** Only `.msu` and `.cab` files are processed. Any other file format is ignored.
+**Important:** Only `.msu` and `.cab` files are processed. Other formats are ignored.
 
-**Order of application:** DISM applies all `.msu`/`.cab` files in the folder in alphabetical order. This matters because some updates depend on prior updates (e.g. cumulative updates require the latest SSU). Name files with a numeric prefix to enforce order if needed:
+**Order of application:** DISM applies packages in alphabetical order. If order matters (e.g. SSU before cumulative update), prefix filenames with numbers:
 
 ```
 01-ssu-2024-11-x64.msu
@@ -309,19 +262,19 @@ Then replace the contents of `Backup\` in your staged `LGPO` folder with the gen
 **Consumed by:** `WinRE.ps1`
 **Copied to:** `C:\Recovery\WindowsRE\winre.wim` on the target's recovery partition
 
-**Purpose:** A WinRE image for each OS and architecture. `WinRE.ps1` first tries to use the WinRE already present inside the deployed OS (`C:\Windows\System32\Recovery\winre.wim`). The network-share copy is a fallback used when the OS image has no WinRE or when the deployed WinRE is corrupt.
+**Purpose:** A WinRE image per OS and architecture. `WinRE.ps1` first tries the WinRE already present inside the deployed OS (`C:\Windows\System32\Recovery\winre.wim`). The network-share copy is a fallback used when the OS image has no WinRE or when the deployed WinRE is corrupt.
 
 **Where to get the WinRE image:**
 
-- Extract it from a clean Windows ISO: `install.wim` → `Windows\System32\Recovery\winre.wim`
-- Or from the `WinRE.wim` inside the `sources\` folder of a Windows ISO
+- Extract from a clean Windows ISO: `install.wim` → `Windows\System32\Recovery\winre.wim`
+- Or from `WinRE.wim` inside the `sources\` folder of a Windows ISO
 
-**Optional VMD injection:** If `LoadWinPEDrivers.ps1` wrote a `VMD_Loaded.txt` marker during deployment, `WinRE.ps1` will inject the same Intel VMD driver into the WinRE image. This is needed on newer Intel platforms where WinRE must see the internal storage to function. See the "Known Limitations" section of the [README](../README.md#known-limitations) for a caveat about marker persistence.
+**Optional VMD injection:** If `LoadWinPEDrivers.ps1` wrote a `VMD_Loaded.txt` marker during deployment, `WinRE.ps1` will inject the same Intel VMD driver into the WinRE image. This is needed on newer Intel platforms where WinRE must see internal storage. See the Known Limitations section in [docs/SCRIPTS.md](SCRIPTS.md#winreps1) for a caveat about marker persistence.
 
 ### Servicing
 
 **Path:** `\\SERVER\Shared\Servicing`
-**Consumed by:** `ScanWindowsImage64.ps1`
+**Consumed by:** `ScanWindowsImage64.ps1` (invoked from the post-deployment `3OEMDriversExport.cmd` workflow)
 **Purpose:** Offline servicing components needed to restore the DirectX FOD after driver store cleanup.
 
 **Structure:**
@@ -333,14 +286,12 @@ Then replace the contents of `Backup\` in your staged `LGPO` folder with the gen
     └── ... (dependencies if any)
 ```
 
-**Background:** `ScanWindowsImage64.ps1` runs `DISM /Cleanup-Image /ResetBase` followed by a driver store cleanup. On Windows 11, the driver store cleanup removes the DirectX FOD package, which breaks some DirectX features. The script restores the package from this folder.
-
-**Where to get the FOD package:** The package is included in this repository's companion OneDrive folder under `Shared\Servicing`.
+**Background:** Cleaning the driver store on Windows 11 removes the DirectX FOD package, which breaks some DirectX features. The offline servicing workflow restores the package from this folder.
 
 ### ScanState
 
 **Path:** `\\SERVER\Shared\ScanState`
-**Consumed by:** `ScanStatex64.ps1`
+**Consumed by:** `4ScanState.cmd` (invoked post-deployment)
 **Copied to:** `C:\Temp\ScanState` on the target
 **Purpose:** The USMT `ScanState` tool, used to create a push-button reset provisioned package.
 
@@ -351,21 +302,45 @@ Then replace the contents of `Backup\` in your staged `LGPO` folder with the gen
 ├── amd64\
 │   ├── scanstate.exe
 │   ├── migcore.dll
-│   ├── ... (all USMT amd64 components)
+│   └── ... (all USMT amd64 components)
 └── x86\
     ├── scanstate.exe
-    ├── ... (all USMT x86 components)
+    └── ...
 ```
 
-**Where to get USMT:** USMT is part of the Windows ADK. After installing the ADK, the tool is at `C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\User State Migration Tool\<version>\`.
+**Where to get USMT:** USMT is part of the Windows ADK. After installing the ADK, the tool is at `C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\User State Migration Tool\<version>\`. Copy both the `amd64` and `x86` folders into `\\SERVER\Shared\ScanState`.
 
-Copy both the `amd64` and `x86` folders into `\\SERVER\Shared\ScanState`.
+### WinPE Storage Drivers
+
+**Path:** `\\SERVER\Shared\Drivers\WinPE\Storage\Intel\x64\<version>`
+**Consumed by:** `LoadWinPEDrivers.ps1`
+**Purpose:** Intel VMD drivers loaded in WinPE when internal storage is not detected.
+
+**Structure per version:**
+
+```
+20.2.6.1025.3\
+├── iaStorVD.inf
+├── iaStorVD.sys
+├── iaStorVD.cat
+├── RstMwService.exe
+└── ...
+```
+
+**Version mapping:** `LoadWinPEDrivers.ps1` selects the version based on CPU generation:
+
+| CPU Generation | Driver Version |
+|---|---|
+| 11th Gen | `19.5.8.1059.2` |
+| 12th Gen and above | `20.2.6.1025.3` |
+
+**Where to get the drivers:** Download the Intel Rapid Storage Technology driver package from Intel and extract the `VMD` subfolder.
 
 ---
 
 ## Archive Naming Conventions
 
-The scripts select archives by filename pattern matching. The naming convention is not enforced by any code — it is a convention you must follow for the matching to work.
+The scripts select archives by filename pattern matching. The naming convention is not enforced by code — follow it so the matching works.
 
 ### OEM App Archives
 
@@ -383,17 +358,17 @@ Lenovo.7z.003
 
 **Vendor names the scripts recognize:** `Acer`, `ASUS`, `Dell`, `Dynabook`, `Gigabyte`, `HP` / `Hewlett Packard` / `Hewlett-Packard`, `Huawei`, `Lenovo`, `Microsoft`, `Micro-Star` / `MicroStar` / `MSI`, `Proline`.
 
-The match is case-insensitive and substring-based. A manufacturer string of `"HP"` matches the `HP.7z` archive. A manufacturer string of `"Hewlett-Packard Company"` also matches, because the pattern checks for `Hewlett-Packard` as a substring.
+The match is case-insensitive and substring-based. A manufacturer string of `Hewlett-Packard Company` matches the `HP.7z` archive because `Hewlett-Packard` is a substring.
 
 ### Driver Pack Archives
 
-**Pattern:** Free-form. The script generates candidate patterns from the detected model and CPU generation. See [Driver Pack Structure](#driver-pack-structure) for the exact matching logic.
+**Pattern:** Free-form. The script generates candidate patterns from the detected model and CPU generation. See [Driver Pack Structure](#driver-pack-structure).
 
 **Recommended conventions:**
 
 - `<Vendor> <Model> <Gen>th Gen Intel.7z` — most specific, preferred
 - `<Vendor> <Model>.7z` — model-only match, used as fallback
-- `<Vendor> <Series> <Gen>th Gen Intel.7z` — for series-wide packs (e.g. `HP EliteBook 8xx 12th Gen Intel.7z`)
+- `<Vendor> <Series> <Gen>th Gen Intel.7z` — for series-wide packs
 
 **Examples:**
 
@@ -411,10 +386,10 @@ Lenovo ThinkPad T14 Gen 3 12th Gen Intel.7z
 
 **Format:** `<ArchiveName>.7z.001`, `.002`, `.003`, ...
 
-Split archives are treated as a single logical archive by the scripts. `ExtractOEMDrivers.ps1` and the payload updaters:
+`ExtractOEMDrivers.ps1` and the payload updaters:
 
-1. Sort all parts by their numeric suffix.
-2. Download or copy all parts.
+1. Sort all parts by numeric suffix.
+2. Copy or download all parts.
 3. Validate with `7z t <first-part>`.
 4. Extract with `7z x <first-part>` — 7-Zip reads the split volume from `.001` and continues automatically.
 
@@ -425,24 +400,23 @@ Split archives are treated as a single logical archive by the scripts. `ExtractO
 7z a -v3g "Dell.7z" "C:\Staging\Dell\"
 ```
 
-This produces `Dell.7z.001`, `Dell.7z.002`, etc. The 3 GB part size leaves headroom for FAT32's 4 GB limit.
+This produces `Dell.7z.001`, `Dell.7z.002`, and so on. The 3 GB part size leaves headroom for FAT32's 4 GB limit.
 
 ---
 
 ## Driver Pack Structure
 
-The scripts apply the driver pack by running DISM with `/Add-Driver /Recurse` on the extracted folder. That means the extracted folder can contain any number of subdirectories with `.inf` files, and DISM will recurse through all of them.
+The scripts apply the driver pack by running DISM with `/Add-Driver /Recurse` on the extracted folder. The extracted folder can contain any number of subdirectories with `.inf` files, and DISM recurses through all of them.
 
 **Recommended structure inside each driver pack `.7z`:**
 
 ```
 Dell Latitude 5430 12th Gen Intel.7z
 ├── Chipset\
-│   ├── <inf files>
-│   └── ...
 ├── Storage\
 │   └── Intel\
-│       └── <inf files>
+│       └── 20.2.6.1025.3\
+│           └── ... (VMD driver files)
 ├── Network\
 │   ├── Ethernet\
 │   └── WLAN\
@@ -451,27 +425,18 @@ Dell Latitude 5430 12th Gen Intel.7z
 ├── Bluetooth\
 ├── Camera\
 ├── CardReader\
-└── ... (any other categories)
+└── ... (other categories)
 ```
 
 **WLAN special case:** `ApplyOEMDrivers.ps1` looks for a folder named `WLAN` under `C:\Recovery\OEM\Drivers` and applies it **in addition** to the model-specific folder. Place your WLAN drivers either inside the model pack (anywhere in the tree) or in a shared `WLAN\` folder that gets extracted alongside the model pack.
 
-**Intel VMD special case:** `ApplyOEMDrivers.ps1` looks for Intel VMD drivers under `C:\Recovery\OEM\Drivers\Storage\Intel\<version>`. The `<version>` is determined by CPU generation:
-
-| CPU Generation | VMD Driver Version |
-|---|---|
-| 11th Gen | `19.5.8.1059.2` |
-| 12th Gen and above | `20.2.6.1025.3` |
-
-Include the appropriate VMD folder in every driver pack for a 10th Gen+ Intel platform.
-
-**Matching algorithm:** See the `Find-BestDriverFolder` function in `ExtractOEMDrivers.ps1` and `ApplyOEMDrivers.ps1`. It builds candidate folder names from the target model and CPU generation, then picks the first match found in `C:\Recovery\OEM\Drivers`.
+**Intel VMD special case:** `ApplyOEMDrivers.ps1` looks for Intel VMD drivers under `C:\Recovery\OEM\Drivers\Storage\Intel\<version>`. Include the appropriate VMD folder in every driver pack for a 10th Gen+ Intel platform.
 
 ---
 
 ## App Pack Structure
 
-The scripts extract the vendor `.7z` into `C:\Recovery\OEM` without any filtering. Whatever is inside the archive gets placed on the target machine.
+`ExtractOEMAppsx64.ps1` extracts the vendor `.7z` into `C:\Recovery\OEM` without any filtering. Whatever is inside the archive gets placed on the target machine.
 
 **Recommended structure:**
 
@@ -483,22 +448,16 @@ Dell.7z
 │   ├── DellOptimizer.exe
 │   ├── SupportAssist.exe
 │   └── ...
-├── LGPO\
-│   ├── LGPO.exe
-│   └── Backup\
-│       └── ... (vendor-specific policy backup)
-├── Activation\
-│   ├── HWID_Activation.cmd
-│   └── Ohook_Activation.cmd
 ├── Drivers\
-│   └── ... (optional, if you want to bundle drivers with apps)
-├── pre.ps1            (optional vendor-specific setup script)
+│   └── ... (optional)
+├── LayoutModification.xml         (optional, overrides the base layout)
+├── TaskbarLayoutModification.xml  (optional)
 └── ...
 ```
 
-Anything under `Apps\` is available to `pre.ps1` (which scans `C:\Recovery\OEM\Apps\` for installers).
+Anything under `Apps\` is available to `pre.ps1` (which scans `C:\Recovery\OEM\Apps\` for installers) and to the OEM Apps framework (which reads manifests under `Apps\Manifests\`).
 
-**Office installers:** `pre.ps1` calls `Get-OfficeInstallerFolder` which looks for a folder under `C:\Recovery\OEM\Apps\` starting with `Office`. By convention, name your Office installer folder `Office2021`, `Office365`, or similar.
+**Office installers:** `pre.ps1` calls `Get-OfficeInstallerFolder`, which looks for a folder under `C:\Recovery\OEM\Apps\` starting with `Office`. Name your Office installer folder `Office2021`, `Office365`, or similar.
 
 ---
 
@@ -512,7 +471,7 @@ Anything under `Apps\` is available to `pre.ps1` (which scans `C:\Recovery\OEM\A
 (Get-CimInstance Win32_ComputerSystemProduct).Vendor
 ```
 
-Values that match any of these are excluded as invalid:
+Values matching these are excluded as invalid:
 
 ```
 Default string
@@ -522,7 +481,7 @@ System Manufacturer
 To be filled by O.E.M.
 ```
 
-The remaining values are grouped and the most frequent one is selected. If values disagree (e.g. baseboard says `ASUSTeK` but chassis says `ASUS`), the script picks whichever appears most often.
+The remaining values are grouped, and the most frequent one is selected. If values disagree (e.g. baseboard says `ASUSTeK` but chassis says `ASUS`), the script picks whichever appears most often.
 
 **Practical implications for OEM pack naming:**
 
@@ -554,8 +513,6 @@ C:\Staging\Framework\
 7z a -v3g "Framework.7z" "C:\Staging\Framework\"
 ```
 
-This produces `Framework.7z.001`, `Framework.7z.002`, etc. (or a single `Framework.7z` if the content is under 3 GB).
-
 ### 3. Copy to the network share
 
 ```powershell
@@ -564,7 +521,7 @@ Copy-Item "Framework.7z*" "\\SERVER\Shared\OEM\x64\"
 
 ### 4. Copy to offline media (optional)
 
-If you support offline deployments, copy the archive to the DEPLOY USB root at `OEM\x64\`.
+Copy the archive to the DEPLOY USB at `OEM\x64\`.
 
 ### 5. Add the vendor to the extraction script
 
@@ -597,7 +554,7 @@ Suppose you want to add support for a new model, `Dell Latitude 7450` with a 13t
 
 ### 1. Download the vendor driver pack
 
-From the vendor's support site, download the enterprise driver pack for that model. Dell, HP, and Lenovo all publish consolidated driver packages (`.cab`, `.exe`, or `.zip`).
+From the vendor's support site, download the enterprise driver pack for that model.
 
 - **Dell:** [Dell Command | Deploy Driver Packs](https://www.dell.com/support/kbdoc/en-us/000124139/dell-command-deploy-driver-packs-for-enterprise-client-os-deployment)
 - **HP:** [HP Client Driver Packs](https://ftp.hp.com/pub/caps-softpaq/cmit/HP_Driverpack_Matrix_x64.html)
@@ -658,49 +615,18 @@ If the log shows `No driver folder found for model: Dell Latitude 7450`, the scr
 
 Vendors release driver updates regularly. When you update a driver pack, the target machine's drivers will only be updated on the next deployment — the existing installation is not touched.
 
-**Best practice:** Keep the model + generation in the filename but bump an internal version marker so you can tell versions apart:
+**Best practice:** Keep the model and generation in the filename but add an internal version marker so you can tell versions apart:
 
 ```
 Dell Latitude 7450 13th Gen Intel (2024-11).7z
 Dell Latitude 7450 13th Gen Intel (2025-03).7z
 ```
 
-The matching algorithm uses a `*<model>*<generation>*` pattern, so any filename containing both the model and the generation will match. The script picks the **longest matching filename** when multiple archives match. This means a filename with a date suffix will win over a filename without one, but it also means the specific date matters.
+The matching algorithm uses a `*<model>*<generation>*` pattern, so any filename containing both the model and the generation will match. The script picks the **longest matching filename** when multiple archives match.
 
 **Alternative — replace in place:** Overwrite the existing archive with the same filename. This is simpler but loses the ability to roll back.
 
-**Copy to offline media** if applicable, then test a deployment.
-
----
-
-## Payload Updaters and Companion Repos
-
-The scripts `Apps.ps1`, `Drivers.ps1`, and `LGPO.ps1` automatically download the latest payloads from three companion GitHub repositories:
-
-| Repository | Payload | Extracts to |
-|---|---|---|
-| [`52250179/Update-PBR-Extensibility-Apps`](https://github.com/52250179/Update-PBR-Extensibility-Apps) | OEM app archives | `C:\Temp\OEM\Apps` |
-| [`52250179/Update-PBR-Extensibility-Drivers`](https://github.com/52250179/Update-PBR-Extensibility-Drivers) | Driver packs | `C:\Temp\OEM\Drivers` |
-| [`52250179/Update-PBR-Extensibility-LGPO`](https://github.com/52250179/Update-PBR-Extensibility-LGPO) | LGPO tool + policies | `C:\Temp\OEM\LGPO` |
-
-Each payload is a split `.7z` archive. The updater fetches a SHA-256 hash from a Gist and compares it to the local hash before deciding whether to download.
-
-### Using your own repos
-
-If you want to host your own payloads, edit the following variables at the top of each updater script:
-
-```powershell
-$GistUrl     = "https://gist.github.com/<your-user>/<your-gist-id>/raw"
-$RepoOwner   = "<your-github-user>"
-$RepoName    = "<your-repo-name>"
-$FilePattern = '^Apps\.7z\.\d+$'
-```
-
-Then update the corresponding Gist with the new SHA-256 when you push a new payload version.
-
-### Staging paths
-
-The payload updaters extract to `C:\Temp\OEM\<Apps|Drivers|LGPO>`. The `pre.ps1` script expects these payloads at `C:\Recovery\OEM\<Apps|Drivers|LGPO>`. If you use the payload updaters as part of an offline media build, you need to copy from `C:\Temp\OEM\*` to `C:\Recovery\OEM\*` (or the corresponding network share) before running a deployment.
+Copy the updated archive to offline media if applicable, then test a deployment.
 
 ---
 
@@ -714,20 +640,20 @@ The payload updaters extract to `C:\Temp\OEM\<Apps|Drivers|LGPO>`. The `pre.ps1`
 
 ### Naming
 
-- Be consistent with vendor names. `Dell` not `DELL`. `HP` not `Hp`.
+- Be consistent with vendor names. `Dell`, not `DELL`. `HP`, not `Hp`.
 - For driver packs, always include the CPU generation when the drivers differ by generation (Intel 11th vs 12th vs 13th Gen).
-- Never include characters that are invalid on FAT32 (`\ / : * ? " < > |`).
+- Never include characters invalid on FAT32 (`\ / : * ? " < > |`).
 
 ### Contents
 
 - Never include trialware, adware, or third-party promotional software in an OEM app pack.
-- Include only the vendor's own utilities and drivers. Third-party apps (7-Zip, RustDesk, etc.) belong in `$OEM$\$1\Recovery\OEM\Apps\`, not in the vendor pack.
-- Keep the archive focused. A 20 GB driver pack that contains drivers for 50 models is slower to deploy than 20 small packs for the models you actually support.
+- Include only the vendor's own utilities and drivers. Third-party apps belong in the framework's manifest, not in the vendor pack.
+- Keep each archive focused. A 20 GB driver pack containing drivers for 50 models is slower to deploy than 20 smaller packs for the models you actually support.
 
 ### Versioning
 
 - Keep at least two versions of each driver pack if you might need to roll back a bad deployment.
-- Log every change to your OEM content in a spreadsheet or ticketing system. The scripts don't version content for you.
+- Log every change to your OEM content in a spreadsheet or ticketing system. The scripts do not version content for you.
 - When you replace a payload on the network share, document why. Future-you will thank present-you.
 
 ### Testing
@@ -741,7 +667,7 @@ The payload updaters extract to `C:\Temp\OEM\<Apps|Drivers|LGPO>`. The `pre.ps1`
 - Scan all vendor content with antivirus before adding it to a shared location.
 - Only download driver packs and app archives from the vendor's official support site.
 - Never include OEM content from unofficial sources.
-- Do not store credentials, license keys, or activation data in OEM content — those belong in `pre.ps1` or `Control\`.
+- Do not store credentials, license keys, or activation data in OEM content. Those belong in `pre.ps1`, the framework's configuration, or `Control\`.
 
 ---
 

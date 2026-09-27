@@ -170,13 +170,14 @@ Numbered CMD scripts run manually by the technician after OOBE. Number prefix in
 
 #### Offline Media
 
-- Pre-built offline media set in `MDT/Content/Deploy/` using SWM-split images so the media fits on FAT32 USB.
-- Full support for DEPLOY-labeled USB flash drive deployments.
-- Scripts fall back to USB paths when network shares are unavailable.
+- Media sets are generated on demand by the Deployment Workbench from the user's own deployment share, then copied to a FAT32 DEPLOY-labeled USB flash drive.
+- Boot image, OS images, task sequences, and scripts are copied automatically by MDT.
+- The OEM payload is copied to the USB from the network shares the deployment share expects.
+- See [docs/OFFLINE-MEDIA.md](docs/OFFLINE-MEDIA.md) for the full workflow.
 
 #### Prerequisites Bundle (`Prerequisites\`)
 
-- `MDT Templates.exe` — Self-extracting archive for MDT templates.
+- `All MDT Fixes 2025.exe` — Self-extracting archive containing ADK fixes, WinPE Addon updates, MDT template patches, and the fixes for KB4564442 and the HTA Script Error on Windows Server.
 - `for Desktop Editions of Windows\AOMEI PXE Boot Free 1.5\PXEBoot.exe` — AOMEI PXE Boot installer for desktop-based deployment.
 - `for Windows Server\Configs\DHCP Server.xml` — DHCP Server configuration template.
 - `for Windows Server\Configs\DeploymentConfigTemplate.xml` — Windows Server role configuration template.
@@ -184,7 +185,16 @@ Numbered CMD scripts run manually by the technician after OOBE. Number prefix in
 
 #### Boot Image Add-Ons
 
-- `Boot\Addon\x64\Program Files\7-Zip\` — Full 7-Zip installation bundled for the WinPE boot image. Required by `ApplyOEMDrivers.ps1`, `ExtractOEMDrivers.ps1`, and `ExtractOEMApps*.ps1`.
+- `Boot\Addon\x64\Program Files\7-Zip\` — Full 7-Zip installation bundled for the x64 WinPE boot image. Required by `ApplyOEMDrivers.ps1`, `ExtractOEMDrivers.ps1`, and `ExtractOEMApps*.ps1`.
+- `Boot\Addon\x86\Program Files\7-Zip\` — Full 7-Zip installation bundled for the x86 WinPE boot image.
+
+#### MDT Stock Content
+
+- `DeploymentShare\Templates\Unattend_PE_x64.xml` — Stock MDT unattend template for WinPE.
+- `DeploymentShare\Tools\x64\Bginfo64.exe` — BGInfo for x64, used by stock MDT to write system information to the desktop wallpaper.
+- `DeploymentShare\Tools\x64\microsoft.bdd.utility.dll` — MDT utility library (x64).
+- `DeploymentShare\Tools\x86\Bginfo.exe` — BGInfo for x86.
+- `DeploymentShare\Tools\x86\microsoft.bdd.utility.dll` — MDT utility library (x86).
 
 #### Documentation
 
@@ -202,8 +212,9 @@ Numbered CMD scripts run manually by the technician after OOBE. Number prefix in
 
 #### Repository Infrastructure
 
-- `LICENSE.md` — MIT License.
+- `LICENSE` — MIT License.
 - `.gitignore` — Ignore rules reflecting the intentional binary exceptions.
+- `.gitattributes` — Line-ending and encoding rules per file type.
 - `.github/FUNDING.yml` — GitHub Sponsors configuration.
 - `.github/release.yml` — Auto-categorized release notes from PRs.
 - `.github/ISSUE_TEMPLATE/bug_report.yml` — Bug report template.

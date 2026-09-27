@@ -1,250 +1,443 @@
-# MDT-TS-and-Scripts  
-  
-  
-  
-## MDT Task Sequences and Custom Scripts to  
-  
-1) Deploy 64-bit Windows 10 Pro and 64-bit Windows 11 Pro  
-2) Extract OEM customizations and drivers  
-3) Install third party software
-  
-  
-  
-### Skills and experience required!  
-  
-The most important prerequisite is knowledge and expertise in the following areas  
-Microsoft Windows Server and Desktop Editions of Microsoft Windows!  
-Networking!  
-Deploying Desktop Editions of Microsoft Windows!  
-Windows ADK!  
-MDT!  
-  
-  
-  
-## Prerequisites  
-  
-A Server running Windows Server OS with at least the DHCP Server and WDS Server Roles installed and configured!  
-or a desktop PC running a desktop edition of Windows like Windows 10 or Windows 11!  
-  
-Or    
-  
-A desktop PC running any Desktop Edition of Windows  
-  
-  
-  
-### If you have a server running a Windows Server Operating System  
-  
-Rename your server's hostname to "SERVER" (without quotes)!  
-Create a user account named "Network User" (without quotes) in Computer Management under Local Users and Groups > Users, set the password as "p@$$w0rd" - [lowercase p, at sign, dollar sign, dollar sign, lowercase w, zero, lowercase r, lowercase d] (without quotes), and set the following!  
-On 'General' tab, remove check mark on 'User must change password at next logon'  
-Set check mark on 'User cannot change password'  
-Set check mark on 'Password never expires'  
-On 'Member of' tab, remove the 'Users' group and add the 'Administrators' group and confirm by clicking on ok!  
-Look at the scope/range of your DHCP router and set the scope/range to e.g., 192.168.1.101-199 or whatever suits your network environment (reserve some IP addresses for static IP addresses and for the deployment server to respond to PXE requests!  
-Configure your server to use a static IP address on your current subnet (choose a static IP address within your current subnet and outside of the scope/range of your DHCP enabled router/server, e.g., 192.168.1.200!  
-Turn off password protected sharing in Advanced Network Sharing Settings!  
-Download or clone this repository  --> https://github.com/ArthurJDurand/MDT-TS-and-Scripts.git <--
-Download my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <-- and merge the contents from my OneDrive folder with this repository!  
-Download and install the following  
-PowerShell 7 --> https://learn.microsoft.com/en-us/shows/it-ops-talk/how-to-install-powershell-7 <--  
-Microsoft Windows Assessment and Deployment Kit for Windows 11 --> https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install <--  
-Windows PE Addon for the Windows ADK --> https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install <--  
-Microsoft Windows Software Development Kit for Windows 11 --> https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/ <--  
-Microsoft Deployment Toolkit --> https://www.microsoft.com/en-us/download/details.aspx?id=54259 <--  
-Run the self extracting archive "MDT Templates" from the Prerequisites folder contained in this repository and extract the contents to the default location specified by the self extracting archive!  
-Add and configure the DHCP Server and WDS Server Roles by running the following command in PowerShell 7  
-Install-WindowsFeature -ConfigurationFilePath <path_to_DeploymentConfigTemplate.xml>  
-(Replace <path_to_DeploymentConfigTemplate.xml> with the path to the "DeploymentConfigTemplate.xml" file contained in this repository in "Prerequisites\for Windows Server\Configs")!  
-Import my DHCP Serve config by running the following command in PowerShell 7  
-Import-DhcpServer -File <path_to_DHCP Server.xml>  
-(Replace <path_to_DHCP Server.xml> with the path to the "DHCP Server.xml" file contained in this repository in "Prerequisites\for Windows Server\Configs") and edit the IPv4 Server Options and DCHP scope to suit your network environment!  
-Import my WDS Server config by running the following command in PowerShell 7  
-Import-WdsServer -Path <path_to_WDS Server.xml> -OverwriteExisting  
-(Replace <path_to_WDS Server.xml> with the path to the "WDS Server.xml" file contained in this repository in "Prerequisites\for Windows Server\Configs")!  
-Import both boot images (LiteTouchPE_x64.wim and LiteTouchPE_x86.wim) contained in the "DeploymentShare\Boot" folder of your deployment share into the WDS Server!  
-Open the Deployment Workbench (Microsoft Deployment Toolkit), and create a new deployment share in the default location (C:\DeploymentShare) then close the Deployment Workbench!  
-Merge the contents from this repository and my shared OneDrive folder with the deployment share you created in the previous step!  
-Create the folder structure "C:\Deploy\MDT" for offline media  
-Share the "Shared" folder from my shared OneDrive folder so that Everyone can read and write to the shared folder (verify read and write access for "Everyone" in both sharing and security permissions)!  
-PXE boot your client and deploy Windows!  
-  
-  
-### If you have a desktop PC running a Desktop Edition of Windows  
-  
-Rename your desktop PC to "SERVER" (without quotes)!  
-Create a user account named "Network User" (without quotes) in Computer Management under Local Users and Groups > Users, set the password as "p@$$w0rd" - [lowercase p, at sign, dollar sign, dollar sign, lowercase w, zero, lowercase r, lowercase d] (without quotes), and set the following!  
-On 'General' tab, remove check mark on 'User must change password at next logon'  
-Set check mark on 'User cannot change password'  
-Set check mark on 'Password never expires'  
-On 'Member of' tab, remove the 'Users' group and add the 'Administrators' group and confirm by clicking on ok!  
-Turn off password protected sharing in Advanced Network Sharing Settings!  
-Download or clone this repository  --> https://github.com/ArthurJDurand/MDT-TS-and-Scripts.git <--
-Download my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <-- and merge the contents from my OneDrive folder with this repository!  
-Download and install the following  
-PowerShell 7 --> https://learn.microsoft.com/en-us/shows/it-ops-talk/how-to-install-powershell-7 <--  
-Microsoft Windows Assessment and Deployment Kit for Windows 11 --> https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install <--  
-Windows PE Addon for the Windows ADK --> https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install <--  
-Microsoft Windows Software Development Kit for Windows 11 --> https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/ <--  
-Microsoft Deployment Toolkit --> https://www.microsoft.com/en-us/download/details.aspx?id=54259 <--  
-Run the self extracting archive "MDT Templates" in the Prerequisites folder contained in this repository and extract the contents to the default location specified by the self extracting archive!  
-Install AOMEI PXE Boot server from the "for Desktop Editions of Windows" folder within the Prerequisites folder contained in this repository!  
-Open the Deployment Workbench (Microsoft Deployment Toolkit), and create a new deployment share in the default location (C:\DeploymentShare) then close the Deployment Workbench!  
-Merge the contents from this repository and my shared OneDrive folder with the deployment share you created in the previous step!  
-Create the folder structure "C:\Deploy\MDT" for offline media  
-Open AOMEI PXE Boot and select the appropriate boot image (LiteTouchPE_x64.wim or LiteTouchPE_x86.wim contained in the "DeploymentShare\Boot" folder of your deployment share) to boot serve to PXE clients!  
-Share the "Shared" folder from my shared OneDrive folder so that Everyone can read and write to the shared folder (verify read and write access for "Everyone" in both sharing and security permissions)!  
-PXE boot your client and deploy Windows!  
-  
-  
-### Offline Media  
-  
-You may create an offline media set that you can copy to a USB flash drive, to do so  
-Copy the MDT folder from this repository to the root of your system drive!  
-Update your Media in Deployment (Microsoft Deployment Toolkit)!  
-Format a USB flash drive with the FAT32 file system and label the flash drive "DEPLOY" (without quotes), then set the partition as active!  
-Copy the contents of your Media Set (Default location C:\Deploy\MDT\Content) to the root of the USB flash drive labeled DEPLOY!  
-Copy the contents of the Shared folder to the root of the USB flash drive labeled "DEPLOY"!  
-  
-  
+<div align="center">
 
-## After OS deployment  
-  
-create a user account on the client PC that the OS was deployed to!  
-Apply updates and drivers via Windows Update (including Optional Driver updates)!  
-Use bundled OEM Support/Update apps to install OEM drivers and updates!  
-Use the following scripts in "C:\Scripts" to clean up the image after updates and driver installs - capture drivers to a network share or USB flash drive labeled DEPLOY (for reuse on same model) - create a provisioned package for push-button reset!  
-1CleanImage.cmd - Cleans up the Windows image after Windows Updates!  
-2CleanupDriverStore - Cleans up the Driver Store!  
-3OEMDriversExport - Captures the Drivers, creating a 7z archve and copies the drivers to a network share ("\\\\SERVER\Shared\DriverPacks") or to a USB flash drive labeled "DEPLOY"!  
-4ScanState - Creates a provisioned package for push-button reset!  
-  
-  
-  
-## For experts  
-  
-  
-### Please edit the following files inside the Control folder in your deployment share if/as necessary  
-  
-Bootstrap.ini - If your deployment server is not named SERVER, and/or if the user account is not Network User, and/or the password is not p@$$w0rd - edit "DeployRoot", "UserID", "UserPassword" and "UserDomain". You can use a local or domain user account as UserID. You can use your deployment server's network name and add ".local" (without quates) as the UserDomain!  
-CustomSettings.ini  
-Medias.xml - If you created your own folder structure for offline media instead of "C:\Deploy\MDT" - edit "Root" to correspond with the folder structure you created for offline media!  
-Settings.xml - If your deployment share is not located in the default location ("C:\DeploymentShare") and/or the network path to your deployment share is not "\\\\SERVER\DeploymentShare$" - edit "UNCPath" and "PhysicalPath" to correspond with your deployment share's network and local path. Also replace "C:\DeploymentShare" at "Boot.x86.ExtraDirectory" and "Boot.x64.ExtraDirectory" with the local path to your deployment share!  
-WIN10PROX64\Unattend.xml - Edit the locales and time zone to match your locales and time zone!  
-WIN11PROX64\Unattend.xml - Edit the locales and time zone to match your locales and time zone!  
-  
-  
-### Technical Details about my deployment share  
+# MDT Task Sequences & Custom Scripts
 
-    
-#### My Windows 10 and 11 Pro images  
-  
-I did not add any third-party software to my images!  
-I only added the optional component NETFX 3.5 and installed the en-GB optional language features!  
-I installed the latest updates!  
-I preinstalled Microsoft Office 365 Retail!  
-I did not modify the image in any other way!  
-You can download my Images from my shared OneDrive folder --> https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6 <--
-  
-  
-#### Custom scripts ran as part of the task sequence during OS deployment  
-  
-CopyOEM.wsf (in the Scripts folder in your deployment share) - Copies the contents of the "$OEM$" folder from the deployment share as part of the task sequence during OS deployment for more information see --> https://techcommunity.microsoft.com/t5/windows-blog-archive/copying-oem-files-and-folders-with-mdt-2012-update-1/ba-p/706642 <--  
-The following PowerShell scripts in the Custom folder (inside the Scripts folder of your deployment share)  
-LoadStorageDriver.ps1 - Loads the latest Intel VMD storage driver required for some 10th and 11th Generation Intel Platforms as part of the task sequence during OS deployment!  
-CleanFixedDrives.ps1 - Will wipe all internal drives on the target computer during as part of the task sequence during OS deployment!  
-SetTargetOSDrive.ps1 - Sets the first/only NVMe SSD, or the first/only SATA SSD if no NVMe SSD, or the first/only drive as the target OS drive as part of the task sequence during OS deployment!  
-CreateRecoveryPartition-BIOS.ps1 / CreateRecoveryPartition-UEFI.ps1 - Shrinks the Windows partition to 1GB in size and create the Recovery partition as part of the task sequence during OS deployment!  
-FormatDataDrive.ps1 - Formats any one additional internal drive as a Data drive as part of the task sequence during OS deployment!  
-VerifyWinRE.ps1 - Verifies that the WinPE Recovery environment was copied to the Recovery drive as part of the task sequence during OS deployment!  
-ApplyUpdates10x64.ps1 / ApplyUpdates11.ps1 - Expects .cab/.msu update packages contained in a folder named Updates located on a network share at "\\\\SERVER\Shared", or on the root of a USB flash drive labeled DEPLOY, then copies and applies the update packages as part of the task sequence during OS deployment! The folder structure is included in this repository, just copy the folder named Updates included in this repository to a network share located at "\\\\SERVER\Shared" or on the root of a USB flash drive labeled DEPLOY!  
-ExtractOEMAppsx64.ps1 - Expects .7z archives located in a folder named x64 on a network share at "\\\\SERVER\OEM" or in a folder named x64 within a folder named OEM on a USB flash drive labeled DEPLOY, then extracts the OEM apps to the deployed OS as part of the task sequence during OS deployment!  
-ExtractOEMDrivers.ps1 - Expects .7z archives located in a folder named DriverPacks on a network share at "\\\\SERVER\Shared" or on the root of a USB flash drive labeled DEPLOY, then extracts OEM drivers as part of the task sequence during OS deployment!  
-ApplyOEMDrivers.ps1 - Applies the extracted OEM drivers to the deployed OS as part of the task sequence during OS deployment!  
-CleanupScripts.ps1 - Cleans up MDT scripts copied to the OS drive after OS deployment as part of the task sequence during OS deployment!
-  
-  
-#### "$OEM$" folder  
-  
-The unattend.xml of the OS being deployed expects to find and run "SetupComplete.cmd" located in "C:\Windows\Setup\Scripts"!  
-The "$OEM$" folder contains everything including the "SetupComplete.cmd" file that will be copied to "C:\Windows\Setup\Scripts" during OS deployment!  
-The following PowerShell scripts in "DeploymentShare\\$OEM$\\$1\Scripts" may need to be modified!  
-OEMDriversExport.ps1 - This script expects 7-Zip to be installed and expects a folder named DriverPacks on a network share at "\\\\SERVER\Shared" or on the root of a USB flash drive labeled DEPLOY to copy exported drivers archived in the .7z format to!  
-ScanWindowsImage64.ps1 - Cleaning up the driver store in Windows 11 breaks the Microsoft-OneCore-DirectX-Database-FOD-Package. This script expects a folder named Servicing (that contains the Microsoft-OneCore-DirectX-Database-FOD-Package) on a network share at "\\\\SERVER\Shared" or on the root of a USB flash drive labeled DEPLOY, then look for the offline components! The necessary offline servicing components (Microsoft-OneCore-DirectX-Database-FOD-Package) is included in this repository inside the Servicing folder, just copy the Servicing folder included in this repository to the network share "\\\\SERVER\Shared" or on the root of a USB flash drive labeled DEPLOY!  
-ScanStatex64.ps1 - This script expects a folder named ScanState (that contains the ScanState tool) on a network share at "\\\\SERVER\Shared" or on the root of a USB flash drive labeled DEPLOY, then copies the appropriate ScanState tool to a Temp folder on the System Drive of the Deployed OS! The ScanState tool is included in this repository as a .7z archive, just extract to the network share "\\\\SERVER\Shared" or on the root of a USB flash drive labeled DEPLOY!  
-You may modify the contents of the "$OEM$" folder as you desire!  
-  
-  
-#### OEM Apps  
-  
-Copy the contents of the OEM folder (from my shared OneDrive folder) to a network share at "\\\\SERVER\OEM" or to a folder named OEM on a USB flash drive labeled DEPLOY!  
-OEM gets extracted to the deployed OS as part of the task sequence during OS deployment!  
-If you place OEM apps archives in a different network share, please edit DeploymentShare\Scripts\Custom\ExtractOEMAppsx64.ps1 accordingly!  
-I used Dell's extensibility points as base for all OEM apps and customizations!  
-I only included necessary OEM apps without additional bloatware!  
-  
-  
-#### Local Group Policies  
-  
-"DeploymentShare\\$OEM$\\$1\Recovery\OEM\LGPO" sets the following local group policies  
-Configure automatic updates - Enabled  
-Enabling Windows Update Power Management to automatically wake up the system to install scheduled updates - Enabled  
-Turn on recommended updates via Automatic Updates - Enabled  
-Always automatically restart at the scheduled time - Enabled  
-Configure auto-restart reminder notifications for updates - Enabled  
-Turn off auto-restart for updates during active hours - Enabled  
-Turn off hybrid sleep (on battery) - Disabled  
-Turn off hybrid sleep (plugged in) - Disabled  
-Turn off the hard disk (on battery) - Enabled  
-Turn off the hard disk (plugged in) - Enabled  
-Prevent AutoPlay from remembering user choices - Enabled  
-Turn off Microsoft Defender Antivirus - Disabled  
-Turn off routine remediation - Disabled  
-Allow antimalware service to remain running always - Enabled  
-Allow antimalware service to startup with normal priority - Enabled  
-Configure detection for potentially unwanted applications - Enabled  
-Configure the 'Block At First Sight Feature' - Enabled  
-Join Microsoft MAPS - Enabled  
-Configure extended cloud check - Enabled  
-Select cloud protection level - Disabled  
-You may set your own group policies on a computer with no group policies set, then use the LGPO tool to backup your group policies. After backing up your own group policies, delete the contents of the Backup folder in the LGPO folder, and copy your own backup into the same folder! For usage of the LGPO tool run "LGPO.exe /?" (without quotes in an elevated command prompt!  
-If you do not wish to enforce any group policies, just delete the LGPO folder and delete the following code from the pre.ps1 PowerShell script (located at "DeploymentShare\\$OEM$\\$1\Recovery\OEM")!  
-'& C:\Recovery\OEM\LGPO\LGPO.exe /g C:\Recovery\OEM\LGPO\Backup'  
-  
-  
-### Please feel free and contribute by assisting me in improving any/all scripts contained in this repository and by adding original resources to the OEM Apps and Customizations contained in this repository!  
-  
-Perhaps a PowerShell script can be included to run as part of the task sequence during OS deployment that sets the target edition of Windows according to the OEM license (e.g. Home Single Language)! To activate OEM Home Single Language edition "DeploymentShare\\$OEM$\\$1\Recovery\OEM\pre.ps1" should be modified not just to activate Pro OEM, and local group policies that get applied should be limited to Pro edition!  
-I am unable to find an easy solution to check and set the deployed OS to match the OEM license edition!  
-  
-pre.ps1  
-If the deployed Windows edition is set according to OEM license during OS deployment, "DeploymentShare\\$OEM$\\$1\Recovery\OEM\pre.ps1" should be edited to activate the non-pro edition by replacing the following  
-  
-$OPK = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKey  
-$OPKDesc = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKeyDescription  
-if (($OPKDesc -like "*Professional*") -and (-not ([string]::IsNullOrWhiteSpace($OPKDesc))))  
-{  
-  cscript C:\Windows\System32\slmgr.vbs /ipk $OPK  
-  cscript C:\Windows\System32\slmgr.vbs /ato  
-}  
-  
-with  
-  
-$OPK = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKey  
-if (-not ([string]::IsNullOrWhiteSpace($OPKDesc)))  
-{  
-  cscript C:\Windows\System32\slmgr.vbs /ipk $OPK  
-  cscript C:\Windows\System32\slmgr.vbs /ato  
-}  
-  
-Limiting the local group policies to Pro edition by replacing the following line  
-  
-& C:\Recovery\OEM\LGPO\LGPO.exe /g C:\Recovery\OEM\LGPO\Backup  
-  
-with  
-  
-$OPKDesc = (Get-WmiObject -query 'select * from SoftwareLicensingService').OA3xOriginalProductKeyDescription  
-if ($OPKDesc -like "*Professional*")  
-{  
-  & C:\Recovery\OEM\LGPO\LGPO.exe /g C:\Recovery\OEM\LGPO\Backup  
-}  
-  
+**Zero-touch deployment framework for Windows 10 & 11 Pro with dynamic OEM driver injection, Intel VMD storage support, offline update integration, and OEM customization.**
+
+[![MDT](https://img.shields.io/badge/MDT-6.3.8456.1000-0078D4)](https://www.microsoft.com/en-us/download/details.aspx?id=54259)
+[![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4)](https://www.microsoft.com/windows)
+[![ADK](https://img.shields.io/badge/ADK-Windows%2011-0078D4)](https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install)
+[![Release](https://img.shields.io/github/v/release/ArthurJDurand/MDT-TS-and-Scripts?include_prereleases&sort=semver)](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/releases)
+[![Last Commit](https://img.shields.io/github/last-commit/ArthurJDurand/MDT-TS-and-Scripts)](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/commits/main)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Sponsor](https://img.shields.io/badge/Sponsor-ArthurJDurand-ea4aaa?logo=github-sponsors&logoColor=white)](https://github.com/sponsors/ArthurJDurand)
+
+[Quick Start](#quick-start) · [Features](#features) · [Scripts Reference](#scripts-reference) · [Repository Structure](#repository-structure) · [Documentation](#documentation) · [Support](#support-this-project) · [Contributing](#contributing)
+
+</div>
+
+---
+
+> [!IMPORTANT]
+> **This repository is only half of the project.** The scripts, task sequences, and configuration files live here — but the **operating system images, OEM driver packs, OEM app archives, update packages, and supporting tools** are distributed via the [shared OneDrive folder](https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6). You **must** download and merge both to have a working deployment share. See [Quick Start](#quick-start).
+
+> [!NOTE]
+> **Windows 10 reached end of support on October 14, 2025.** The Windows 10 task sequences remain in this project for legacy hardware and existing deployments, but new deployments should target Windows 11 Pro.
+
+---
+
+## What This Is
+
+A production-oriented Microsoft Deployment Toolkit (MDT) deployment share that goes well beyond stock MDT. It deploys 64-bit Windows 10 Pro and 64-bit Windows 11 Pro (plus 32-bit Windows 10 Pro), extracts and injects OEM customizations and drivers, and installs third-party software — all from a single PXE boot.
+
+Built and maintained by [Arthur Durand](https://github.com/ArthurJDurand), this framework is designed for technicians who need a repeatable, vendor-agnostic imaging solution across Dell, HP, Lenovo, Acer, ASUS, MSI, and other OEM hardware.
+
+### Highlights
+
+- **Dynamic OEM driver extraction** — Model-specific driver packs are extracted from `.7z` archives and applied to the offline image via DISM
+- **Intel VMD storage support** — Automatically loads the correct VMD driver for 10th/11th Gen+ Intel platforms during WinPE when internal storage is not detected
+- **Smart target disk selection** — Prioritizes NVMe SSDs, then SATA SSDs, then HDDs
+- **Offline update injection** — Applies `.cab`/`.msu` packages to the offline image during deployment
+- **Custom WinRE deployment** — Configures recovery partition with conditional VMD driver injection
+- **OEM app extraction** — Extracts manufacturer-specific app archives to `C:\Recovery\OEM`
+- **LGPO application** — Applies local group policies from `$OEM$\$1\Recovery\OEM\LGPO`
+- **Offline media support** — Build a DEPLOY-labeled USB flash drive for deployments without a server
+
+### Who This Is For
+
+This project assumes **working knowledge** of the following:
+
+- Windows Server and Windows Desktop editions
+- Networking (DHCP, DNS, subnetting, SMB shares)
+- Windows deployment concepts (WinPE, DISM, unattend.xml, WIM)
+- Microsoft Deployment Toolkit and the Windows ADK
+
+If any of those are unfamiliar, start with Microsoft's own MDT documentation before attempting this project.
+
+---
+
+## Features
+
+| Feature | Description |
+|---|---|
+| **Three Task Sequences** | `WIN11PROX64`, `WIN10PROX64`, `WIN10PROX86` |
+| **Dynamic Driver Injection** | OEM, WLAN, and storage drivers applied based on system model and CPU generation |
+| **Intel VMD Support** | Loads VMD drivers in WinPE when internal storage is not detected |
+| **Disk Management** | Wipes fixed drives, selects optimal target disk, partitions BIOS/UEFI, creates recovery partitions |
+| **Update Integration** | Injects `.cab`/`.msu` updates into the offline image before first boot |
+| **OEM App Extraction** | Extracts manufacturer-specific app archives to `C:\Recovery\OEM` |
+| **OEM Driver Extraction** | Extracts model-specific driver archives to `C:\Recovery\OEM\Drivers` |
+| **WinRE Configuration** | Deploys and configures Windows Recovery Environment on the recovery partition |
+| **LGPO Application** | Applies local group policies from `$OEM$\$1\Recovery\OEM\LGPO` |
+| **OEM License Activation** | Activates the OEM digital license during first boot via `pre.ps1` |
+| **Post-Deployment Cleanup** | Removes MDT artifacts (`_SMSTaskSequence`, `MININT`, `LTIBootstrap.vbs`) |
+| **Offline Media** | Full support for DEPLOY-labeled USB flash drive deployments |
+| **Network Share Fallback** | All extraction scripts fall back to `\\SERVER\Shared` or a DEPLOY USB when network is unavailable |
+
+---
+
+## Deployment Flow
+
+```
+   ┌─────────────┐
+   │  PXE Boot   │
+   └──────┬──────┘
+          ▼
+   ┌─────────────────────────────────────┐
+   │  WinPE (LiteTouchPE_x64/x86)        │
+   │  • Gather rules (ZTIGather)         │
+   │  • Load VMD if storage missing      │
+   └──────┬──────────────────────────────┘
+          ▼
+   ┌─────────────────────────────────────┐
+   │  Validation Phase                    │
+   │  • Validate hardware                 │
+   │  • BIOS/UEFI check                   │
+   └──────┬──────────────────────────────┘
+          ▼
+   ┌─────────────────────────────────────┐
+   │  Preinstall Phase                    │
+   │  • Wipe fixed drives                 │
+   │  • Select optimal target disk        │
+   │  • Partition (BIOS MBR / UEFI GPT)   │
+   │  • Create recovery partition         │
+   │  • Format secondary data drive       │
+   └──────┬──────────────────────────────┘
+          ▼
+   ┌─────────────────────────────────────┐
+   │  Install Phase                       │
+   │  • Apply OS image                    │
+   │  • Inject offline updates            │
+   │  • Copy OEM files ($OEM$)            │
+   │  • Extract OEM apps + drivers        │
+   │  • Apply OEM + VMD drivers           │
+   └──────┬──────────────────────────────┘
+          ▼
+   ┌─────────────────────────────────────┐
+   │  Postinstall Phase                   │
+   │  • Configure WinRE                   │
+   │  • Cleanup scripts                   │
+   └──────┬──────────────────────────────┘
+          ▼
+   ┌─────────────────────────────────────┐
+   │  State Restore Phase                 │
+   │  • Install applications              │
+   │  • Apply LGPO policies (pre.ps1)     │
+   │  • Activate OEM license              │
+   │  • Final cleanup                     │
+   └─────────────────────────────────────┘
+```
+
+---
+
+## Quick Start
+
+> **Prerequisites:** Windows Server (with DHCP + WDS) **or** a Windows desktop PC (with AOMEI PXE Boot), Windows ADK for Windows 11, Windows PE Addon, Windows SDK, MDT, and a deployment share.
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/ArthurJDurand/MDT-TS-and-Scripts.git
+```
+
+### 2. Download the companion content
+
+Download the [shared OneDrive folder](https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6) and merge its contents with the cloned repository. **This step is mandatory** — the OS images, OEM packs, and update packages are not stored in Git.
+
+### 3. Prepare your environment
+
+- **Server path:** Rename host to `SERVER`, create a `Network User` account (password `p@$$w0rd`, member of `Administrators`), install the DHCP and WDS roles, and import the provided configs.
+- **Desktop path:** Rename host to `SERVER`, create the same `Network User` account, install AOMEI PXE Boot.
+
+### 4. Create and merge the deployment share
+
+Create a new deployment share in Deployment Workbench (default location `C:\DeploymentShare`), then merge the contents of this repository **and** the shared OneDrive folder into it.
+
+### 5. Configure `Control\Bootstrap.ini`
+
+Edit `DeployRoot`, `UserID`, `UserPassword`, and `UserDomain` to match your environment.
+
+> [!WARNING]
+> `Bootstrap.ini` stores credentials in **plaintext**. Use a least-privilege deployment account and restrict share permissions to the minimum required. Never commit real credentials to a public repository.
+
+### 6. Generate boot images and PXE boot
+
+Update your deployment share, import `LiteTouchPE_x64.wim` and `LiteTouchPE_x86.wim` into WDS (or select them in AOMEI PXE Boot), then PXE boot a client.
+
+**→ See [docs/SETUP.md](docs/SETUP.md) for the complete step-by-step guide.**
+
+---
+
+## Scripts Reference
+
+### Task Sequence Scripts (`Scripts\Custom\`)
+
+| Script | Purpose |
+|---|---|
+| `LoadWinPEDrivers.ps1` | Loads the latest Intel VMD storage driver in WinPE when internal storage is not detected. Writes a marker file so downstream scripts know VMD was required. |
+| `CleanFixedDrives.ps1` | Wipes all internal (non-USB) drives using `Clear-Disk -RemoveData -RemoveOEM`. |
+| `SetTargetOSDisk.ps1` | Selects the first NVMe SSD, or first SATA SSD, or first non-USB disk as the target OS disk. Sets `OSDDiskIndex`. |
+| `CreateRecoveryPartition-BIOS.ps1` | Shrinks the Windows partition and creates a BIOS recovery partition (ID 27, NTFS). |
+| `CreateRecoveryPartition-UEFI.ps1` | Shrinks the Windows partition and creates a UEFI recovery partition (GUID `de94bba4-06d1-4d40-a16a-bfd50179d6ac`, GPT attributes `0x8000000000000001`). |
+| `FormatDataDrive.ps1` | Formats any additional raw internal disk as a GPT Data drive with a 128 MB MSR partition. |
+| `ApplyUpdates10x64.ps1` | Injects Windows 10 x64 updates (`.cab`/`.msu`) into the offline image. |
+| `ApplyUpdates10x86.ps1` | Injects Windows 10 x86 updates into the offline image. |
+| `ApplyUpdates11.ps1` | Injects Windows 11 updates into the offline image. |
+| `ExtractOEMAppsx64.ps1` | Extracts manufacturer-specific app `.7z` archives to `C:\Recovery\OEM`. |
+| `ExtractOEMAppsx86.ps1` | x86 variant of the OEM app extraction. |
+| `ExtractOEMDrivers.ps1` | Extracts the model-specific driver `.7z` archive to `C:\Recovery\OEM\Drivers`. |
+| `ApplyOEMDrivers.ps1` | Applies extracted OEM, WLAN, and Intel VMD drivers to the offline Windows image via DISM. |
+| `WinRE.ps1` | Deploys and configures WinRE on the recovery partition, optionally injecting VMD drivers. |
+| `CleanupScripts.ps1` | Removes MDT artifacts (`_SMSTaskSequence`, `MININT`, `LTIBootstrap.vbs`) after deployment. |
+| `CopyOEM.wsf` | Copies `$OEM$\$1` and `$OEM$\$$` content from the deployment share to the target OS. |
+
+### `$OEM$` Scripts (`$OEM$\$1\Recovery\OEM\` and `$OEM$\$1\Scripts\`)
+
+| Script | Purpose |
+|---|---|
+| `pre.ps1` | Runs during `SetupComplete.cmd` to activate OEM license and apply LGPO policies. |
+| `OEMDriversExport.ps1` | Exports drivers from the deployed OS, archives them as `.7z`, and copies to `\\SERVER\Shared\DriverPacks` or a DEPLOY USB. |
+| `ScanWindowsImage64.ps1` | Cleans the Driver Store and restores the `Microsoft-OneCore-DirectX-Database-FOD-Package`. |
+| `ScanStatex64.ps1` | Creates a provisioned package for push-button reset using USMT `ScanState`. |
+
+**→ See [docs/SCRIPTS.md](docs/SCRIPTS.md) for detailed documentation of every script, including parameters, environment variables, and known limitations.**
+
+---
+
+## Repository Structure
+
+```
+MDT-TS-and-Scripts/
+├── Control/                       # Deployment share control files
+│   ├── Bootstrap.ini              # WinPE bootstrap (server, creds, domain)
+│   ├── CustomSettings.ini         # Rules for zero-touch deployment
+│   ├── Medias.xml                 # Offline media configuration
+│   └── Settings.xml               # Deployment share settings
+├── Scripts/
+│   └── Custom/                    # Task sequence PowerShell scripts
+│       ├── ApplyOEMDrivers.ps1
+│       ├── ApplyUpdates10x64.ps1
+│       ├── ApplyUpdates10x86.ps1
+│       ├── ApplyUpdates11.ps1
+│       ├── CleanFixedDrives.ps1
+│       ├── CleanupScripts.ps1
+│       ├── CreateRecoveryPartition-BIOS.ps1
+│       ├── CreateRecoveryPartition-UEFI.ps1
+│       ├── ExtractOEMAppsx64.ps1
+│       ├── ExtractOEMAppsx86.ps1
+│       ├── ExtractOEMDrivers.ps1
+│       ├── FormatDataDrive.ps1
+│       ├── LoadWinPEDrivers.ps1
+│       ├── SetTargetOSDisk.ps1
+│       └── WinRE.ps1
+├── $OEM$/                         # Copied to C:\Windows\Setup\Scripts
+│   ├── $1/                        # Copied to the root of the target OS
+│   │   ├── Recovery/OEM/          # pre.ps1, LGPO, OEM apps
+│   │   └── Scripts/               # OEMDriversExport, ScanState, etc.
+│   └── $$/                        # Copied to C:\Windows
+│       └── Setup/                 # SetupComplete.cmd
+├── Operating Systems/             # Win10 x64, Win10 x86, Win11 x64 WIMs
+├── Out-of-box Drivers/            # MDT-managed drivers
+├── Boot/                          # LiteTouchPE_x64.wim, LiteTouchPE_x86.wim
+├── Task Sequences/                # WIN10PROX64, WIN10PROX86, WIN11PROX64
+├── Prerequisites/                 # DHCP/WDS configs, MDT templates, AOMEI
+├── Updates/                       # .cab/.msu update packages (Win10 x64/x86, Win11)
+├── docs/                          # Detailed documentation
+│   ├── SETUP.md
+│   ├── SCRIPTS.md
+│   ├── OEM.md
+│   ├── OFFLINE-MEDIA.md
+│   └── TROUBLESHOOTING.md
+├── .github/
+│   ├── FUNDING.yml
+│   └── release.yml
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+├── LICENSE
+└── README.md
+```
+
+---
+
+## Documentation
+
+| Document | Description |
+|---|---|
+| [docs/SETUP.md](docs/SETUP.md) | Complete prerequisites, server/desktop setup, deployment share creation, and PXE deployment walkthrough |
+| [docs/SCRIPTS.md](docs/SCRIPTS.md) | Detailed documentation for every custom script, including parameters, environment variables, and known limitations |
+| [docs/OEM.md](docs/OEM.md) | OEM app and driver pack preparation, `.7z` naming conventions, and directory structure |
+| [docs/OFFLINE-MEDIA.md](docs/OFFLINE-MEDIA.md) | Creating a DEPLOY-labeled USB flash drive for serverless deployments |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common errors, log locations, and fixes |
+| [CHANGELOG.md](CHANGELOG.md) | Version history and notable changes |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute scripts, OEM packs, and improvements |
+
+---
+
+## Offline Media (USB Deployment)
+
+You can create an offline media set on a USB flash drive to deploy without a server:
+
+1. Copy the `MDT` folder from this repository to the root of your system drive (e.g., `C:\Deploy\MDT`).
+2. Update your Media in Deployment Workbench.
+3. Format a USB flash drive as **FAT32**, label it **`DEPLOY`**, and mark the partition active.
+4. Copy the contents of your Media Set (`C:\Deploy\MDT\Content`) to the root of the USB drive.
+5. Copy the contents of the `Shared` folder to the root of the USB drive.
+
+**→ See [docs/OFFLINE-MEDIA.md](docs/OFFLINE-MEDIA.md) for the full walkthrough.**
+
+---
+
+## Requirements
+
+### Deployment Server (Windows Server)
+
+- Windows Server with the **DHCP Server** and **WDS Server** roles installed
+- Static IP address on your subnet (outside the DHCP scope)
+- Hostname renamed to `SERVER`
+- Local account `Network User` (member of `Administrators`)
+- Password-protected sharing disabled
+
+### Deployment Workstation (Windows Desktop)
+
+- Any desktop edition of Windows 10 or Windows 11
+- **AOMEI PXE Boot** server
+- Hostname renamed to `SERVER`
+- Local account `Network User` (member of `Administrators`)
+- Password-protected sharing disabled
+
+### Software (Both)
+
+- **PowerShell 7**
+- **Windows ADK for Windows 11**
+- **Windows PE Addon for the ADK**
+- **Windows SDK for Windows 11**
+- **Microsoft Deployment Toolkit (MDT)**
+
+### Network Shares
+
+| Share | Purpose |
+|---|---|
+| `\\SERVER\DeploymentShare$` | MDT deployment share |
+| `\\SERVER\Shared` | Updates, DriverPacks, WindowsRE, Servicing, ScanState |
+| `\\SERVER\OEM` | OEM app archives (`.7z`) |
+
+---
+
+## Configuration Files to Edit
+
+Most users will only need to edit a few files:
+
+| File | What to edit |
+|---|---|
+| `Control\Bootstrap.ini` | `DeployRoot`, `UserID`, `UserPassword`, `UserDomain` |
+| `Control\CustomSettings.ini` | Rules for computer name, domain join, applications |
+| `Control\Medias.xml` | `Root` if you use a non-default offline media path |
+| `Control\Settings.xml` | `UNCPath`, `PhysicalPath`, `Boot.x86.ExtraDirectory`, `Boot.x64.ExtraDirectory` |
+| `Task Sequences\WIN10PROX64\Unattend.xml` | Locales and time zone |
+| `Task Sequences\WIN11PROX64\Unattend.xml` | Locales and time zone |
+| `$OEM$\$1\Recovery\OEM\pre.ps1` | OEM license activation, LGPO application |
+| `$OEM$\$1\Scripts\OEMDriversExport.ps1` | Driver export destination |
+| `$OEM$\$1\Scripts\ScanWindowsImage64.ps1` | Servicing path |
+| `$OEM$\$1\Scripts\ScanStatex64.ps1` | ScanState tool path |
+
+---
+
+## After OS Deployment
+
+Once the OS is deployed, use the scripts in `C:\Scripts` on the deployed client to finalize the image:
+
+| Script | Purpose |
+|---|---|
+| `1CleanImage.cmd` | Cleans up the Windows image after Windows Updates |
+| `2CleanupDriverStore` | Cleans up the Driver Store |
+| `3OEMDriversExport` | Captures drivers, archives as `.7z`, copies to `\\SERVER\Shared\DriverPacks` or a DEPLOY USB |
+| `4ScanState` | Creates a provisioned package for push-button reset |
+
+Apply updates and drivers via Windows Update (including Optional Driver updates), then use the bundled OEM Support/Update apps to install OEM drivers and updates.
+
+---
+
+## Known Limitations
+
+- **Windows 10 end of support:** Windows 10 reached end of support on October 14, 2025. The Win10 task sequences are provided for legacy hardware and existing deployments only.
+- **Plaintext credentials:** `Bootstrap.ini` stores credentials in cleartext. Use a least-privilege deployment account and restrict share permissions. Never commit real credentials to a public repository.
+- **MDT lifecycle:** Microsoft Deployment Toolkit is no longer under active development. This project targets MDT `6.3.8456.1000`.
+- **WinPE feature packs:** Some scripts assume specific WinPE feature packs. `winpe-wmi` is **not** included by default. Scripts use registry-based hardware detection to stay WinPE-safe.
+- **VMD driver versions:** Intel VMD driver versions are hardcoded for specific CPU generations in `LoadWinPEDrivers.ps1` and `ApplyOEMDrivers.ps1`. New generations require updates to the generation map.
+- **x86 task sequence:** The `WIN10PROX86` task sequence is provided for legacy 32-bit hardware. VMD and some driver packs are x64-only and will not apply.
+- **OEM packs are model-specific:** `ExtractOEMDrivers.ps1` relies on exact or partial model string matching. Unknown models will fall through without a driver pack.
+- **No built-in application installation:** `Applications.xml` and `Packages.xml` are empty by default. Add your own applications via MDT or the `$OEM$` folder.
+
+**→ See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for common errors and fixes.**
+
+---
+
+## Contributing
+
+Contributions are welcome and encouraged! This project improves through community feedback.
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Script Standards
+
+All PowerShell scripts in `Scripts/Custom/` must:
+
+- Be **WinPE-safe** — use the registry and file system only; avoid WMI/CIM in WinPE unless `winpe-wmi` is added to FeaturePacks
+- Use `Get-Volume ... | Select-Object -First 1` when retrieving volume letters
+- Include retry logic for DISM and robocopy operations
+- Be silent (no `Write-Host` unless absolutely necessary for diagnostics)
+- Preserve exit codes — do not mask errors
+
+**→ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guidelines.**
+
+### Ideas for Contributions
+
+- **OEM license edition detection** — A script that sets the deployed Windows edition to match the OEM license (e.g., Home Single Language) during deployment, and limits LGPO application to Pro edition
+- **Additional OEM packs** — Driver and app packs for OEMs not yet covered
+- **New hardware support** — VMD/storage driver updates for newer Intel and AMD platforms
+- **Script improvements** — Any bug fixes or enhancements to existing scripts
+
+---
+
+## Support This Project
+
+This project is maintained in my spare time and provided free of charge. If it saved you or your organization time, please consider [sponsoring ongoing maintenance](https://github.com/sponsors/ArthurJDurand). Sponsorship helps fund issue triage, script improvements, OEM driver pack updates, and documentation.
+
+[![Sponsor](https://img.shields.io/badge/Sponsor-ArthurJDurand-ea4aaa?logo=github-sponsors&logoColor=white)](https://github.com/sponsors/ArthurJDurand)
+
+---
+
+## License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Author
+
+**Arthur Durand**
+
+- GitHub: [@ArthurJDurand](https://github.com/ArthurJDurand)
+- Repository: [MDT-TS-and-Scripts](https://github.com/ArthurJDurand/MDT-TS-and-Scripts)
+- Sponsor: [github.com/sponsors/ArthurJDurand](https://github.com/sponsors/ArthurJDurand)
+
+---
+
+## Acknowledgments
+
+- The MDT community for ongoing documentation and scripts
+- Microsoft for the Deployment Toolkit and ADK
+- Michael Niehaus for the original `CopyOEM.wsf` script
+- All contributors who have shared OEM packs, scripts, and feedback
+
+---
+
+<div align="center">
+
+**If this project helped you deploy Windows faster, consider giving it a ⭐**
+
+</div>

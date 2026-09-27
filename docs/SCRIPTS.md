@@ -1,14 +1,15 @@
 # Scripts Reference
 
-Complete reference for every script shipped in this repository. Each entry documents the script's purpose, when it runs, what it depends on, and known limitations.
+Complete reference for every script that ships in this repository. Each entry describes the script's purpose, when it runs, what it depends on, and any known limitations.
 
-For the task sequence phases referenced here, see the [Deployment Flow](../README.md#deployment-flow) in the README.
+For the deployment phases referenced throughout, see the [Deployment Flow](../README.md#deployment-flow) in the README. For the OEM Apps framework, see [docs/APPS-FRAMEWORK.md](APPS-FRAMEWORK.md).
 
 ---
 
 ## Table of Contents
 
 - [Execution Contexts](#execution-contexts)
+- [Repository Layout](#repository-layout)
 - [Task Sequence Scripts](#task-sequence-scripts)
   - [LoadWinPEDrivers.ps1](#loadwinpedriversps1)
   - [CleanFixedDrives.ps1](#cleanfixeddrivesps1)
@@ -19,56 +20,79 @@ For the task sequence phases referenced here, see the [Deployment Flow](../READM
   - [ApplyUpdates10x64.ps1](#applyupdates10x64ps1)
   - [ApplyUpdates10x86.ps1](#applyupdates10x86ps1)
   - [ApplyUpdates11.ps1](#applyupdates11ps1)
-  - [ExtractOEMAppsx64.ps1](#extractoemappsx64ps1)
-  - [ExtractOEMAppsx86.ps1](#extractoemappsx86ps1)
+  - [ExtractOEMAppsx64.ps1 / ExtractOEMAppsx86.ps1](#extractoemappsx64ps1--extractoemappsx86ps1)
   - [ExtractOEMDrivers.ps1](#extractoemdriversps1)
   - [ApplyOEMDrivers.ps1](#applyoemdriversps1)
   - [WinRE.ps1](#winreps1)
   - [CleanupScripts.ps1](#cleanupscriptsps1)
   - [CopyOEM.wsf](#copyoemwsf)
-- [$OEM$ Orchestration Scripts](#oem-orchestration-scripts)
+- [$OEM$ Setup and Orchestration](#oem-setup-and-orchestration)
   - [SetupComplete.cmd](#setupcompletecmd)
-- [$OEM$ Configuration Scripts](#oem-configuration-scripts)
+- [$OEM$ Configuration](#oem-configuration)
   - [pre.ps1](#preps1)
-  - [Customizations.ps1](#customizationsps1)
-  - [Apps\pbr.ps1](#appspbrps1)
+- [$OEM$ Framework](#oem-framework)
 - [$OEM$ Activation Scripts](#oem-activation-scripts)
   - [HWID_Activation.cmd](#hwid_activationcmd)
-  - [Ohook_Activation.cmd](#ohook_activationcmd)
-- [$OEM$ Payload Updaters](#oem-payload-updaters)
-  - [Apps.ps1](#appsps1)
-  - [Drivers.ps1](#driversps1)
-  - [LGPO.ps1](#lgpops1)
+- [$OEM$ Layout and Registry Files](#oem-layout-and-registry-files)
 - [$OEM$ Application Configurators](#oem-application-configurators)
   - [RustDesk.ps1](#rustdeskps1)
   - [DymaxIOLicense.ps1](#dymaxiolicenseps1)
+  - [DiskeeperLicense.ps1](#diskeeperlicenseps1)
+  - [AnyDesk.cmd](#anydeskcmd)
   - [Update.xml](#updatexml)
+- [PBR Extensibility Chain](#pbr-extensibility-chain)
 - [$OEM$ Post-Deployment Scripts](#oem-post-deployment-scripts)
-  - [OEMDriversExport.ps1](#oemdriversexportps1)
-  - [ScanWindowsImage64.ps1](#scanwindowsimage64ps1)
-  - [ScanStatex64.ps1](#scanstatex64ps1)
-- [Common Patterns](#common-patterns)
 - [Log File Locations](#log-file-locations)
+- [Script Standards for Contributors](#script-standards-for-contributors)
 
 ---
 
 ## Execution Contexts
 
-Scripts run in one of three contexts. The rules differ per context.
+Scripts run in one of four contexts. The rules differ per context.
 
-| Context | Scripts | PowerShell | WMI/CIM | Registry | Notes |
-|---|---|---|---|---|---|
-| **WinPE** | `Scripts\Custom\` | 5.1 | Only via `winpe-storagewmi` for `Get-PhysicalDisk`; other WMI/CIM unavailable | Full | Runs during Preinstall, Install, Postinstall phases |
-| **Full OS (OOBE)** | `$OEM$\$1\...` | 5.1 | Available | Full | Runs via `SetupComplete.cmd` at end of OOBE |
-| **Full OS (interactive)** | `$OEM$\$1\Scripts\` | 5.1 or 7 | Available | Full | User-invoked post-deployment on the target machine |
+| Context | Location | PowerShell | WMI/CIM | Registry writes |
+|---|---|---|---|---|
+| **WinPE** | `DeploymentShare\Scripts\Custom\` | 5.1 | Only `Get-PhysicalDisk` via `winpe-storagewmi`; other WMI/CIM unavailable | Via `reg.exe` only |
+| **Full OS (OOBE)** | `DeploymentShare\x64\$OEM$\$1\...` and `x86\...` | 5.1 | Available | Via `reg.exe` only |
+| **Full OS (interactive)** | `DeploymentShare\x64\$OEM$\$1\Scripts\` | 5.1 or 7 | Available | Via `reg.exe` only |
+| **PBR / WinRE** | `DeploymentShare\x64\$OEM$\$1\Recovery\OEM\` | CMD only | Not used | Via `reg.exe` only |
 
-Any script that reads network shares has a fallback to a DEPLOY-labeled USB flash drive. This behaviour is consistent across all scripts.
+Scripts in `Scripts\Custom\` are WinPE-safe by design. Scripts in `$OEM$` run in the full OS and may use WMI/CIM, but all registry **writes** must go through `reg.exe` — never the PowerShell Registry Provider. See [Script Standards](#script-standards-for-contributors).
+
+Any script that reads a network share has a fallback to a `DEPLOY`-labeled USB flash drive. This is consistent across the project.
+
+---
+
+## Repository Layout
+
+The repository ships two parallel trees, one per architecture:
+
+```
+DeploymentShare\
+├── Boot\Addon\x64\                        Bundled 7-Zip for the boot image
+├── Control\                               Deployment share configuration
+├── Scripts\
+│   ├── CopyOEM.wsf
+│   └── Custom\                            Task sequence scripts
+├── x64\
+│   └── $OEM$\
+│       ├── $$\
+│       │   └── Setup\Scripts\SetupComplete.cmd
+│       └── $1\
+│           ├── Recovery\OEM\              OEM configuration, activation, apps, framework
+│           └── Scripts\                   Post-deployment scripts
+└── x86\
+    └── $OEM$\                             Parallel structure, no framework
+```
+
+The x86 tree does not ship the Apps framework. It uses monolith scripts that are not part of this repository. See [Known Limitations](#known-limitations) at the end of this document.
 
 ---
 
 ## Task Sequence Scripts
 
-Located in `Scripts\Custom\` in the deployment share. All are **WinPE-safe** unless noted. All run inside the task sequence and communicate status via exit codes.
+Located in `DeploymentShare\Scripts\Custom\`. All are WinPE-safe. All run inside the task sequence and communicate status via exit codes.
 
 ---
 
@@ -95,15 +119,15 @@ Located in `Scripts\Custom\` in the deployment share. All are **WinPE-safe** unl
 
 **External dependencies:**
 
-- 7-Zip **not required** (drivers are pre-extracted)
+- 7-Zip is **not required** — drivers are pre-extracted
 - Share: `\\SERVER\Shared\Drivers\WinPE\Storage\Intel\x64\` or local `Drivers\WinPE\Storage\Intel\x64\`
 
 **Environment variables:**
 
-- `OSDTargetSystemDrive` — read if present
-- `%TEMP%` — used for driver staging and marker file
+- Reads `OSDTargetSystemDrive` if present
+- Uses `%TEMP%` for driver staging and marker file
 
-**Exit codes:** Returns normally. Does not `exit` — task sequence captures status from the script's completion.
+**Exit codes:** Returns normally. Does not `exit` — the task sequence captures status from the script's completion.
 
 **Known limitations:**
 
@@ -129,9 +153,7 @@ Get-Disk | Where-Object { $_.BusType -ne 'USB' } |
 
 **External dependencies:** None beyond the Storage module (in WinPE via `winpe-storagewmi`).
 
-**Environment variables:** None.
-
-**Exit codes:** Returns normally. Failures are non-fatal (task sequence step is configured with `continueOnError="true"`).
+**Exit codes:** Returns normally. Failures are non-fatal — the task sequence step is configured with `continueOnError="true"`.
 
 **Known limitations:**
 
@@ -162,15 +184,15 @@ Get-Disk | Where-Object { $_.BusType -ne 'USB' } |
 
 **Environment variables:**
 
-- Sets `OSDDiskIndex` via `Microsoft.SMS.TSEnvironment` COM object.
-- Reads `OSDDiskIndex` in subsequent steps (`Format and Partition Disk`).
+- Sets `OSDDiskIndex` via the `Microsoft.SMS.TSEnvironment` COM object.
+- The `Format and Partition Disk` step reads `OSDDiskIndex`.
 
 **Exit codes:** Returns normally.
 
 **Known limitations:**
 
-- Sorts by **ascending** size — picks the **smallest** qualifying SSD. If you prefer the largest, change `Sort-Object -Property Size` to `Sort-Object -Property Size -Descending`.
-- Does not prefer PCIe NVMe over M.2 NVMe — both report as `BusType = NVMe`.
+- Sorts by **ascending** size — picks the **smallest** qualifying SSD. To prefer the largest, change the sort to `-Descending`.
+- Does not distinguish PCIe NVMe from M.2 NVMe — both report `BusType = NVMe`.
 - If two identical disks exist, selection is by `DeviceID` after the size sort.
 
 ---
@@ -192,9 +214,7 @@ Get-Disk | Where-Object { $_.BusType -ne 'USB' } |
 
 **External dependencies:** `diskpart`.
 
-**Environment variables:** None — discovers disks via `Get-Disk`/`Get-Partition`.
-
-**Exit codes:** Returns normally. `diskpart` exit code is not explicitly checked.
+**Exit codes:** Returns normally. `diskpart`'s exit code is not explicitly checked.
 
 **Known limitations:**
 
@@ -215,18 +235,16 @@ Get-Disk | Where-Object { $_.BusType -ne 'USB' } |
 Same steps as the BIOS variant, but uses:
 
 - `set id=de94bba4-06d1-4d40-a16a-bfd50179d6ac` (Windows Recovery Environment GUID).
-- `gpt attributes=0x8000000000000001` (marks partition as required + hides it from automatic mounting).
+- `gpt attributes=0x8000000000000001` (marks the partition as required + hides it from automatic mounting).
 
 **External dependencies:** `diskpart`.
-
-**Environment variables:** None.
 
 **Exit codes:** Returns normally.
 
 **Known limitations:**
 
 - Requires at least 1000 MB of free space on the Windows partition.
-- GPT attributes `0x8000000000000001` prevent the recovery partition from getting a drive letter automatically. If you need to access it, use `diskpart` to remove the attribute first.
+- GPT attributes `0x8000000000000001` prevent the recovery partition from getting a drive letter automatically. To access it, use `diskpart` to remove the attribute first.
 
 ---
 
@@ -247,8 +265,6 @@ Same steps as the BIOS variant, but uses:
 
 **External dependencies:** Storage module.
 
-**Environment variables:** None.
-
 **Exit codes:** Returns normally.
 
 **Known limitations:**
@@ -263,7 +279,7 @@ Same steps as the BIOS variant, but uses:
 
 **Purpose:** Injects Windows 10 x64 updates (`.cab` / `.msu`) into the offline image.
 
-**When it runs:** Install phase, immediately after `Install Operating System` step.
+**When it runs:** Install phase, immediately after the `Install Operating System` step.
 
 **What it does:**
 
@@ -283,23 +299,19 @@ Same steps as the BIOS variant, but uses:
 - `robocopy`
 - Network share or DEPLOY USB
 
-**Environment variables:** None.
-
-**Exit codes:** Does **not** check `DISM` exit codes. Script continues even if some packages fail to apply. Check `X:\MININT\SMSOSD\OSDLOGS\` for DISM output.
+**Exit codes:** Does **not** check `DISM` exit codes. The script continues even if some packages fail to apply. Check `X:\MININT\SMSOSD\OSDLOGS\` for DISM output.
 
 **Known limitations:**
 
-- All-or-nothing per-package. If DISM fails on one package, it may or may not apply the rest.
+- All-or-nothing per package. If DISM fails on one package, it may or may not apply the rest.
 - `.msu` files larger than the free space on the Windows partition will fail.
-- No verification that the injected packages are actually newer than what's already in the WIM.
+- No verification that injected packages are actually newer than what's in the WIM.
 
 ---
 
 ### ApplyUpdates10x86.ps1
 
-**Purpose:** x86 variant of `ApplyUpdates10x64.ps1`.
-
-Same behaviour, but:
+x86 variant of `ApplyUpdates10x64.ps1`. Same behaviour, but:
 
 - Source path: `\\SERVER\Shared\Updates\Win10\x86`
 - Deploy path on USB: `Updates\Win10\x86`
@@ -308,18 +320,16 @@ Same behaviour, but:
 
 ### ApplyUpdates11.ps1
 
-**Purpose:** Windows 11 variant of `ApplyUpdates10x64.ps1`.
-
-Same behaviour, but:
+Windows 11 variant of `ApplyUpdates10x64.ps1`. Same behaviour, but:
 
 - Source path: `\\SERVER\Shared\Updates\Win11`
 - Deploy path on USB: `Updates\Win11`
 
 ---
 
-### ExtractOEMAppsx64.ps1
+### ExtractOEMAppsx64.ps1 / ExtractOEMAppsx86.ps1
 
-**Purpose:** Extracts manufacturer-specific app archives to `C:\Recovery\OEM`.
+**Purpose:** Extracts the manufacturer-specific OEM app archive to `C:\Recovery\OEM`.
 
 **When it runs:** Install phase, after `CopyOEM` and before `ApplyOEMDrivers`.
 
@@ -327,9 +337,9 @@ Same behaviour, but:
 
 1. Locates the Windows volume.
 2. Resolves the source:
-   - Primary: `\\SERVER\OEM\x64`
-   - Fallback: DEPLOY USB at `OEM\x64`
-3. Detects the manufacturer via `Get-Manufacturer` (uses WMI/CIM — safe because this runs in the full OS during OOBE, not WinPE).
+   - Primary: `\\SERVER\Shared\OEM\x64` (or `x86`)
+   - Fallback: DEPLOY USB at `OEM\x64` (or `x86`)
+3. Detects the manufacturer via `Get-Manufacturer` (uses WMI/CIM — safe because this runs in the full OS during OOBE).
 4. Maps the manufacturer to a `.7z` archive:
    - `Acer`, `ASUS`, `Dell`, `Dynabook`, `Gigabyte`, `HP` / `Hewlett Packard` / `Hewlett-Packard`, `Huawei`, `Lenovo`, `Microsoft`, `Micro-Star` / `MicroStar` / `MSI`, `Proline`
 5. Extracts the archive with 7-Zip to `C:\Recovery\OEM\`.
@@ -339,26 +349,13 @@ Same behaviour, but:
 - 7-Zip at `X:\Program Files\7-Zip\7z.exe`
 - Network share or DEPLOY USB
 
-**Environment variables:** None.
-
 **Exit codes:** Returns normally. Retries 7-Zip extraction in a `do/while` loop until exit code is 0. **Infinite loop risk** if the archive is corrupt and 7-Zip keeps returning non-zero.
 
 **Known limitations:**
 
 - Hardcoded manufacturer list. New vendors require a script update.
 - On systems with a manufacturer string that does not match any known vendor, the script exits silently — no fallback extraction.
-- Runs `Get-CimInstance` — this is safe because `ExtractOEMAppsx64.ps1` runs in the full OS (Install phase, after OS apply). If you move this script to a WinPE phase, it will fail.
-
----
-
-### ExtractOEMAppsx86.ps1
-
-**Purpose:** x86 variant of `ExtractOEMAppsx64.ps1`.
-
-Same behaviour, but:
-
-- Source path: `\\SERVER\OEM\x86`
-- Deploy path on USB: `OEM\x86`
+- Uses `Get-CimInstance` — safe because it runs in the full OS. If you move this script to a WinPE phase, it will fail.
 
 ---
 
@@ -366,7 +363,7 @@ Same behaviour, but:
 
 **Purpose:** Extracts the model-specific driver archive to `C:\Recovery\OEM\Drivers`.
 
-**When it runs:** Install phase, after `ExtractOEMAppsx64.ps1`.
+**When it runs:** Install phase, after `ExtractOEMApps`.
 
 **What it does:**
 
@@ -374,41 +371,24 @@ Same behaviour, but:
 2. Resolves the source:
    - Primary: `\\SERVER\Shared\DriverPacks`
    - Fallback: DEPLOY USB at `DriverPacks`
-3. Reads CPU name from the registry (WinPE-safe) — this script **is** WinPE-safe despite running in Install phase.
-4. Detects:
-   - CPU vendor (Intel / AMD / Unknown).
-   - CPU generation for Intel (via `Get-IntelProcessorGeneration`).
-   - Manufacturer and model via registry (`HKLM:\HARDWARE\DESCRIPTION\System\BIOS`).
-5. Builds a priority list of pattern matches:
-   - `*<Model>*<Gen>th Gen Intel*`
-   - `*<Model>*<Gen>th Gen*`
-   - `*<Model>*Gen <Gen>*`
-   - `*<Model>*`
-   - HP variants: `*<HP Simplified Model>*<Gen>th Gen Intel*`, etc.
-   - Lenovo base model matches.
-   - Truncated model matches (with suffix removal).
-6. Sorts candidate archives by name length (descending) then size (descending) and picks the first match.
+3. Reads CPU name from the registry (WinPE-safe).
+4. Detects CPU vendor and generation, plus manufacturer and model via registry (`HKLM:\HARDWARE\DESCRIPTION\System\BIOS`).
+5. Builds a priority list of pattern matches (exact model, model + generation, HP/Lenovo simplifications, truncated model).
+6. Sorts candidate archives by name length (descending) then size (descending), picks the first match.
 7. Extracts to `C:\Recovery\OEM\Drivers\` with 7-Zip (retries up to 3 times).
-8. Resolves the driver pack path based on the target OS:
-   - Defaults to `Win11`
-   - Should be extended to detect `Win10` from the offline registry for Win10 deployments
 
 **External dependencies:**
 
 - 7-Zip at `X:\Program Files\7-Zip\7z.exe` or `C:\Program Files\7-Zip\7z.exe`
 - Network share or DEPLOY USB
 
-**Environment variables:**
-
-- Reads `OSDTargetSystemDrive` if present
-
 **Exit codes:** Returns normally.
 
 **Known limitations:**
 
-- `Get-OSFamily` currently hardcodes `Win11`. **This is a latent bug for Win10 deployments** — the Win10 task sequence will look in the Win11 driver pack folder. Fix: read the target OS from the offline registry's `CurrentBuildNumber`.
-- Model matching relies on exact or partial string matches. Unknown models (custom builds, whitebox) fall through without a driver pack.
-- The archive selection is heuristic — if a similarly named archive exists for a different model, it may be picked.
+- `Get-OSFamily` currently hardcodes `Win11`. Latent bug for Win10 deployments — the Win10 task sequence will look in the Win11 driver pack folder. Fix: read the target OS from the offline registry's `CurrentBuildNumber`.
+- Model matching relies on exact or partial string matches. Unknown models fall through without a driver pack.
+- Archive selection is heuristic — if a similarly named archive exists for a different model, it may be picked.
 
 ---
 
@@ -422,28 +402,24 @@ Same behaviour, but:
 
 1. Locates the Windows image path (via `OSDTargetSystemDrive` or by scanning).
 2. If `C:\Recovery\OEM\Drivers` exists:
-   - Reads CPU name from the registry (WinPE-safe).
+   - Reads CPU name from the registry.
    - Calls `Get-ProcessorArchitecture` to classify the CPU.
    - Calls `Get-Model` and `Get-Manufacturer` (registry-based).
-   - Calls `Find-BestDriverFolder` to locate the model-specific driver folder inside `C:\Recovery\OEM\Drivers`.
+   - Calls `Find-BestDriverFolder` to locate the model-specific driver folder.
    - Runs `DISM.exe /Add-Driver /Recurse` on the found folder with up to 3 retry attempts.
    - Applies WLAN drivers from `C:\Recovery\OEM\Drivers\WLAN` (if present).
-   - If the CPU is Intel with a supported generation, applies Intel VMD drivers from `C:\Recovery\OEM\Drivers\Storage\Intel\<version>`.
+   - Applies Intel VMD drivers from `C:\Recovery\OEM\Drivers\Storage\Intel\<version>` if the CPU is Intel with a supported generation.
 
 **External dependencies:**
 
 - `DISM` (in WinPE)
 - Registry access
 
-**Environment variables:**
-
-- Reads `OSDTargetSystemDrive` if present
-
 **Exit codes:** Returns normally. Logs failures but does not fail the task sequence step.
 
 **Known limitations:**
 
-- Silent — check `X:\MININT\SMSOSD\OSDLOGS\` or the DISM log at `C:\Windows\Logs\DISM\dism.log` for driver injection results.
+- Silent — check the DISM log at `C:\Windows\Logs\DISM\dism.log` for driver injection results.
 - Applies all `.inf` files in a folder recursively. If the OEM pack has incompatible drivers for other models, they may be applied and cause device errors.
 - Intel VMD driver versions are hardcoded. New generations require a code update.
 
@@ -480,14 +456,12 @@ Same behaviour, but:
 - `reg`
 - WinRE source WIM
 
-**Environment variables:** None documented.
-
 **Exit codes:** Uses `exit 1` on unrecoverable errors (missing Windows volume, missing WinRE image, hash mismatch). Otherwise returns normally.
 
 **Known limitations:**
 
-- **VMD marker persistence:** If `LoadWinPEDrivers.ps1` wrote the marker to `%TEMP%` in WinPE, `WinRE.ps1` (running in the full OS during Postinstall) will not find it. This is a known limitation — VMD driver injection into WinRE may not occur. Workaround: modify `LoadWinPEDrivers.ps1` to write the marker to `<Windows>\Temp\VMD_Loaded.txt`.
-- Uses `Get-Volume -FileSystemLabel System` / `Recovery` without `Select-Object -First 1`. On systems with multiple partitions that share a label, this can return an array.
+- **VMD marker persistence:** If `LoadWinPEDrivers.ps1` wrote the marker to `%TEMP%` in WinPE, `WinRE.ps1` (running in the full OS during Postinstall) will not find it. VMD driver injection into WinRE may therefore not occur.
+- Uses `Get-Volume -FileSystemLabel System` / `Recovery` without `Select-Object -First 1`. On systems with multiple partitions sharing a label, this can return an array.
 - Relies on partition labels. If a user renames a partition, the script fails silently.
 - Deletes `<Windows>\Recovery\WindowsRE` and `<Windows>\Recovery\ReAgentOld.xml` after configuring the recovery partition.
 
@@ -499,17 +473,13 @@ Same behaviour, but:
 
 **When it runs:** Postinstall phase, after `Add Windows Recovery (WinRE)`.
 
-**What it does:**
-
-Deletes the following from the Windows drive:
+**What it does:** Deletes the following from the Windows drive:
 
 - `_SMSTaskSequence`
 - `MININT`
 - `LTIBootstrap.vbs`
 
 **External dependencies:** None.
-
-**Environment variables:** None.
 
 **Exit codes:** Returns normally.
 
@@ -526,9 +496,7 @@ Deletes the following from the Windows drive:
 
 **When it runs:** Install phase, after `Apply Updates` and before `Extract OEM Apps`.
 
-**What it does:**
-
-Searches for the `$OEM$` folder in this order:
+**What it does:** Searches for the `$OEM$` folder in this order:
 
 1. `<DeployRoot>\Control\<TaskSequenceID>\$OEM$`
 2. `<SourcePath>\$OEM$`
@@ -537,30 +505,23 @@ Searches for the `$OEM$` folder in this order:
 
 Then:
 
-- Copies `<sOEM>\$1\*` to `<OSDrive>\` (the root of the Windows volume).
+- Copies `<sOEM>\$1\*` to the root of the Windows volume.
 - Copies `<sOEM>\$$\*` to `<OSDrive>\Windows\`.
 
 **External dependencies:** MDT's `ZTIUtility.vbs` and `ZTIDiskUtility.vbs`.
-
-**Environment variables:**
-
-- `DeployRoot`
-- `TaskSequenceID`
-- `SourcePath`
-- `Architecture`
 
 **Exit codes:** Returns normally.
 
 **Known limitations:**
 
-- Based on Michael Niehaus's original `CopyOEM.wsf` (from MDT 2012 Update 1). Not modified from the original.
+- Based on Michael Niehaus's original `CopyOEM.wsf` from MDT 2012 Update 1. Not modified from the original.
 - If no `$OEM$` folder exists, exits silently.
 
 ---
 
-## $OEM$ Orchestration Scripts
+## $OEM$ Setup and Orchestration
 
-Located under `$OEM$\$$\Setup\` — this path is copied to `C:\Windows\Setup\` on the target, where Windows automatically runs `SetupComplete.cmd` at the end of OOBE.
+Located under `DeploymentShare\<arch>\$OEM$\$$\Setup\Scripts\`. This path is copied to `C:\Windows\Setup\Scripts\` on the target, where Windows automatically runs `SetupComplete.cmd` at the end of OOBE.
 
 ---
 
@@ -579,50 +540,41 @@ Located under `$OEM$\$$\Setup\` — this path is copied to `C:\Windows\Setup\` o
    - `C:\Recovery\OEM\pre.ps1`
    - `C:\Recovery\OEM\Customizations.ps1`
    - `C:\Recovery\OEM\Apps\pbr.ps1`
-5. After all three, cleans up MDT artifacts (`_SMSTaskSequence`, `MININT`, `LiteTouch.lnk`, `LTIBootstrap.vbs`).
+5. Cleans up MDT artifacts (`_SMSTaskSequence`, `MININT`, `LiteTouch.lnk`, `LTIBootstrap.vbs`).
 6. Sets hidden attributes on the Default user profile folders.
 7. Logs completion.
 
-Each child script is run via `powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass`, with stdout/stderr redirected to the log file.
+Each child script runs via `powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass`, with stdout and stderr redirected to the log file.
 
 **External dependencies:** PowerShell 5.1 (present in Windows).
 
-**Environment variables:**
-
-- `%ProgramData%`
-- `%SystemDrive%`
-- `%COMPUTERNAME%`
-
-**Exit codes:**
-
-- Always exits `0` — the deployment itself has completed successfully even if the OEM scripts fail.
-- Individual script exit codes are captured via `ERRORLEVEL` and logged.
+**Exit codes:** Always exits `0`. Individual child script exit codes are captured via `ERRORLEVEL` and logged.
 
 **Known limitations:**
 
-- If `pre.ps1` hangs (e.g. waiting on user input), `SetupComplete.cmd` will wait indefinitely. The `-NonInteractive` flag on the PowerShell invocation mitigates this, but not completely.
-- The `Set-RegistryValue` calls inside `pre.ps1` can fail silently if the Default user hive is not mounted. The script mounts it explicitly via `reg LOAD`.
+- If `pre.ps1` hangs, `SetupComplete.cmd` waits indefinitely. The `-NonInteractive` flag mitigates this but does not eliminate it.
+- The `pre.ps1` registry writes to the Default user hive are idempotent with the framework's own hardening.
+
+**Note:** An identical copy exists at `$1\Recovery\OEM\SetupComplete.cmd`. It is restored by `AfterImage.cmd` during PBR.
 
 ---
 
-## $OEM$ Configuration Scripts
+## $OEM$ Configuration
 
-Located under `$OEM$\$1\Recovery\OEM\`.
+Located under `DeploymentShare\<arch>\$OEM$\$1\Recovery\OEM\`.
 
 ---
 
 ### pre.ps1
 
-**Version:** 2.2.0
-
-**Purpose:** Master OEM configuration script. Installs drivers, applies LGPO, activates Windows and Office, installs third-party applications, and configures system settings.
+**Purpose:** OEM configuration script. Installs drivers, applies LGPO, activates Windows and Office, installs third-party applications, and configures system settings.
 
 **When it runs:** OOBE, via `SetupComplete.cmd`.
 
 **What it does, in order:**
 
 1. Starts a transcript log at `C:\ProgramData\OEM\Logs\pre_<timestamp>.log`.
-2. Waits for the system CPU to settle (via `Wait-SystemIdle`).
+2. Waits for the system CPU to settle.
 3. Configures Windows Defender (PUA protection, exclusions).
 4. Sets BitLocker `PreventDeviceEncryption`.
 5. Installs OEM drivers for the detected model.
@@ -638,90 +590,55 @@ Located under `$OEM$\$1\Recovery\OEM\`.
 15. Copies Office shortcuts to the Public Desktop.
 16. Activates Office via Ohook if installed and safe.
 17. Installs UWP apps: `Microsoft.Todos`, `Microsoft.OutlookForWindows` (Win10), `Microsoft.BingNews` (Win10).
-18. Removes legacy Win10 apps: `windowscommunicationsapps`, `People`, `Office.OneNote`.
-19. Installs media extensions: AV1, HEIF, HEVC, MPEG2, RawImage, VP9, WebMedia, Webp.
+18. Removes legacy Win10 apps.
+19. Installs media extensions (AV1, HEIF, HEVC, MPEG2, RawImage, VP9, WebMedia, Webp).
 20. Installs and configures AnyDesk.
 21. Installs and configures RustDesk.
 22. Installs 7-Zip.
 23. Installs WinRAR and applies registry.
-24. Installs DymaxIO and applies license.
+24. Installs DymaxIO (x64) or Diskeeper (x86) and applies license.
 25. Installs Acronis Drive Monitor (only if a spinning HDD is present).
 26. Enables Windows RE if disabled.
-27. Creates the `OEM\Update` scheduled task from `Update.xml`.
-28. Sets hidden attributes on `C:\ProgramData`, `C:\Users\Default`, etc.
+27. Creates the `OEM\Update` scheduled task from `Update.xml` (x64 only).
+28. Sets hidden attributes on `C:\ProgramData`, `C:\Users\Default`, and related paths.
 29. Cleans up `_SMSTaskSequence`, `MININT`, `LTIBootstrap.vbs`.
 30. Writes an installation summary to the transcript.
-31. Stops the transcript.
 
 **External dependencies:**
 
 - 7-Zip at `C:\Program Files\7-Zip\7z.exe`
 - PowerShell 5.1
-- Internet access (for Ohook, HWID activation)
-- `pnputil`, `dism`, `reg`, `cmd`, `powershell` available on PATH
+- Internet access (for Ohook and HWID activation)
+- `pnputil`, `dism`, `reg`, `cmd`, `powershell` on PATH
 - `C:\Recovery\OEM\Activation\HWID_Activation.cmd`
-- `C:\Recovery\OEM\Activation\Ohook_Activation.cmd`
 - `C:\Recovery\OEM\LGPO\LGPO.exe`
 - `C:\Recovery\OEM\Apps\*` (installers)
 - `C:\Recovery\OEM\Drivers\*` (extracted driver packs)
 
-**Environment variables:** Reads system environment variables, does not set any that persist.
-
 **Exit codes:** Never `exit`s on failure. A top-level `try/catch` logs errors and continues, so `SetupComplete.cmd` proceeds to `Customizations.ps1` and `pbr.ps1`.
 
-**Hardening notes (from inline version history):**
-
-- v2.1.0: Transcript wrapped in try/finally; RustDesk/AnyDesk installers poll for binary presence; logs consolidated.
-- v2.1.1: `Get-Counter` in `Wait-SystemIdle` wrapped in try/catch with WMI and fixed-delay fallbacks; top-level catch added so terminating errors don't kill downstream scripts.
-- v2.2.0: Office activation gated by `Test-OfficeSafeForActivation` (fail-closed); `Test-OfficeInstalled` reads the `Path` value instead of testing for a subkey; `Get-OfficeInstallerFolder` sorts by `LastWriteTime`; `Activate-Windows` captures `/ipk` and `/ato` exit codes separately and falls through to HWID; `Install-Office` passes `-WorkingDirectory`.
-
 **Known limitations:**
 
-- **AnyDesk password hardcoded** as `$AnyDeskPassword = 'p@$$w0rd'`. Change this before using AnyDesk in any environment other than an isolated lab.
-- ~1000+ lines. Refactor candidate (see CONTRIBUTING.md "Areas Where Help Is Needed").
-- UWP version guard `Skip-IfNewerProvisioned` requires the package filename to contain a version string in the format `_X.Y.Z.W_` (four parts). Packages without a versioned filename are always installed.
-- The Ohook activation is deferred if any Office application is running in an interactive user session. This is by design, but may leave Office unactivated if a user has Office open during OOBE.
-- `Wait-SystemIdle` uses WMI `Win32_Processor.LoadPercentage` as a fallback. On machines where WMI is also broken, it sleeps for 5 seconds and returns.
+- **AnyDesk password hardcoded** as `$AnyDeskPassword = 'p@$$w0rd'`. Change this before using AnyDesk outside an isolated lab.
+- **Large script** (67 KB x64, 45 KB x86). Refactor candidate.
+- The UWP version guard `Skip-IfNewerProvisioned` requires the package filename to contain a version string in the format `_X.Y.Z.W_`. Packages without a versioned filename are always installed.
+- Office activation is deferred if any Office application is running in an interactive user session. This can leave Office unactivated if a user has Office open during OOBE.
+- `Wait-SystemIdle` uses WMI as a fallback. On machines where WMI is also broken, it sleeps for 5 seconds and returns.
+- **x86 variant is monolithic.** The x86 `pre.ps1` inlines logic that the x64 variant delegates to the Apps framework.
 
 ---
 
-### Customizations.ps1
+## $OEM$ Framework
 
-**Purpose:** Additional OEM customizations beyond what `pre.ps1` handles.
+The OEM Apps framework — `pbr.ps1`, the ten framework modules under `Framework\`, the eleven OEM modules under `OEM\`, and the eleven manifest files under `Manifests\` — is documented in **[docs/APPS-FRAMEWORK.md](APPS-FRAMEWORK.md)**.
 
-**When it runs:** OOBE, via `SetupComplete.cmd`, after `pre.ps1`.
-
-**What it does:** Not shipped with this repository. Placeholder for user-supplied customizations. If the file is absent, `SetupComplete.cmd` skips it.
-
-**External dependencies:** User-defined.
-
-**Known limitations:** Not documented here because it is a placeholder. See your own implementation.
-
----
-
-### Apps\pbr.ps1
-
-**Purpose:** Creates the push-button reset provisioned package.
-
-**When it runs:** OOBE, via `SetupComplete.cmd`, after `Customizations.ps1`.
-
-**What it does:** Uses `ScanState` to create a provisioned package at `C:\Recovery\OEM\Apps\<package>` that Windows can use for push-button reset.
-
-**External dependencies:**
-
-- `ScanState` (from USMT)
-- `C:\Recovery\OEM\Apps\` write access
-
-**Known limitations:**
-
-- Not shipped in this repository — extract `ScanState` from the companion content.
-- If `ScanState` is missing, the script logs an error and continues.
+The framework ships only in the x64 tree. The x86 tree uses monolith scripts that are not part of this repository.
 
 ---
 
 ## $OEM$ Activation Scripts
 
-Located under `$OEM$\$1\Recovery\OEM\Activation\`.
+Located under `DeploymentShare\<arch>\$OEM$\$1\Recovery\OEM\Activation\`.
 
 ---
 
@@ -731,11 +648,11 @@ Located under `$OEM$\$1\Recovery\OEM\Activation\`.
 
 **When it runs:** Called by `pre.ps1` when the firmware OEM key activation fails.
 
-**What it does:** Runs Microsoft's HWID activation script (the standard HWID activation flow that contacts Microsoft's activation servers and applies a digital license tied to the hardware).
+**What it does:** Runs Microsoft's HWID activation script, which contacts Microsoft's activation servers and applies a digital license tied to the hardware.
 
 **External dependencies:** Internet access.
 
-**Exit codes:** Passed through to `pre.ps1` — `pre.ps1` returns `$true` from `Activate-Windows` regardless of the outcome of this call.
+**Exit codes:** Passed through to `pre.ps1`. `pre.ps1` returns `$true` from `Activate-Windows` regardless of the outcome of this call.
 
 **Known limitations:**
 
@@ -744,123 +661,24 @@ Located under `$OEM$\$1\Recovery\OEM\Activation\`.
 
 ---
 
-### Ohook_Activation.cmd
+## $OEM$ Layout and Registry Files
 
-**Purpose:** Office activation via Ohook.
+Located at `DeploymentShare\<arch>\$OEM$\$1\Recovery\OEM\`.
 
-**When it runs:** Called by `pre.ps1` when Office is installed and `Test-OfficeSafeForActivation` returns `$true`.
+| File | Purpose |
+|---|---|
+| `LayoutModification.xml` | Base Start menu layout for Windows 10. Extended with manifest-defined pins by the framework (x64) or monolith scripts (x86, not in this repository). |
+| `TaskbarLayoutModification.xml` | Base taskbar layout for Windows 11. Extended with manifest-defined pins by the framework. |
+| `DesktopIcons.reg` | Registry file that controls which icons appear on the default desktop. Imported by `pre.ps1`. |
+| `RegionalSettings.reg` | Registry file that sets regional and locale defaults. Imported by `pre.ps1`. |
 
-**What it does:** Runs the Ohook activation tool with the `/Ohook` switch.
-
-**External dependencies:**
-
-- Office installed on the target machine.
-
-**Exit codes:** `0` on success, non-zero on failure. Captured by `pre.ps1` and logged.
-
-**Known limitations:**
-
-- **Ohook is not a legitimate activation method.** In environments where license compliance is enforced, replace this with a volume license or Microsoft 365 subscription activation. This script is provided as-is for lab and personal use only.
-- Ohook modifies Office binaries in memory. Antivirus software may flag it. `pre.ps1` adds an exclusion for the script path, but not for the activated Office binaries.
-- Office updates can break Ohook. Re-application may be needed after major Office updates.
-
----
-
-## $OEM$ Payload Updaters
-
-Located under `$OEM$\$1\Recovery\OEM\`. All are idempotent and use hash-verified downloads.
-
----
-
-### Apps.ps1
-
-**Version:** 2.2
-
-**Purpose:** Downloads and extracts the latest Apps `.7z` split archive.
-
-**When it runs:** Not part of the deployment task sequence by default — invoked manually or via `pbr.ps1` to refresh the OEM app payload.
-
-**What it does:**
-
-1. Reads the current SHA-256 from `C:\Recovery\OEM\Logs\Apps.7z.sha256`.
-2. Fetches the expected SHA-256 from `https://gist.github.com/52250179/74758d92957c683c282c2670892609f6/raw`.
-3. If they match, exits immediately.
-4. Otherwise:
-   - Queries `https://api.github.com/repos/52250179/Update-PBR-Extensibility-Apps/contents/` for files matching `^Apps\.7z\.\d+$`.
-   - Sorts parts by their numeric suffix.
-   - Downloads each part with retry and dual-URL fallback:
-     - Primary: `raw.githubusercontent.com`
-     - Fallback: `github.com/.../raw/refs/heads/...`
-   - Rejects HTML error pages served with HTTP 200.
-   - Validates the split archive with `7z t` on the first part.
-   - Extracts to `C:\Temp\OEM\Apps`.
-   - Removes downloaded parts.
-   - Writes the new hash to `C:\Recovery\OEM\Logs\Apps.7z.sha256`.
-
-**External dependencies:**
-
-- 7-Zip at `C:\Program Files\7-Zip\7z.exe`
-- Internet access
-- `C:\Temp\OEM\` write access
-- `C:\Recovery\OEM\Logs\` write access
-
-**Environment variables:** None.
-
-**Exit codes:**
-
-- `0` — Archive already up to date (no action) OR update completed successfully.
-- `1` — 7-Zip missing, hash retrieval failed, file listing failed, download failed, validation failed, or extraction failed.
-
-**Log location:** `C:\ProgramData\OEM\Logs\AppsArchive_<timestamp>.log`
-
-**Known limitations:**
-
-- Depends on a third-party GitHub repository (`52250179/Update-PBR-Extensibility-Apps`) and Gist. If either becomes unavailable, the script fails.
-- No integrity verification of individual parts against a manifest — only the assembled archive is tested with `7z t`.
-- Downloaded files are staged in `C:\Temp\OEM` (system drive), not in a location with more space. Large payloads can fill the system drive.
-
----
-
-### Drivers.ps1
-
-**Version:** 2.2
-
-**Purpose:** Downloads and extracts the latest Drivers `.7z` split archive.
-
-Behaviour identical to `Apps.ps1`, with:
-
-- Gist: `https://gist.github.com/52250179/4bc89a7d30e566d842f1aaabaaae14b0/raw`
-- Repo: `52250179/Update-PBR-Extensibility-Drivers`
-- File pattern: `^Drivers\.7z\.\d+$`
-- Extract destination: `C:\Temp\OEM\Drivers`
-- Hash file: `C:\Recovery\OEM\Logs\Drivers.7z.sha256`
-- Log: `C:\ProgramData\OEM\Logs\DriversArchive_<timestamp>.log`
-
----
-
-### LGPO.ps1
-
-**Version:** 2.2
-
-**Purpose:** Downloads and extracts the latest `LGPO.7z`.
-
-Differs from `Apps.ps1` / `Drivers.ps1` because LGPO is a single `.7z` file, not a split archive.
-
-- Gist: `https://gist.github.com/52250179/54cdfbe3d739441aad395e16afbf9bc2/raw`
-- Direct URLs (dual fallback):
-  - `https://raw.githubusercontent.com/52250179/Update-PBR-Extensibility-LGPO/main/LGPO.7z`
-  - `https://github.com/52250179/Update-PBR-Extensibility-LGPO/raw/refs/heads/main/LGPO.7z`
-- Extract destination: `C:\Temp\OEM\LGPO`
-- Hash file: `C:\Recovery\OEM\Logs\LGPO.7z.sha256`
-- Log: `C:\ProgramData\OEM\Logs\LGPOArchive_<timestamp>.log`
-
-Extraction is retried up to 3 times.
+If `C:\Recovery\AutoApply` is present, the framework does not touch layout. It is externally owned. See [docs/APPS-FRAMEWORK.md](APPS-FRAMEWORK.md) for the AutoApply contract.
 
 ---
 
 ## $OEM$ Application Configurators
 
-Located under `$OEM$\$1\Recovery\OEM\Apps\`.
+Located under `DeploymentShare\<arch>\$OEM$\$1\Recovery\OEM\Apps\`.
 
 ---
 
@@ -868,21 +686,18 @@ Located under `$OEM$\$1\Recovery\OEM\Apps\`.
 
 **Purpose:** Applies RustDesk configuration after installation.
 
-**When it runs:** Called by `pre.ps1` via a separate `powershell.exe` process (to isolate its `exit` calls).
+**When it runs:** Called by `pre.ps1` in a separate `powershell.exe` process.
 
 **What it does:** Reads configuration from a companion file (relay server, API key, default password), applies it to `C:\Program Files\RustDesk\config\`, and configures the service for persistence.
 
 **Exit codes (interpreted by `pre.ps1`):**
 
-- `0` — Full success (persistence configured)
-- `1` — Partial success (config file written, persistence failed)
-- `2` — Complete failure
-- Any other — Unknown error
+- `0` — Full success.
+- `1` — Partial success (config written, persistence failed).
+- `2` — Complete failure.
+- Any other — Unknown error.
 
-**Known limitations:**
-
-- Runs in a separate process to prevent its `exit` from killing `pre.ps1`.
-- Behavior depends on RustDesk version. Newer versions may have moved config paths.
+**Known limitations:** Behavior depends on RustDesk version. Newer versions may have moved config paths.
 
 ---
 
@@ -890,17 +705,43 @@ Located under `$OEM$\$1\Recovery\OEM\Apps\`.
 
 **Purpose:** Applies the DymaxIO license after installation.
 
-**When it runs:** Called by `pre.ps1` via a separate `powershell.exe` process.
+**When it runs:** Called by `pre.ps1` in a separate `powershell.exe` process (x64 tree only).
 
 **What it does:** Invokes DymaxIO's licensing executable with the license key.
 
 **Exit codes (interpreted by `pre.ps1`):**
 
-- `0` — License applied successfully
-- `2` — DymaxIO not installed (skipped)
-- Other — Failure
+- `0` — License applied successfully.
+- `2` — DymaxIO not installed (skipped).
+- Other — Failure.
 
-**Known limitations:** Requires DymaxIO to be installed. If DymaxIO is not present, the script is a no-op (exit code 2).
+**Known limitations:** Requires DymaxIO to be installed. If DymaxIO is not present, the script is a no-op.
+
+---
+
+### DiskeeperLicense.ps1
+
+**Purpose:** Applies the Diskeeper license after installation.
+
+**When it runs:** Called by `pre.ps1` in a separate `powershell.exe` process (x86 tree only).
+
+**What it does:** Invokes Diskeeper's licensing executable with the license key.
+
+**Exit codes:** Same contract as `DymaxIOLicense.ps1`.
+
+**Known limitations:** Requires Diskeeper to be installed.
+
+---
+
+### AnyDesk.cmd
+
+**Purpose:** Configures AnyDesk after installation.
+
+**When it runs:** Called by `pre.ps1` after AnyDesk is installed.
+
+**What it does:** Sets the AnyDesk password and options via `anydesk.exe --set-password` and related commands.
+
+**Known limitations:** The password is set from a value in `pre.ps1`, not from this file. This file is a thin wrapper.
 
 ---
 
@@ -908,119 +749,58 @@ Located under `$OEM$\$1\Recovery\OEM\Apps\`.
 
 **Purpose:** Task Scheduler definition for the `OEM\Update` scheduled task.
 
-**When it runs:** Imported by `pre.ps1` via `schtasks /create /tn OEM\Update /xml <path> /f`.
+**When it runs:** Imported by `pre.ps1` via `schtasks /create /tn OEM\Update /xml <path> /f` (x64 tree only).
 
-**What it does:** Defines a task that re-runs `Apps.ps1`, `Drivers.ps1`, and `LGPO.ps1` periodically to keep OEM payloads up to date.
+**What it does:** Defines a task that performs post-deployment updates on a monthly basis, including updates to extensibility-point apps and scripts.
 
 **Known limitations:**
 
 - Not a script — this is a Task Scheduler XML definition.
 - The task runs as SYSTEM with highest privileges.
+- **x86 tree has no equivalent.** Post-deployment updates are not supported on x86.
+
+---
+
+## PBR Extensibility Chain
+
+> **These files are internals of the Push-Button Reset extensibility chain. Do not edit them.** They are covered in full by the framework's canonical documentation. The summary below is provided only so contributors recognize the files when they encounter them.
+
+Located at `DeploymentShare\<arch>\$OEM$\$1\Recovery\OEM\`.
+
+| File | Purpose |
+|---|---|
+| `ResetConfig.xml` | Windows PBR configuration. Hooks `PreImage.cmd` and `AfterImage.cmd` into four reset phases (`BasicReset_BeforeImageApply`, `BasicReset_AfterImageApply`, `FactoryReset_AfterDiskFormat`, `FactoryReset_AfterImageApply`). Declares the PBR partition layout. |
+| `PreImage.cmd` | No-op placeholder for the `BeforeImageApply` hook. Reserves the hook point. |
+| `AfterImage.cmd` | Runs after the PBR image is applied. Locates the OS volume, creates `Windows\OEM`, `Recovery\OEM\Apps\Logs`, and `Windows\Setup\Scripts` folders, copies `Recovery\OEM\SetupComplete.cmd` to `Windows\Setup\Scripts`, and copies `Recovery\OEM\unattend.xml` to `Windows\Panther`. |
+| `preWINRE.cmd` | Loads boot-critical drivers via `drvload` from `\Drivers\bootcritical\*.inf` during WinRE startup. |
+| `ResetPartitions.txt` | Diskpart script for factory reset. Creates EFI (260 MB), MSR (128 MB), Windows (max minus 1000 MB), and Recovery partitions on GPT. |
+| `unattend.xml` | OOBE unattend used after a PBR reset. Restored to `Windows\Panther` by `AfterImage.cmd`. Sets locale, timezone, and offline driver paths. |
+
+**Note:** `preWINRE.cmd` uses inconsistent casing across the two architectures — lowercase `pre` for x64, capital `Pre` for x86. This is intentional per the PBR extensibility contract and must not be "corrected" without verifying with the framework's canonical docs.
 
 ---
 
 ## $OEM$ Post-Deployment Scripts
 
-Located under `$OEM$\$1\Scripts\`. These are copied to the deployed OS at `C:\Scripts\` and are intended to be run manually by the technician after OOBE completes.
+Located at `DeploymentShare\<arch>\$OEM$\$1\Scripts\`. These are copied to `C:\Scripts\` on the deployed machine and are intended to be run manually by the technician after OOBE completes.
 
----
+The number prefix indicates the order in which the scripts should be run. Restarts are required between `1Firstrun.cmd` and `2Secondrun.cmd`, and after `2Secondrun.cmd`.
 
-### OEMDriversExport.ps1
-
-**Purpose:** Exports drivers from the deployed OS, archives them as `.7z`, and copies to a network share or DEPLOY USB.
-
-**When it runs:** Manually, via `C:\Scripts\3OEMDriversExport.cmd`.
-
-**What it does:**
-
-1. Runs `Export-WindowsDriver` to extract all third-party drivers from the offline image.
-2. Archives the extracted drivers as a `.7z` file.
-3. Copies the archive to `\\SERVER\Shared\DriverPacks` (or a DEPLOY USB).
-
-**External dependencies:**
-
-- 7-Zip installed on the target machine
-- Network share accessible, or DEPLOY USB inserted
+| File | Purpose |
+|---|---|
+| `0CleanWindowsUpdates.cmd` | Cleans up the Windows component store after Windows Updates. |
+| `0Install-AnyDesk.cmd` | Installs AnyDesk interactively if not already present. **x64 tree only.** |
+| `0KeepAwake.cmd` | Prevents the machine from sleeping during long-running maintenance. |
+| `1Firstrun.cmd` | Interactive first pass. Opens Windows Update, OEM utility setup, and GPU software for the technician to complete. |
+| `2Secondrun.cmd` | Interactive second pass after restart. Applies final updates and records marker decisions (e.g., Dell Optimizer, Dell ACC, MSI Center). |
+| `3OEMDriversExport.cmd` | Exports drivers from the deployed machine and saves them to `\\SERVER\Shared\DriverPacks` or a DEPLOY-labeled USB at `X:\DriverPacks`. |
+| `4ScanState.cmd` | Runs USMT `ScanState` to produce a provisioning package at `C:\Recovery\Customizations`. Transforms `C:\Recovery\OEM` into the AutoApply directory at `C:\Recovery\AutoApply`. |
 
 **Known limitations:**
 
-- Requires elevated privileges.
-- The exported archive name is auto-generated from the model; the naming may not perfectly match the pattern expected by `ExtractOEMDrivers.ps1` on subsequent deployments. Manual renaming may be required.
-
----
-
-### ScanWindowsImage64.ps1
-
-**Purpose:** Cleans the Driver Store and restores the `Microsoft-OneCore-DirectX-Database-FOD-Package`.
-
-**When it runs:** Manually, via `C:\Scripts\2CleanupDriverStore.cmd`.
-
-**What it does:**
-
-1. Runs DISM `/Cleanup-Image` with `/StartComponentCleanup /ResetBase`.
-2. Cleans the Driver Store of unused drivers.
-3. Reinstalls the `Microsoft-OneCore-DirectX-Database-FOD-Package` from `\\SERVER\Shared\Servicing\` or a DEPLOY USB. This is required because cleaning the driver store in Windows 11 removes this package, which breaks some DirectX features.
-
-**External dependencies:**
-
-- DISM
-- `\\SERVER\Shared\Servicing\Microsoft-OneCore-DirectX-Database-FOD-Package` or DEPLOY USB
-
-**Known limitations:**
-
-- `/ResetBase` makes installed Windows updates non-removable.
-- Requires elevated privileges.
-- Restoring the DirectX FOD requires the correct architecture version.
-
----
-
-### ScanStatex64.ps1
-
-**Purpose:** Creates a provisioned package for push-button reset.
-
-**When it runs:** Manually, via `C:\Scripts\4ScanState.cmd`.
-
-**What it does:**
-
-1. Copies `ScanState` from `\\SERVER\Shared\ScanState` or a DEPLOY USB to `C:\Temp\ScanState`.
-2. Runs `ScanState` to create a provisioned package for push-button reset.
-3. Places the package at a location Windows recognizes for reset purposes.
-
-**External dependencies:**
-
-- `\\SERVER\Shared\ScanState` or DEPLOY USB
-- `C:\Temp\` write access
-
-**Known limitations:**
-
-- `ScanState` must match the target OS architecture (x64 for x64 OS).
-- The provisioned package takes disk space on the target machine — the size depends on the amount of user data captured.
-
----
-
-## Common Patterns
-
-All scripts in this repository follow these patterns. Deviations are documented in the script's own header.
-
-### Retry logic
-
-DISM and robocopy operations retry up to 3 times with exponential backoff (delay multiplies by 1.5 each attempt, capped at 30–60 seconds).
-
-### Path resolution
-
-Scripts never hardcode drive letters. Volume letters are resolved via `Get-Volume -FileSystemLabel <label> | Select-Object -First 1`.
-
-### Primary/fallback sources
-
-Scripts that read network shares always fall back to a DEPLOY-labeled USB flash drive if the share is unreachable.
-
-### Idempotence
-
-Payload updaters (`Apps.ps1`, `Drivers.ps1`, `LGPO.ps1`) compare the local SHA-256 to the remote SHA-256 and exit early if unchanged.
-
-### Silent operation
-
-Scripts in `Scripts\Custom\` avoid `Write-Host`. Scripts in `$OEM$` may use `Write-Host` for progress because they run in OOBE with no task sequence UI.
+- These scripts are interactive. They prompt the technician to complete steps in Windows Update, OEM utilities, and other tools.
+- Some scripts are optional. The order is authoritative; skipping one may break the ones that follow.
+- The x86 tree does not include `0Install-AnyDesk.cmd`.
 
 ---
 
@@ -1032,13 +812,64 @@ Scripts in `Scripts\Custom\` avoid `Write-Host`. Scripts in `$OEM$` may use `Wri
 | Task sequence (full OS) | `C:\MININT\SMSOSD\OSDLOGS\` |
 | MDT deployment summary | `C:\Windows\Temp\DeploymentLogs\` |
 | OEM setup (post-OOBE) | `C:\ProgramData\OEM\Logs\` |
-| Payload updaters | `C:\ProgramData\OEM\Logs\AppsArchive_*.log`, `DriversArchive_*.log`, `LGPOArchive_*.log` |
 | `pre.ps1` transcript | `C:\ProgramData\OEM\Logs\pre_<timestamp>.log` |
 | `SetupComplete.cmd` | `C:\ProgramData\OEM\Logs\SetupComplete.log` |
+| Framework shared log | `C:\ProgramData\OEM\Logs\PBR_Deployment.log` |
+| Framework transcript | `C:\ProgramData\OEM\Logs\Master_<Phase>_<PID>_<timestamp>.log` |
+| Framework per-app | `C:\ProgramData\OEM\Logs\<AppName>.log` |
 | DISM (offline image) | `C:\Windows\Logs\DISM\dism.log` (post-deployment) |
 | DISM (WinRE) | `C:\Temp\WinREWork\dism_driver.log` (during `WinRE.ps1`) |
-| BDD.log (task sequence) | `X:\MININT\SMSOSD\OSDLOGS\BDD.log` (WinPE) or `C:\MININT\SMSOSD\OSDLOGS\BDD.log` (full OS) |
 
 ---
 
-*See [docs/TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common errors and their fixes.*
+## Script Standards for Contributors
+
+All PowerShell scripts in `DeploymentShare\Scripts\Custom\` must follow these standards. Scripts that do not will be asked to change before merging.
+
+### 1. WinPE-safe (for `Scripts\Custom\` only)
+
+- Use the registry and file system for hardware detection.
+- Do **not** use `Get-CimInstance`, `Get-WmiObject`, or `Get-PhysicalDisk` unless `winpe-storagewmi` is explicitly available.
+- Do not assume `Get-Volume` returns a single result.
+
+Scripts in `$OEM$` run in the full OS and are exempt from the WMI/CIM restriction.
+
+### 2. Defensive lookups
+
+Always pipe through `Select-Object -First 1` or wrap in `@()` when the result could be an array.
+
+### 3. Retry logic
+
+DISM and robocopy operations must retry with exponential backoff.
+
+### 4. Silent operation
+
+Scripts in `Scripts\Custom\` must not use `Write-Host` unless the message is critical. Scripts in `$OEM$` may use it for progress.
+
+### 5. Preserve exit codes
+
+Never mask a failure with a silent `try/catch`. Use `$LASTEXITCODE` after native commands.
+
+### 6. Header documentation
+
+Every script must include a `.SYNOPSIS`, `.DESCRIPTION`, and `.NOTES` block.
+
+### 7. No hardcoded drive letters
+
+Discover volume letters via `Get-Volume -FileSystemLabel`.
+
+### 8. Registry writes via `reg.exe` only
+
+Never use `New-ItemProperty` or the PowerShell Registry Provider for writes. This applies project-wide. Reads via the provider are permitted.
+
+### 9. PowerShell 5.1 compatibility
+
+Scripts must run under the WinPE and Windows OOBE versions of PowerShell, which are **5.1**. No PS7-only syntax.
+
+### 10. No `exit` in task sequence scripts
+
+Return rather than `exit`. Scripts invoked from `SetupComplete.cmd` are standalone and may use `exit`.
+
+---
+
+*See [docs/TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common errors and their fixes, and [docs/APPS-FRAMEWORK.md](APPS-FRAMEWORK.md) for the OEM Apps framework.*

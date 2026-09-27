@@ -1,3 +1,4 @@
+```markdown
 <div align="center">
 
 # MDT Task Sequences & Custom Scripts
@@ -42,6 +43,7 @@ Built and maintained by [Arthur Durand](https://github.com/ArthurJDurand), this 
 - **OEM app extraction** — Extracts manufacturer-specific app archives to `C:\Recovery\OEM`
 - **LGPO application** — Applies local group policies from `$OEM$\$1\Recovery\OEM\LGPO`
 - **Offline media support** — Build a DEPLOY-labeled USB flash drive for deployments without a server
+- **Self-updating OEM payloads** — Companion GitHub repositories deliver the latest Apps, Drivers, and LGPO archives via hash-verified `.7z` downloads
 
 ### Who This Is For
 
@@ -70,9 +72,12 @@ If any of those are unfamiliar, start with Microsoft's own MDT documentation bef
 | **WinRE Configuration** | Deploys and configures Windows Recovery Environment on the recovery partition |
 | **LGPO Application** | Applies local group policies from `$OEM$\$1\Recovery\OEM\LGPO` |
 | **OEM License Activation** | Activates the OEM digital license during first boot via `pre.ps1` |
+| **Office Installation & Activation** | Installs Microsoft Office from `$OEM$` and activates via Ohook when safe |
+| **Third-Party Applications** | 7-Zip, WinRAR, AnyDesk, RustDesk, DymaxIO, Acronis Drive Monitor (HDD-only) |
 | **Post-Deployment Cleanup** | Removes MDT artifacts (`_SMSTaskSequence`, `MININT`, `LTIBootstrap.vbs`) |
 | **Offline Media** | Full support for DEPLOY-labeled USB flash drive deployments |
 | **Network Share Fallback** | All extraction scripts fall back to `\\SERVER\Shared` or a DEPLOY USB when network is unavailable |
+| **Self-Updating Payloads** | Companion repos deliver Apps/Drivers/LGPO archives with SHA-256 verification from Gists |
 
 ---
 
@@ -122,9 +127,17 @@ If any of those are unfamiliar, start with Microsoft's own MDT documentation bef
    ┌─────────────────────────────────────┐
    │  State Restore Phase                 │
    │  • Install applications              │
-   │  • Apply LGPO policies (pre.ps1)     │
-   │  • Activate OEM license              │
    │  • Final cleanup                     │
+   └──────┬──────────────────────────────┘
+          ▼
+   ┌─────────────────────────────────────┐
+   │  OOBE (SetupComplete.cmd)            │
+   │  • pre.ps1         (activation,      │
+   │                     drivers, LGPO,   │
+   │                     app installs)    │
+   │  • Customizations.ps1                │
+   │  • pbr.ps1         (push-button      │
+   │                     reset package)   │
    └─────────────────────────────────────┘
 ```
 
@@ -183,24 +196,74 @@ Update your deployment share, import `LiteTouchPE_x64.wim` and `LiteTouchPE_x86.
 | `ApplyUpdates10x64.ps1` | Injects Windows 10 x64 updates (`.cab`/`.msu`) into the offline image. |
 | `ApplyUpdates10x86.ps1` | Injects Windows 10 x86 updates into the offline image. |
 | `ApplyUpdates11.ps1` | Injects Windows 11 updates into the offline image. |
-| `ExtractOEMAppsx64.ps1` | Extracts manufacturer-specific app `.7z` archives to `C:\Recovery\OEM`. |
+| `ExtractOEMAppsx64.ps1` | Extracts manufacturer-specific app `.7z` archives from `\\SERVER\OEM\x64` or a DEPLOY USB to `C:\Recovery\OEM`. |
 | `ExtractOEMAppsx86.ps1` | x86 variant of the OEM app extraction. |
-| `ExtractOEMDrivers.ps1` | Extracts the model-specific driver `.7z` archive to `C:\Recovery\OEM\Drivers`. |
+| `ExtractOEMDrivers.ps1` | Extracts the model-specific driver `.7z` archive from `\\SERVER\Shared\DriverPacks` or a DEPLOY USB to `C:\Recovery\OEM\Drivers`. |
 | `ApplyOEMDrivers.ps1` | Applies extracted OEM, WLAN, and Intel VMD drivers to the offline Windows image via DISM. |
 | `WinRE.ps1` | Deploys and configures WinRE on the recovery partition, optionally injecting VMD drivers. |
 | `CleanupScripts.ps1` | Removes MDT artifacts (`_SMSTaskSequence`, `MININT`, `LTIBootstrap.vbs`) after deployment. |
-| `CopyOEM.wsf` | Copies `$OEM$\$1` and `$OEM$\$$` content from the deployment share to the target OS. |
+| `CopyOEM.wsf` | Copies `$OEM$\$1` and `$OEM$\$$` content from the deployment share to the target OS (based on Michael Niehaus's original script). |
 
-### `$OEM$` Scripts (`$OEM$\$1\Recovery\OEM\` and `$OEM$\$1\Scripts\`)
+### `$OEM$` Orchestration Scripts (`$OEM$\$$\\Setup\`)
 
 | Script | Purpose |
 |---|---|
-| `pre.ps1` | Runs during `SetupComplete.cmd` to activate OEM license and apply LGPO policies. |
+| `SetupComplete.cmd` | Runs at the end of OOBE. Orchestrates `pre.ps1`, `Customizations.ps1`, and `pbr.ps1` in sequence, then cleans up MDT artifacts. |
+
+### `$OEM$` Configuration Scripts (`$OEM$\$1\Recovery\OEM\`)
+
+| Script | Purpose |
+|---|---|
+| `pre.ps1` | Runs during `SetupComplete.cmd`. Installs OEM drivers, WLAN, Intel VMD, applies LGPO, activates Windows and Office, installs third-party apps, and configures the OEM\Update scheduled task. Maintains its own inline version history. |
+| `Customizations.ps1` | Runs after `pre.ps1` for additional OEM customizations. |
+| `Apps\pbr.ps1` | Runs after `Customizations.ps1` to create the push-button reset provisioned package. |
+
+### `$OEM$` Activation Scripts (`$OEM$\$1\Recovery\OEM\Activation\`)
+
+| Script | Purpose |
+|---|---|
+| `HWID_Activation.cmd` | HWID-based Windows activation fallback when the firmware OEM key fails. Called by `pre.ps1`. |
+| `Ohook_Activation.cmd` | Office activation via Ohook. Called by `pre.ps1` after `Test-OfficeSafeForActivation` confirms no Office app is running. |
+
+### `$OEM$` Payload Updater Scripts (`$OEM$\$1\Recovery\OEM\`)
+
+| Script | Purpose |
+|---|---|
+| `Apps.ps1` | Downloads the latest Apps `.7z` split archive from a companion GitHub repository, verifies SHA-256 against a Gist, and extracts to `C:\Recovery\OEM\Apps`. |
+| `Drivers.ps1` | Downloads the latest Drivers `.7z` split archive from a companion GitHub repository, verifies SHA-256 against a Gist, and extracts to `C:\Recovery\OEM\Drivers`. |
+| `LGPO.ps1` | Downloads the latest `LGPO.7z` from a companion GitHub repository, verifies SHA-256 against a Gist, and extracts to `C:\Recovery\OEM\LGPO`. |
+
+### `$OEM$` Application Configurators (`$OEM$\$1\Recovery\OEM\Apps\`)
+
+| Script | Purpose |
+|---|---|
+| `RustDesk.ps1` | Applies RustDesk configuration after installation (password, relay server, persistence). |
+| `DymaxIOLicense.ps1` | Applies the DymaxIO license after installation. Returns exit code 2 if DymaxIO is not present. |
+| `Update.xml` | Task Scheduler definition imported by `pre.ps1` as the `OEM\Update` scheduled task. |
+
+### `$OEM$` Post-Deployment Scripts (`$OEM$\$1\Scripts\`)
+
+| Script | Purpose |
+|---|---|
 | `OEMDriversExport.ps1` | Exports drivers from the deployed OS, archives them as `.7z`, and copies to `\\SERVER\Shared\DriverPacks` or a DEPLOY USB. |
 | `ScanWindowsImage64.ps1` | Cleans the Driver Store and restores the `Microsoft-OneCore-DirectX-Database-FOD-Package`. |
 | `ScanStatex64.ps1` | Creates a provisioned package for push-button reset using USMT `ScanState`. |
 
 **→ See [docs/SCRIPTS.md](docs/SCRIPTS.md) for detailed documentation of every script, including parameters, environment variables, and known limitations.**
+
+---
+
+## Related Repositories
+
+The updater scripts (`Apps.ps1`, `Drivers.ps1`, `LGPO.ps1`) pull payloads from three companion GitHub repositories. Each archive is split into `.7z.001`, `.7z.002`, … parts and hash-verified against a GitHub Gist.
+
+| Repository | Payload | Extracted To |
+|---|---|---|
+| [`52250179/Update-PBR-Extensibility-Apps`](https://github.com/52250179/Update-PBR-Extensibility-Apps) | OEM application installers | `C:\Recovery\OEM\Apps` |
+| [`52250179/Update-PBR-Extensibility-Drivers`](https://github.com/52250179/Update-PBR-Extensibility-Drivers) | Model-specific driver packs | `C:\Recovery\OEM\Drivers` |
+| [`52250179/Update-PBR-Extensibility-LGPO`](https://github.com/52250179/Update-PBR-Extensibility-LGPO) | LGPO tool and policy backups | `C:\Recovery\OEM\LGPO` |
+
+If any of these repositories become unavailable, replace the `$GistUrl`, `$RepoOwner`, and `$RepoName` variables in the corresponding `.ps1` file with your own.
 
 ---
 
@@ -232,8 +295,8 @@ MDT-TS-and-Scripts/
 │       └── WinRE.ps1
 ├── $OEM$/                         # Copied to C:\Windows\Setup\Scripts
 │   ├── $1/                        # Copied to the root of the target OS
-│   │   ├── Recovery/OEM/          # pre.ps1, LGPO, OEM apps
-│   │   └── Scripts/               # OEMDriversExport, ScanState, etc.
+│   │   ├── Recovery/OEM/          # pre.ps1, Apps.ps1, Drivers.ps1, LGPO.ps1, LGPO, Activation, Apps
+│   │   └── Scripts/               # OEMDriversExport, ScanWindowsImage64, ScanStatex64
 │   └── $$/                        # Copied to C:\Windows
 │       └── Setup/                 # SetupComplete.cmd
 ├── Operating Systems/             # Win10 x64, Win10 x86, Win11 x64 WIMs
@@ -312,6 +375,7 @@ You can create an offline media set on a USB flash drive to deploy without a ser
 - **Windows PE Addon for the ADK**
 - **Windows SDK for Windows 11**
 - **Microsoft Deployment Toolkit (MDT)**
+- **7-Zip** (installed at `C:\Program Files\7-Zip\7z.exe` — required by the payload updater scripts)
 
 ### Network Shares
 
@@ -335,7 +399,10 @@ Most users will only need to edit a few files:
 | `Control\Settings.xml` | `UNCPath`, `PhysicalPath`, `Boot.x86.ExtraDirectory`, `Boot.x64.ExtraDirectory` |
 | `Task Sequences\WIN10PROX64\Unattend.xml` | Locales and time zone |
 | `Task Sequences\WIN11PROX64\Unattend.xml` | Locales and time zone |
-| `$OEM$\$1\Recovery\OEM\pre.ps1` | OEM license activation, LGPO application |
+| `$OEM$\$1\Recovery\OEM\pre.ps1` | AnyDesk password, OEM license activation, LGPO application |
+| `$OEM$\$1\Recovery\OEM\Apps.ps1` | Companion repo owner/name, Gist hash URL |
+| `$OEM$\$1\Recovery\OEM\Drivers.ps1` | Companion repo owner/name, Gist hash URL |
+| `$OEM$\$1\Recovery\OEM\LGPO.ps1` | Companion repo owner/name, Gist hash URL |
 | `$OEM$\$1\Scripts\OEMDriversExport.ps1` | Driver export destination |
 | `$OEM$\$1\Scripts\ScanWindowsImage64.ps1` | Servicing path |
 | `$OEM$\$1\Scripts\ScanStatex64.ps1` | ScanState tool path |
@@ -360,13 +427,17 @@ Apply updates and drivers via Windows Update (including Optional Driver updates)
 ## Known Limitations
 
 - **Windows 10 end of support:** Windows 10 reached end of support on October 14, 2025. The Win10 task sequences are provided for legacy hardware and existing deployments only.
-- **Plaintext credentials:** `Bootstrap.ini` stores credentials in cleartext. Use a least-privilege deployment account and restrict share permissions. Never commit real credentials to a public repository.
+- **Plaintext credentials:**
+  - `Control\Bootstrap.ini` stores the deployment share account in cleartext. Use a least-privilege deployment account and restrict share permissions. Never commit real credentials to a public repository.
+  - `$OEM$\$1\Recovery\OEM\pre.ps1` contains a hardcoded `$AnyDeskPassword = 'p@$$w0rd'`. **Change this before using AnyDesk in any non-lab environment.**
 - **MDT lifecycle:** Microsoft Deployment Toolkit is no longer under active development. This project targets MDT `6.3.8456.1000`.
-- **WinPE feature packs:** Some scripts assume specific WinPE feature packs. `winpe-wmi` is **not** included by default. Scripts use registry-based hardware detection to stay WinPE-safe.
+- **WinPE feature packs:** Some scripts assume specific WinPE feature packs. `winpe-wmi` is **not** included by default in `Scripts\Custom\`. Scripts in `Scripts\Custom\` use registry-based hardware detection to stay WinPE-safe. Scripts in `$OEM$` run in the full OS and may use WMI/CIM.
 - **VMD driver versions:** Intel VMD driver versions are hardcoded for specific CPU generations in `LoadWinPEDrivers.ps1` and `ApplyOEMDrivers.ps1`. New generations require updates to the generation map.
 - **x86 task sequence:** The `WIN10PROX86` task sequence is provided for legacy 32-bit hardware. VMD and some driver packs are x64-only and will not apply.
 - **OEM packs are model-specific:** `ExtractOEMDrivers.ps1` relies on exact or partial model string matching. Unknown models will fall through without a driver pack.
 - **No built-in application installation:** `Applications.xml` and `Packages.xml` are empty by default. Add your own applications via MDT or the `$OEM$` folder.
+- **Companion repos and Gists are external dependencies:** `Apps.ps1`, `Drivers.ps1`, and `LGPO.ps1` rely on GitHub repositories and Gists owned by a third party (`52250179`). If those become unavailable, replace the variables in each script with your own.
+- **Office activation is deferred when Office is running:** `pre.ps1` fails closed if any Office application is running in an interactive user session. The machine may complete OOBE with Office installed but not yet activated.
 
 **→ See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for common errors and fixes.**
 
@@ -386,7 +457,7 @@ Contributions are welcome and encouraged! This project improves through communit
 
 All PowerShell scripts in `Scripts/Custom/` must:
 
-- Be **WinPE-safe** — use the registry and file system only; avoid WMI/CIM in WinPE unless `winpe-wmi` is added to FeaturePacks
+- Be **WinPE-safe** — use the registry and file system only; avoid WMI/CIM in WinPE unless `winpe-wmi` is added to FeaturePacks. (Scripts in `$OEM$` run in the full OS and are exempt.)
 - Use `Get-Volume ... | Select-Object -First 1` when retrieving volume letters
 - Include retry logic for DISM and robocopy operations
 - Be silent (no `Write-Host` unless absolutely necessary for diagnostics)
@@ -441,3 +512,4 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 **If this project helped you deploy Windows faster, consider giving it a ⭐**
 
 </div>
+```

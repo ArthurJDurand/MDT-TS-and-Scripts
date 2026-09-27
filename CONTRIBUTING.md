@@ -17,6 +17,7 @@ This document explains how to contribute effectively and what standards your con
 - [Pull Request Process](#pull-request-process)
 - [What Reviewers Look For](#what-reviewers-look-for)
 - [Contributing to the Apps Framework](#contributing-to-the-apps-framework)
+- [Working Across the Three Repositories](#working-across-the-three-repositories)
 - [Areas Where Help Is Needed](#areas-where-help-is-needed)
 - [Reporting Bugs](#reporting-bugs)
 - [License of Contributions](#license-of-contributions)
@@ -70,6 +71,7 @@ To test your changes properly, you need a working MDT environment.
 - Windows ADK for Windows 11 + Windows PE Addon
 - Windows SDK for Windows 11
 - Microsoft Deployment Toolkit `6.3.8456.1000`
+- The `Prerequisites\All MDT Fixes 2025.exe` bundle applied
 - PowerShell 7 on the development host
 - 7-Zip installed at `C:\Program Files\7-Zip\7z.exe`
 - A target machine for testing (physical hardware strongly preferred over a VM for driver-related changes)
@@ -252,6 +254,10 @@ Task sequence scripts should return rather than `exit`, so the task sequence can
 
 Scripts that run repeatedly (framework phases, `pre.ps1`, orchestration scripts) must be idempotent. Re-running them must not produce different outcomes, duplicate files, or regressions.
 
+### 13. Do not edit stock MDT content
+
+Files under `DeploymentShare\Scripts\` (outside `Scripts\Custom\`), `DeploymentShare\Tools\`, and `DeploymentShare\Templates\` are stock MDT content. They are overwritten when MDT is updated. Customizations belong in `Scripts\Custom\` or in the `$OEM$` trees.
+
 ---
 
 ## Commit Message Convention
@@ -405,6 +411,7 @@ When reviewing a PR, the maintainer checks:
 | **PowerShell 5.1 compatible** | No PS7-only syntax |
 | **Registry write discipline** | All writes via `reg.exe` or framework helpers |
 | **Idempotence** | Repeated runs produce the same outcome |
+| **Stock MDT content untouched** | Files outside `Scripts\Custom\` and `$OEM$` are not modified |
 | **Tested on hardware** | PR description states the hardware used |
 | **Small, focused scope** | One logical change per PR |
 
@@ -445,6 +452,20 @@ The framework's canonical docs are not shipped here. This repository ships the f
 
 ---
 
+## Working Across the Three Repositories
+
+This project is part of a three-repository ecosystem. Before opening a PR, determine which repository the change belongs to.
+
+| Repository | What belongs there |
+|---|---|
+| [`MDT-Zero-Touch-Deployment`](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment) (this repo) | Task sequences, deployment scripts, the OEM Apps framework, the deployment share structure, offline media workflow, and all deployment documentation |
+| [`MDT-OEM-Extensibility`](https://github.com/ArthurJDurand/MDT-OEM-Extensibility) | The tooling and recipes that build the per-vendor `.7z` payload archives. Changes to how OEM apps are downloaded, staged, and packed belong there. |
+| [`MDT-Windows-Image-Builder`](https://github.com/ArthurJDurand/MDT-Windows-Image-Builder) | The UUPDump workflow, `autounattend.xml` templates, Hyper-V setup, audit mode, and image capture. Changes to how Windows images are built belong there. |
+
+If you are unsure, open a Discussion. Cross-repository changes should be coordinated across the relevant repositories.
+
+---
+
 ## Areas Where Help Is Needed
 
 Some specific things the maintainer would love help with:
@@ -471,6 +492,8 @@ Driver packs and app archives for:
 - Toshiba Dynabook (existing pack needs updating)
 - Clevo / Tongfang / XMG / Schenker
 
+The recipes for these belong in [`MDT-OEM-Extensibility`](https://github.com/ArthurJDurand/MDT-OEM-Extensibility).
+
 ### 4. Newer Intel and AMD storage drivers
 
 - Intel VMD for 14th Gen and beyond (Meteor Lake, Arrow Lake)
@@ -488,7 +511,7 @@ Driver packs and app archives for:
 - Expanding `docs/TROUBLESHOOTING.md` with real-world error scenarios
 - Adding a "known working hardware" table to the README
 - Adding screenshots to the setup guide
-- Authoring the companion repository [`MDT-Windows-Image-Builder`](https://github.com/ArthurJDurand/MDT-Windows-Image-Builder) content
+- Authoring the companion repositories [`MDT-Windows-Image-Builder`](https://github.com/ArthurJDurand/MDT-Windows-Image-Builder) and [`MDT-OEM-Extensibility`](https://github.com/ArthurJDurand/MDT-OEM-Extensibility)
 
 If any of these interest you, **open a Discussion first** so we can scope it together.
 
@@ -511,7 +534,7 @@ Found a bug? [Open an issue](https://github.com/ArthurJDurand/MDT-Zero-Touch-Dep
 
 ## License of Contributions
 
-By submitting a pull request to this project, you agree that your contribution is licensed under the same [MIT License](LICENSE.md) that governs the project.
+By submitting a pull request to this project, you agree that your contribution is licensed under the same [MIT License](LICENSE) that governs the project.
 
 You confirm that:
 

@@ -13,9 +13,9 @@ body:
       value: |
         Thanks for taking the time to file a bug report. Before submitting, please:
 
-        1. **Search [existing issues](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/issues)** to avoid duplicates.
-        2. **Check [docs/TROUBLESHOOTING.md](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/blob/main/docs/TROUBLESHOOTING.md)** for common errors and fixes.
-        3. **Review [KNOWN LIMITATIONS](https://github.com/ArthurJDurand/MDT-TS-and-Scripts#known-limitations)** in the README — some behaviours are documented and intentional.
+        1. **Search [existing issues](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/issues)** to avoid duplicates.
+        2. **Check [docs/TROUBLESHOOTING.md](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/blob/main/docs/TROUBLESHOOTING.md)** for common errors and fixes.
+        3. **Review [KNOWN LIMITATIONS](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment#known-limitations)** in the README — some behaviours are documented and intentional.
 
         The more detail you provide, the faster this can be resolved.
 
@@ -93,6 +93,8 @@ body:
         - Postinstall
         - State Restore
         - OOBE / SetupComplete.cmd
+        - Framework SYSTEM phase (pbr.ps1 at OOBE)
+        - Framework USER phase (pbr.ps1 at first logon)
         - Post-deployment (manual scripts)
         - Not applicable / unknown
     validations:
@@ -124,17 +126,19 @@ body:
         - SetupComplete.cmd
         - pre.ps1
         - Customizations.ps1
-        - Apps\pbr.ps1
-        - Apps.ps1
-        - Drivers.ps1
-        - LGPO.ps1
+        - pbr.ps1
+        - Framework module (specify in Description)
+        - OEM module (specify in Description)
+        - Manifest (specify in Description)
         - Activation\HWID_Activation.cmd
         - Activation\Ohook_Activation.cmd
         - RustDesk.ps1
         - DymaxIOLicense.ps1
-        - OEMDriversExport.ps1
-        - ScanWindowsImage64.ps1
-        - ScanStatex64.ps1
+        - DiskeeperLicense.ps1
+        - AnyDesk.cmd
+        - Update.xml (scheduled task)
+        - ResetConfig.xml / PBR chain
+        - Post-deployment CMD script (specify in Description)
         - Other (specify in Description)
     validations:
       required: true
@@ -200,6 +204,7 @@ body:
         - **WinPE phase:** `X:\MININT\SMSOSD\OSDLOGS\`
         - **Full OS phase:** `C:\MININT\SMSOSD\OSDLOGS\`
         - **Post-OOBE:** `C:\ProgramData\OEM\Logs\`
+        - **Framework shared log:** `C:\ProgramData\OEM\Logs\PBR_Deployment.log`
         - **Deployment summary:** `C:\Windows\Temp\DeploymentLogs\`
 
         If your log is long, attach it as a file or upload to a Gist and link it here.
@@ -222,6 +227,6 @@ body:
     id: additional
     attributes:
       label: Additional context
-      description: Anything else that might be relevant — recent changes to your deployment share, custom modifications, network topology, etc.
+      description: Anything else that might be relevant — recent changes to your deployment share, custom modifications, network topology, and so on.
     validations:
       required: false

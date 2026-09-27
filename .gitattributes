@@ -1,0 +1,196 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# .gitattributes — MDT-Zero-Touch-Deployment
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# This repository ships an MDT deployment share: PowerShell and VBScript,
+# task sequences, XML configuration, REG files, and the intentional binary
+# payloads (7-Zip, BGInfo, installers under $OEM$, AOMEI PXE Boot, etc.).
+#
+# The rules below group by concern:
+#
+#   1. Default behavior
+#   2. Windows text files (CRLF)
+#   3. Registry files (UTF-16 LE, CRLF)
+#   4. Cross-platform text files (LF)
+#   5. Binary files
+#   6. Linguist classification
+#
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 1. DEFAULT BEHAVIOR
+# ───────────────────────────────────────────────────────────────────────────
+
+* text=auto
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 2. WINDOWS TEXT FILES
+# ───────────────────────────────────────────────────────────────────────────
+# Windows tooling expects CRLF. Windows PowerShell 5.1, cscript, wscript,
+# cmd.exe, and reg.exe all assume CRLF.
+
+*.ps1       text eol=crlf
+*.psm1      text eol=crlf
+*.psd1      text eol=crlf
+*.ps1xml    text eol=crlf
+*.cmd       text eol=crlf
+*.bat       text eol=crlf
+*.vbs       text eol=crlf
+*.wsf       text eol=crlf
+*.ini       text eol=crlf
+*.xml       text eol=crlf
+*.inf       text eol=crlf
+*.txt       text eol=crlf
+*.csv       text eol=crlf
+*.ion       text eol=crlf
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 3. REGISTRY FILES
+# ───────────────────────────────────────────────────────────────────────────
+# .reg files must be UTF-16 LE with a BOM and CRLF. The working-tree-encoding
+# attribute enforces the encoding on checkout.
+
+*.reg       text eol=crlf working-tree-encoding=UTF-16LE-BOM
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 4. CROSS-PLATFORM TEXT FILES
+# ───────────────────────────────────────────────────────────────────────────
+# Read by GitHub, editors, and tools on any platform. LF in the repository.
+
+*.md        text eol=lf
+*.json      text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.sh        text eol=lf
+.gitattributes  text eol=lf
+.gitignore      text eol=lf
+.gitmodules     text eol=lf
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 5. BINARY FILES
+# ───────────────────────────────────────────────────────────────────────────
+# Never normalize, never diff as text.
+
+# Executables and installers
+*.exe        binary
+*.com        binary
+*.scr        binary
+*.msi        binary
+*.msp        binary
+*.msu        binary
+*.cab        binary
+*.psf        binary
+*.msix       binary
+*.msixbundle binary
+*.msixupload binary
+*.appx       binary
+*.appxbundle binary
+*.appxupload binary
+
+# Libraries and drivers
+*.dll        binary
+*.ocx        binary
+*.cpl        binary
+*.sys        binary
+*.cat        binary
+*.bin        binary
+*.dat        binary
+*.rom        binary
+*.efi        binary
+*.cap        binary
+*.fd         binary
+
+# Archives
+*.zip        binary
+*.rar        binary
+*.7z         binary
+*.7z.001     binary
+*.7z.002     binary
+*.7z.003     binary
+*.7z.004     binary
+*.7z.005     binary
+*.7z.006     binary
+*.7z.007     binary
+*.7z.008     binary
+*.7z.009     binary
+*.7z.010     binary
+*.tar        binary
+*.tar.gz     binary
+*.tgz        binary
+*.gz         binary
+*.bz2        binary
+*.xz         binary
+
+# Disk and OS images
+*.iso        binary
+*.wim        binary
+*.esd        binary
+*.swm        binary
+*.vhd        binary
+*.vhdx       binary
+*.avhdx       binary
+*.vmdk       binary
+*.vdi        binary
+*.ffu        binary
+
+# Image assets
+*.jpg        binary
+*.jpeg       binary
+*.png        binary
+*.gif        binary
+*.bmp        binary
+*.ico        binary
+*.tif        binary
+*.tiff       binary
+*.webp       binary
+*.svg        text eol=lf
+
+# Fonts
+*.ttf        binary
+*.otf        binary
+*.woff       binary
+*.woff2      binary
+
+# Cryptographic material (should never be committed, but classify correctly)
+*.pfx        binary
+*.p12        binary
+*.key        binary
+*.pem        text eol=lf
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 6. LINGUIST CLASSIFICATION
+# ───────────────────────────────────────────────────────────────────────────
+# Tell GitHub Linguist how to count these files in the repository stats.
+
+# Documentation is not code
+docs/**       linguist-documentation
+.github/**    linguist-documentation
+README.md     linguist-documentation
+CHANGELOG.md  linguist-documentation
+CONTRIBUTING.md  linguist-documentation
+CODE_OF_CONDUCT.md  linguist-documentation
+
+# Prerequisites are vendored third-party installers
+Prerequisites/**  linguist-vendored
+
+# Boot add-ons are vendored binaries
+DeploymentShare/Boot/Addon/**  linguist-vendored
+
+# MDT Tools are vendored binaries
+DeploymentShare/Tools/**  linguist-vendored
+
+# Task sequence XML is data, not code
+DeploymentShare/Control/WIN10PROX64/ts.xml  linguist-documentation
+DeploymentShare/Control/WIN10PROX86/ts.xml  linguist-documentation
+DeploymentShare/Control/WIN11PROX64/ts.xml  linguist-documentation
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# END OF .gitattributes
+# ═══════════════════════════════════════════════════════════════════════════

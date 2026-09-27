@@ -1,0 +1,139 @@
+name: 💡 Feature Request
+description: Suggest a new feature, script, OEM pack, or improvement
+title: "[Feature]: "
+labels:
+  - enhancement
+  - needs-triage
+assignees:
+  - ArthurJDurand
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to suggest an improvement. Before submitting, please:
+
+        1. **Search [existing issues](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/issues)** and **[Discussions](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/discussions)** to avoid duplicates.
+        2. **Check the [CONTRIBUTING.md → Areas Where Help Is Needed](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/blob/main/CONTRIBUTING.md#areas-where-help-is-needed)** section — your idea may already be on the roadmap.
+        3. **Check the [Known Limitations](https://github.com/ArthurJDurand/MDT-TS-and-Scripts#known-limitations)** section in the README.
+
+        For open-ended ideas or brainstorming, please start a **[Discussion](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/discussions)** instead of an issue.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Pre-flight checks
+      description: Please confirm you have completed these steps before filing.
+      options:
+        - label: I have searched existing issues and Discussions, and this has not been suggested before.
+          required: true
+        - label: I have read the CONTRIBUTING.md "Areas Where Help Is Needed" section.
+          required: true
+        - label: I have read the Known Limitations section in the README.
+          required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature category
+      description: What type of feature are you requesting?
+      options:
+        - New task sequence script
+        - New OEM driver pack
+        - New OEM app pack
+        - New third-party application
+        - Hardware support (VMD, RAID, NVMe, etc.)
+        - Windows edition support (Home, Education, LTSC, etc.)
+        - Payload updater improvement
+        - Documentation
+        - Build / CI / repository infrastructure
+        - Refactor / code quality
+        - Other (specify in Description)
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem does this feature solve? Describe the pain point, not the solution.
+      placeholder: |
+        Example: When deploying to Dell Latitude 7450 with Intel Core Ultra 7 165U,
+        the VMD driver lookup falls through and no storage driver is loaded. I have
+        to manually inject the driver into the boot image before each deployment.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: What would you like to see happen? Be as specific as you can.
+      placeholder: |
+        Example: Add "Core Ultra Series 2" mapping to `Get-IntelProcessorGeneration`
+        in LoadWinPEDrivers.ps1 so that Lunar Lake and Arrow Lake parts return a
+        generation number. This should map Series 2 SKUs (2xx) to generation 15
+        and pull VMD driver 20.2.6.1025.3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What other approaches did you consider? Why did you reject them?
+      placeholder: |
+        Example: I considered hardcoding by CPU model string, but the generation
+        map approach is more future-proof because it only needs updates when
+        Intel releases a new series.
+    validations:
+      required: false
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use case
+      description: Describe your scenario. What hardware, OS, and workflow are you using?
+      placeholder: |
+        - Deploying to: Dell Latitude 7450, HP EliteBook 1040 G11
+        - OS: Windows 11 Pro x64
+        - Task sequence: WIN11PROX64
+        - Volume: ~200 machines per quarter
+    validations:
+      required: true
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples, references, or mockups
+      description: |
+        Links to other projects, existing scripts, OEM documentation, or code sketches
+        that demonstrate what you have in mind. If you have a working prototype, share it.
+      placeholder: |
+        Example: Dell Command | Deploy driver packs for Latitude 7450 are published at:
+        https://www.dell.com/support/kbdoc/...
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Willingness to contribute
+      description: This project is maintained by a single person in their spare time. Contributions are very welcome.
+      options:
+        - label: I am willing to submit a pull request implementing this feature.
+          required: false
+        - label: I am willing to test a proposed implementation on real hardware.
+          required: false
+        - label: I am willing to help with documentation for this feature.
+          required: false
+        - label: I would only like to see this feature implemented (no contribution planned).
+          required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Anything else that might help evaluate this request.
+    validations:
+      required: false

@@ -1,802 +1,553 @@
-# Setup Guide
+# Contributing to MDT Zero-Touch Deployment
 
-Complete walkthrough for installing, configuring, and deploying with the MDT-TS-and-Scripts deployment share. Covers both deployment paths — Windows Server with DHCP + WDS, and a Windows desktop with AOMEI PXE Boot.
+First off — **thank you** for considering a contribution. This project exists because the MDT community shares knowledge, and every improvement (a new OEM pack, a bug fix, a documentation tweak) makes it more useful for everyone.
+
+This document explains how to contribute effectively and what standards your contributions should meet.
 
 ---
 
 ## Table of Contents
 
-- [Before You Begin](#before-you-begin)
-- [Requirements](#requirements)
-- [Path A — Server Deployment](#path-a--server-deployment)
-- [Path B — Desktop Deployment](#path-b--desktop-deployment)
-- [Prepare the Deployment Host](#prepare-the-deployment-host)
-- [Create the Deployment Share](#create-the-deployment-share)
-- [Merge the Repository](#merge-the-repository)
-- [Configure the Deployment Share](#configure-the-deployment-share)
-- [Prepare Network Shares](#prepare-network-shares)
-- [Generate Boot Images](#generate-boot-images)
-- [Import Boot Images](#import-boot-images)
-- [First Deployment](#first-deployment)
-- [Post-Deployment](#post-deployment)
-- [Offline Media](#offline-media)
-- [Verification Checklist](#verification-checklist)
-- [Troubleshooting Quick Reference](#troubleshooting-quick-reference)
+- [Ways to Contribute](#ways-to-contribute)
+- [Before You Start](#before-you-start)
+- [Development Setup](#development-setup)
+- [Script Standards](#script-standards)
+- [Commit Message Convention](#commit-message-convention)
+- [Branch Naming](#branch-naming)
+- [Pull Request Process](#pull-request-process)
+- [What Reviewers Look For](#what-reviewers-look-for)
+- [Contributing to the Apps Framework](#contributing-to-the-apps-framework)
+- [Areas Where Help Is Needed](#areas-where-help-is-needed)
+- [Reporting Bugs](#reporting-bugs)
+- [License of Contributions](#license-of-contributions)
+- [Code of Conduct](#code-of-conduct)
+- [Questions](#questions)
 
 ---
 
-## Before You Begin
+## Ways to Contribute
 
-### Time estimate
+You don't have to write code to contribute. All of the following are valuable:
 
-| Phase | First-time setup |
+| Contribution Type | Examples |
 |---|---|
-| Software installation | 45–90 min |
-| Role configuration (server or desktop) | 20–45 min |
-| Deployment share creation | 10–15 min |
-| Merge repository into deployment share | 5–15 min |
-| Configuration file edits | 15–30 min |
-| Network share preparation | 20–60 min |
-| Boot image generation | 15–30 min |
-| First test deployment | 30–60 min |
+| **Bug fixes** | Correcting a script that fails on a specific model, fixing a path typo, resolving a DISM error |
+| **New scripts** | A new task sequence step, a new post-deployment cleanup script, a new driver detection routine |
+| **OEM packs** | Driver packs or app archives for OEMs or models not yet covered |
+| **Hardware support** | Intel VMD or AMD storage driver updates for newer CPU generations |
+| **Framework contributions** | New OEM modules, manifest entries, or hook implementations for the Apps framework |
+| **Documentation** | Clarifying a setup step, fixing a typo, adding a troubleshooting entry |
+| **Testing** | Confirming a script works on your hardware and reporting the result |
+| **Ideas** | Feature requests, workflow suggestions, or architectural feedback |
 
-Expect a full first-time setup to take **3–5 hours** including a first deployment.
-
-### Skills assumed
-
-- Windows Server or Windows desktop administration
-- Networking fundamentals (DHCP, DNS, SMB, subnetting)
-- Familiarity with WinPE, DISM, `unattend.xml`, and WIM concepts
-- Working knowledge of MDT and the Windows ADK
-
-If any of these are unfamiliar, work through Microsoft's own MDT documentation first. This guide assumes working knowledge and does not teach MDT fundamentals.
-
-### Before you start, get a Windows image
-
-This project requires a Windows `install.wim` (or an ISO containing one) to import into MDT. You have two options:
-
-- **Build your own** with UUPDump and audit mode — see the companion repository [MDT-Windows-Image-Builder](https://github.com/ArthurJDurand/MDT-Windows-Image-Builder) and [docs/WINDOWS-MEDIA.md](WINDOWS-MEDIA.md)
-- **Use an existing image** you have on hand (Microsoft ISO, VLSC, or a pre-built image from your organization)
-
-Have the image ready before you begin the deployment share steps.
+If you're unsure whether an idea is in scope, **open a [Discussion](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/discussions) first** before investing time in a PR.
 
 ---
 
-## Requirements
+## Before You Start
 
-### Hardware
+### Check existing issues and PRs
 
-| Component | Minimum | Recommended |
-|---|---|---|
-| Deployment host CPU | 2 cores | 4+ cores |
-| Deployment host RAM | 8 GB | 16 GB |
-| Deployment host disk | 200 GB free | 500 GB+ on SSD |
-| Target machine | Any x64 machine with UEFI or BIOS and PXE (or USB boot) | Physical hardware |
-| Network | Wired Ethernet, same subnet | Gigabit switch |
+Someone may already be working on the same thing. Search [open issues](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/issues) and [open PRs](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/pulls) before starting.
 
-VMs are fine for the deployment host. Physical hardware is strongly recommended for target machines when validating driver injection, VMD, or WinRE.
+### Open an issue first for large changes
 
-### Software on the deployment host
+For anything beyond a typo or obvious bug fix — especially new scripts, task sequence changes, new OEM packs, or framework extensions — **open an issue to discuss the approach first**. This avoids wasted effort if the change does not fit the project's direction.
 
-Install in this order:
+### Small, focused PRs are preferred
 
-1. **Windows ADK for Windows 11** — select at minimum the Deployment Tools feature
-2. **Windows PE Addon for the ADK** — required to build WinPE boot images
-3. **Windows SDK for Windows 11** — only the .NET and tooling features are needed
-4. **Microsoft Deployment Toolkit** — default install location is `C:\Program Files\Microsoft Deployment Toolkit`
-5. **PowerShell 7** — installs alongside PowerShell 5.1
-6. **7-Zip** — install to the default location `C:\Program Files\7-Zip\`
-
-Download links are in the [README](../README.md).
-
-### Network topology (server path)
-
-- Deployment server on a static IP outside the DHCP scope (e.g. `192.168.1.200`)
-- DHCP scope serving PXE clients (e.g. `192.168.1.101–199`)
-- DNS resolves the server hostname (`SERVER` by default) from client machines
-
-### Network topology (desktop path)
-
-- Deployment workstation on a static IP or DHCP reservation
-- AOMEI PXE Boot running as a service or scheduled task
-- No DHCP server or WDS role required — AOMEI handles PXE responses
+One logical change per PR. A PR that fixes a bug *and* adds a feature *and* reformats a script is hard to review and hard to revert if something goes wrong.
 
 ---
 
-## Path A — Server Deployment
+## Development Setup
 
-Follow this path if you have Windows Server available.
+To test your changes properly, you need a working MDT environment.
 
-### A.1 — Rename the host
+### Minimum requirements
 
-Rename the server to `SERVER` (all uppercase, no quotes):
+- Windows Server (with DHCP + WDS) **or** Windows desktop (with AOMEI PXE Boot)
+- Windows ADK for Windows 11 + Windows PE Addon
+- Windows SDK for Windows 11
+- Microsoft Deployment Toolkit `6.3.8456.1000`
+- PowerShell 7 on the development host
+- 7-Zip installed at `C:\Program Files\7-Zip\7z.exe`
+- A target machine for testing (physical hardware strongly preferred over a VM for driver-related changes)
 
-```powershell
-Rename-Computer -NewName "SERVER" -Restart
-```
+### Recommended workflow
 
-Reconnect after the reboot.
+1. Fork the repository
+2. Clone your fork:
+   ```bash
+   git clone https://github.com/<your-username>/MDT-Zero-Touch-Deployment.git
+   ```
+3. Set up a **test deployment share** separate from any production share
+4. Merge the repository's `DeploymentShare/` contents into your test share
+5. Test your changes end-to-end (PXE boot a client, complete a full deployment through OOBE, and if applicable, verify the framework phases)
+6. Commit and push to your fork
+7. Open a PR against the `main` branch
 
-> **Why `SERVER`?** The scripts and configuration files use `\\SERVER\...` paths by default. You can use a different hostname if you also update `Control\Bootstrap.ini` and `Control\Settings.xml`. See [Configure the Deployment Share](#configure-the-deployment-share).
+### Testing requirements by change type
 
-### A.2 — Create the deployment service account
-
-Open **Computer Management** → **Local Users and Groups** → **Users** → **New User**.
-
-| Field | Value |
+| Change Type | Testing Required |
 |---|---|
-| User name | `Network User` |
-| Full name | `Network User` |
-| Description | Deployment service account |
-| Password | `p@$$w0rd` (lowercase `p`, at, dollar, dollar, lowercase `w`, zero, lowercase `r`, lowercase `d`) |
-| Confirm password | Same as above |
+| Documentation only | None, but proofread carefully |
+| Script bug fix | Reproduce the bug, apply the fix, verify it is resolved, confirm no regression |
+| New task sequence script | Full deployment on at least one physical machine |
+| Driver pack addition | Deploy to the target model and confirm drivers install |
+| Task sequence change | Full deployment on both BIOS and UEFI, if applicable |
+| VMD / storage driver change | Deploy to the target CPU generation |
+| `pre.ps1` change | Full deployment through OOBE on at least one physical machine; verify the transcript at `C:\ProgramData\OEM\Logs\pre_*.log` |
+| `SetupComplete.cmd` change | Full deployment through OOBE; verify all three child scripts run and log |
+| Framework module change | Full deployment through both SYSTEM and USER phases; verify health check passes and convergence marker is written |
+| OEM module change | Full deployment on hardware from that OEM; verify family detection and app installation |
+| Manifest change | Full deployment on hardware from that OEM; verify the added/changed app installs and any pinning applies |
 
-After clicking **Create**, open the account's **Properties**:
-
-**General tab:**
-- Uncheck **User must change password at next logon**
-- Check **User cannot change password**
-- Check **Password never expires**
-
-**Member Of tab:**
-- Click **Add…**, type `Administrators`, confirm
-- Select the `Users` group and click **Remove**
-- Click **OK**
-
-> **Security note.** `p@$$w0rd` is a known password published in this repository. It is acceptable only on isolated lab networks. For any production or internet-adjacent environment, use a strong unique password and update `Control\Bootstrap.ini` accordingly.
-
-### A.3 — Configure a static IP address
-
-Assign a static IP on your LAN. Example for a `192.168.1.0/24` network:
-
-```powershell
-New-NetIPAddress -InterfaceAlias "Ethernet" -IPAddress 192.168.1.200 -PrefixLength 24 -DefaultGateway 192.168.1.1
-Set-DnsClientServerAddress -InterfaceAlias "Ethernet" -ServerAddresses 192.168.1.1, 8.8.8.8
-```
-
-Replace `Ethernet` with your actual adapter alias (check with `Get-NetAdapter`). Choose an address outside the DHCP scope.
-
-### A.4 — Install the DHCP and WDS roles
-
-Two options:
-
-**Manual:**
-
-```powershell
-Install-WindowsFeature -Name DHCP -IncludeManagementTools
-Install-WindowsFeature -Name WDS -IncludeManagementTools
-```
-
-**From the repository template:**
-
-The repository ships `Prerequisites\for Windows Server\Configs\DeploymentConfigTemplate.xml`. Run:
-
-```powershell
-Install-WindowsFeature -ConfigurationFilePath "C:\path\to\DeploymentConfigTemplate.xml"
-```
-
-Replace the path with the actual location.
-
-### A.5 — Authorize DHCP in Active Directory (domain-joined only)
-
-```powershell
-Add-DhcpServerInDC -DnsName SERVER -IPAddress 192.168.1.200
-```
-
-Skip this on workgroup servers.
-
-### A.6 — Configure DHCP scope
-
-Open **DHCP Manager** (`dhcpmgmt.msc`) and create a scope:
-
-- **Name:** `Deployment`
-- **Start IP:** e.g. `192.168.1.101`
-- **End IP:** e.g. `192.168.1.199`
-- **Subnet mask:** `255.255.255.0` (or match your LAN)
-- **Lease duration:** `1 day`
-- **Router (003):** your gateway
-- **DNS Servers (006):** your DNS servers
-
-Then configure DHCP options for PXE:
-
-- **Option 066 (Boot Server Host Name):** `192.168.1.200`
-- **Option 067 (Bootfile Name):** `boot\x64\wdsnbp.com`
-
-Do **not** set Option 060 (PXE Client) when DHCP and WDS are on the same host. WDS responds on the same port.
-
-Optionally import the repository's DHCP config:
-
-```powershell
-Import-DhcpServer -File "C:\path\to\DHCP Server.xml" -BackupPath "C:\DHCP-Backup"
-```
-
-Then open DHCP Manager and adjust the scope and options to match your network.
-
-### A.7 — Configure WDS
-
-Open **Windows Deployment Services** (`wdsmgmt.msc`):
-
-1. Right-click **Servers** → **Add Server** → select the local server.
-2. Right-click the server → **Configure Server**.
-3. Choose **Integrated with Active Directory** (domain) or **Standalone server** (workgroup).
-4. Set the **RemoteInstall** folder (default `C:\RemoteInstall`).
-5. In **Server Properties** → **PXE Response** tab, choose:
-   - **Respond to all client computers (known and unknown)** — easiest for lab
-   - **Respond only to known client computers** — requires pre-staging
-
-Optionally import the repository's WDS config:
-
-```powershell
-Import-WdsServer -Path "C:\path\to\WDS Server.xml" -OverwriteExisting
-```
-
-### A.8 — Continue to shared steps
-
-Skip ahead to [Prepare the Deployment Host](#prepare-the-deployment-host).
+**State what hardware you tested on in the PR description.** "Tested on Dell Latitude 5430, BIOS mode, Win11 Pro x64" is far more useful than "tested and works."
 
 ---
 
-## Path B — Desktop Deployment
+## Script Standards
 
-Follow this path if you only have a Windows desktop edition.
+Scripts live in several execution contexts. The standards differ per context.
 
-### B.1 — Rename the host
+| Location | Execution Context | WMI/CIM | Registry Writes |
+|---|---|---|---|
+| `DeploymentShare\Scripts\Custom\` | WinPE | Only `Get-PhysicalDisk` via `winpe-storagewmi`; other WMI/CIM unavailable | `reg.exe` only |
+| `DeploymentShare\<arch>\$OEM$\$1\Recovery\OEM\` | Full OS (OOBE) | Available | `reg.exe` only |
+| `DeploymentShare\<arch>\$OEM$\$1\Scripts\` | Full OS (interactive) | Available | `reg.exe` only |
+| `DeploymentShare\<arch>\$OEM$\$1\Recovery\OEM\Apps\Framework\` | Full OS (OOBE and first logon) | Available | `reg.exe` only, via `Registry.psm1` helpers |
 
-Same as Path A step A.1:
+### 1. WinPE-safe (for `Scripts\Custom\` only)
 
-```powershell
-Rename-Computer -NewName "SERVER" -Restart
-```
+Scripts in `Scripts\Custom\` run in WinPE. WinPE is a stripped-down environment.
 
-### B.2 — Create the deployment service account
+**Rules:**
 
-Same as Path A step A.2.
-
-### B.3 — Configure a static IP address (recommended)
-
-Same as Path A step A.3, or use a DHCP reservation.
-
-### B.4 — Install AOMEI PXE Boot
-
-From `Prerequisites\for Desktop Editions of Windows\AOMEI PXE Boot Free 1.5\`, run `PXEBoot.exe`.
-
-AOMEI PXE Boot serves the boot image to PXE clients over the network. You will point it at the LiteTouch boot WIM after generating it.
-
-### B.5 — Continue to shared steps
-
-Skip ahead to [Prepare the Deployment Host](#prepare-the-deployment-host).
-
----
-
-## Prepare the Deployment Host
-
-These steps are identical for both paths.
-
-### 1. Extract MDT Templates
-
-In the repository's `Prerequisites\` folder, run `MDT Templates.exe` and extract to the default location (usually `C:\Program Files\Microsoft Deployment Toolkit\Templates`).
-
-### 2. Install the remaining software
-
-If not already done, install:
-
-- Windows ADK for Windows 11
-- Windows PE Addon
-- Windows SDK
-- Microsoft Deployment Toolkit
-- PowerShell 7
-- 7-Zip
-
-### 3. Clone the repository
-
-Clone to a working location, **not** into your deployment share yet:
+- Use the registry and file system for hardware detection
+- **Do not use `Get-CimInstance`, `Get-WmiObject`, or `Get-PhysicalDisk`** unless `winpe-storagewmi` and the Storage module are explicitly available in the boot image
+- Do not assume `Get-Volume` returns a single result
 
 ```powershell
-git clone https://github.com/ArthurJDurand/MDT-TS-and-Scripts.git C:\Source\MDT-TS-and-Scripts
+# BAD — WMI is not reliable in WinPE
+$model = (Get-CimInstance Win32_ComputerSystem).Model
+
+# GOOD — registry is always available
+$model = (Get-ItemProperty 'HKLM:\HARDWARE\DESCRIPTION\System\BIOS' -Name SystemProductName).SystemProductName
 ```
 
-### 4. Prepare your Windows image
+Scripts in `$OEM$` and the Apps framework run in the full OS and are **exempt** from this rule.
 
-Have your Windows `install.wim` ready. If you need to build one, see the companion repository [MDT-Windows-Image-Builder](https://github.com/ArthurJDurand/MDT-Windows-Image-Builder) and [docs/WINDOWS-MEDIA.md](WINDOWS-MEDIA.md).
+### 2. Defensive volume and disk lookups
 
----
-
-## Create the Deployment Share
-
-1. Open **Deployment Workbench** (Start → Microsoft Deployment Toolkit → Deployment Workbench).
-2. Right-click **Deployment Shares** → **New Deployment Share**.
-3. **Path:** `C:\DeploymentShare`
-4. **Share name:** `DeploymentShare$`
-5. **Descriptive name:** `MDT Deployment Share`
-6. Accept all remaining defaults.
-7. Click **Finish**.
-
-Do **not** modify anything inside the share yet. Close Deployment Workbench.
-
----
-
-## Merge the Repository
-
-Copy the contents of `C:\Source\MDT-TS-and-Scripts\DeploymentShare` into `C:\DeploymentShare`, merging folders:
+`Get-Volume`, `Get-Partition`, and `Get-Disk` can return multiple results on systems with multiple disks or duplicate labels. **Always pipe through `Select-Object -First 1`** or wrap in `@()` and check the count.
 
 ```powershell
-robocopy "C:\Source\MDT-TS-and-Scripts\DeploymentShare" "C:\DeploymentShare" /E /COPY:DAT /R:2 /W:5
+# BAD — may return an array, breaks later string operations
+$WindowsDrive = (Get-Volume -FileSystemLabel Windows).DriveLetter
+
+# GOOD — deterministic single value
+$WindowsDrive = (Get-Volume -FileSystemLabel Windows | Select-Object -First 1).DriveLetter
 ```
 
-When Windows asks to merge or replace, choose **Merge** for folders and **Replace** for individual files.
+### 3. Retry logic for DISM and robocopy
 
-After this, `C:\DeploymentShare` contains:
+Both tools fail intermittently. Wrap them in retry loops.
 
-- `Boot\Addon\x64\` (bundled 7-Zip)
-- `Control\` (configuration)
-- `Scripts\Custom\` (task sequence scripts)
-- `x64\$OEM$\` (x64 OEM content and framework)
-- `x86\$OEM$\` (x86 OEM content)
-- Plus the standard MDT folders created by the wizard
+```powershell
+$maxAttempts = 3
+for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+    & DISM.exe /Image:"$ImagePath" /Add-Driver /Driver:"$DriverPath" /Recurse
+    if ($LASTEXITCODE -eq 0) { break }
+    if ($attempt -lt $maxAttempts) { Start-Sleep -Seconds 5 }
+}
+```
 
-### Re-open Deployment Workbench
+### 4. Silent operation
 
-Close and reopen the Workbench so it reloads the share contents. You should see:
+Scripts in `Scripts\Custom\` run inside a task sequence. User-facing output disrupts the deployment UI.
 
-- **Operating Systems** — empty (you will import your WIM)
-- **Task Sequences** — `WIN10PROX64`, `WIN10PROX86`, `WIN11PROX64`
-- **Applications** — empty
-- **Packages** — empty
-- **Out-of-box Drivers** — empty
+- **No `Write-Host`** unless the message is diagnostic and critical
+- **No `Write-Output`** unless the output is meant to be captured
+- Redirect verbose tool output to `$null` or a log file
+- Preserve `$LASTEXITCODE` — do not use `| Out-Null` on native commands if you need the exit code
 
-### Import your Windows image
+Scripts in `$OEM$` and the framework may use `Write-Host` freely for progress reporting, because they run in OOBE or at first logon with no task sequence UI to disturb.
 
-1. In Deployment Workbench, expand your deployment share.
-2. Right-click **Operating Systems** → **Import Operating System**.
-3. Choose **Full set of source files** (if importing from an ISO) or **Custom image file** (if importing a pre-built WIM).
-4. Browse to your Windows source (ISO mount or extracted folder) or WIM.
-5. Name the OS entry to match the expected names:
-   - `Windows 10 Pro (64-bit)`
-   - `Windows 10 Pro (32-bit)`
-   - `Windows 11 Pro (64-bit)`
-6. Finish the wizard.
+### 5. Preserve exit codes
 
-Then open each task sequence under **Task Sequences** and point it at the correct OS entry. The task sequences shipped in this repo assume OS names that match the default naming; if you named yours differently, edit the `Install Operating System` step in each task sequence.
+Never mask a failure with a silent `try/catch` that swallows the error. If a script fails, the caller should know about it.
+
+```powershell
+# BAD — swallows the error
+try { & dism.exe /Image:$Image /Add-Package /PackagePath:$Pkg } catch { }
+
+# GOOD — check the exit code explicitly
+& dism.exe /Image:$Image /Add-Package /PackagePath:$Pkg
+if ($LASTEXITCODE -ne 0) {
+    # log or fail visibly
+}
+```
+
+### 6. Header documentation
+
+Every script must begin with a comment block containing at minimum:
+
+```powershell
+<#
+.SYNOPSIS
+    One-line description of what the script does.
+
+.DESCRIPTION
+    Longer explanation including when this script runs in the task sequence
+    and what preconditions it expects.
+
+.NOTES
+    - WinPE-safe: yes/no
+    - External dependencies (7-Zip, network shares, USB labels)
+    - Known limitations
+#>
+```
+
+### 7. No hardcoded drive letters
+
+Never hardcode `C:`, `D:`, and so on. Always discover via volume label.
+
+```powershell
+# BAD
+$WindowsImage = "C:\"
+
+# GOOD
+$WindowsDrive = (Get-Volume -FileSystemLabel Windows | Select-Object -First 1).DriveLetter
+$WindowsImage = "${WindowsDrive}:\"
+```
+
+### 8. Path fallbacks
+
+Scripts that read from network shares should fall back to a DEPLOY-labeled USB drive, matching the pattern used in `ApplyUpdates*.ps1` and `ExtractOEM*.ps1`.
+
+### 9. Registry writes via `reg.exe` only
+
+This rule applies project-wide. Never use `New-ItemProperty` or the PowerShell Registry Provider for writes. The provider's handle retention blocks offline-hive unload, and a policy that requires per-site reasoning is a policy the next write site will violate. Reads via the provider are permitted.
+
+```powershell
+# BAD — provider write
+New-ItemProperty -Path $Key -Name $Name -Value $Value -Force
+
+# GOOD — reg.exe write
+& reg.exe add $Key /v $Name /t REG_SZ /d $Value /f
+```
+
+In the Apps framework, use the `Registry.psm1` helpers (`Set-RegistryValueSilent`, `Set-OfflineHiveValueSet`).
+
+### 10. PowerShell 5.1 compatibility
+
+Scripts must run under the WinPE and Windows OOBE versions of PowerShell, which are **5.1**. Do not use syntax or cmdlets exclusive to PowerShell 7 (ternary operator `? :`, `??`, `-Parallel`).
+
+### 11. No `exit` in task sequence scripts
+
+Task sequence scripts should return rather than `exit`, so the task sequence can capture failures. Scripts invoked from `SetupComplete.cmd` are standalone and may use `exit`.
+
+### 12. Idempotence
+
+Scripts that run repeatedly (framework phases, `pre.ps1`, orchestration scripts) must be idempotent. Re-running them must not produce different outcomes, duplicate files, or regressions.
 
 ---
 
-## Configure the Deployment Share
+## Commit Message Convention
 
-Open the `Control\` folder inside your deployment share and edit the following files.
+This project uses [Conventional Commits](https://www.conventionalcommits.org/). This makes the changelog easier to generate and clarifies what each commit does.
 
-### 1. `Bootstrap.ini`
+### Format
 
-```ini
-[Settings]
-Priority=Default
+```
+<type>(<scope>): <short description>
 
-[Default]
-DeployRoot=\\SERVER\DeploymentShare$
-SkipBDDWelcome=NO
-KeybordLocale=en-US
+[optional body]
 
-UserID=Network User
-UserPassword=p@$$w0rd
-UserDomain=server.local
+[optional footer]
 ```
 
-**What to edit:**
+### Types
 
-| Setting | Change if… |
+| Type | Use For |
 |---|---|
-| `DeployRoot` | Your server hostname is not `SERVER`, or your share name is not `DeploymentShare$` |
-| `UserID` | You created a deployment account with a different name |
-| `UserPassword` | You chose a different password |
-| `UserDomain` | Your server is domain-joined and you want to use a domain account |
-| `KeybordLocale` | You want a non-US keyboard layout. **Note: this key is misspelled** in the default config; MDT expects `KeyboardLocale` |
+| `feat` | A new feature or new script |
+| `fix` | A bug fix |
+| `docs` | Documentation changes only |
+| `refactor` | Code change that neither fixes a bug nor adds a feature |
+| `perf` | Performance improvement |
+| `test` | Adding or updating tests |
+| `chore` | Maintenance (dependency bumps, formatting, build changes) |
+| `revert` | Reverting a previous commit |
 
-**Security reminder.** `Bootstrap.ini` stores credentials in plaintext. Never commit a real `Bootstrap.ini` to a public repository. Use a least-privilege deployment account and restrict share permissions.
+### Scopes (optional but recommended)
 
-### 2. `CustomSettings.ini`
+Use the script name or area affected:
 
-Controls zero-touch behavior. Defaults:
+- `apply-drivers`, `apply-updates`, `winre`, `disk`, `oem`, `lgpo`, `pre`, `setupcomplete`
+- `framework`, `manifest`, `oem-module`, `layout`, `winget`
+- `docs`, `readme`, `changelog`
 
-- `SkipTaskSequence=NO` — user picks the OS at boot
-- `DeploymentType=NEWCOMPUTER`
-- `SkipApplications=NO` — user picks applications
-- `SkipDomainMembership=YES` — no domain join
-- `SkipComputerName=YES` — auto-generated name
-- `FinishAction=SHUTDOWN` — shuts down after deployment
+### Examples
 
-**Common edits:**
+```
+feat(apply-drivers): add support for 14th Gen Intel VMD
+fix(winre): persist VMD marker on target OS drive
+docs(setup): clarify WDS boot image import steps
+refactor(disk): use Select-Object -First 1 for volume lookups
+feat(oem-module): add OEM.Samsung module
+```
 
-| Goal | Change |
+### Breaking changes
+
+If a change breaks existing deployments, add `!` after the type/scope and include a `BREAKING CHANGE:` footer:
+
+```
+feat(apply-updates)!: require OSDVersion task sequence variable
+
+BREAKING CHANGE: ApplyUpdates11.ps1 now reads the OSDVersion task
+sequence variable to pick the update source folder. Update your task
+sequences to set OSDVersion before upgrading.
+```
+
+---
+
+## Branch Naming
+
+Use a prefix that matches the commit type:
+
+| Prefix | Use For |
 |---|---|
-| Skip the task sequence picker | `SkipTaskSequence=YES` and set `TaskSequenceID=WIN11PROX64` |
-| Force a computer name pattern | Add `OSDComputerName=PC-%SerialNumber%` under `[Default]` |
-| Skip the applications picker | `SkipApplications=YES` |
-| Join a domain | `SkipDomainMembership=NO`, `JoinDomain=yourdomain.local`, and set domain join credentials |
-| Reboot instead of shutdown | `FinishAction=REBOOT` |
+| `feature/` | New features or new scripts |
+| `fix/` | Bug fixes |
+| `docs/` | Documentation changes |
+| `refactor/` | Code refactoring |
+| `chore/` | Maintenance |
 
-### 3. `Settings.xml`
+Examples:
 
-Controls the deployment share itself.
-
-Default contents assume:
-
-- Physical path: `D:\DeploymentShare`
-- UNC path: `\\SERVER\DeploymentShare$`
-- Boot.x64.ExtraDirectory: `D:\DeploymentShare\Boot\Addon\x64`
-- Boot.x86.ExtraDirectory: `D:\DeploymentShare\Boot\Addon\x86`
-
-**Update these to match your environment:**
-
-- `PhysicalPath` — your share's local path (e.g. `C:\DeploymentShare`)
-- `UNCPath` — your server's UNC path
-- `Boot.x86.ExtraDirectory` and `Boot.x64.ExtraDirectory` — your local share path plus `\Boot\Addon\x86` (or `x64`)
-
-The `Boot.x64.ExtraDirectory` path is critical — the repository ships 7-Zip at `Boot\Addon\x64\Program Files\7-Zip\`, which is copied into the WinPE boot image so the boot image can extract `.7z` archives during deployment.
-
-### 4. `Medias.xml`
-
-Controls offline media generation. Default root: `D:\Deploy\MDT`. If you use a different folder, update the `<Root>` element.
-
-See [docs/OFFLINE-MEDIA.md](OFFLINE-MEDIA.md) for the full offline media workflow.
-
-### 5. Task Sequence unattend files
-
-Edit the following in each file to match your locale and time zone:
-
-- `Task Sequences\WIN10PROX64\Unattend.xml`
-- `Task Sequences\WIN10PROX86\Unattend.xml`
-- `Task Sequences\WIN11PROX64\Unattend.xml`
-
-```xml
-<component name="Microsoft-Windows-International-Core-WinPE" ...>
-  <InputLocale>en-US</InputLocale>
-  <SystemLocale>en-US</SystemLocale>
-  <UILanguage>en-US</UILanguage>
-  <UserLocale>en-ZA</UserLocale>
-</component>
-```
-
-And the time zone under `specialize` and `oobeSystem`:
-
-```xml
-<TimeZone>South Africa Standard Time</TimeZone>
-```
-
-Replace with your own locale and time zone. A full list of time zone IDs is available via `Get-TimeZone -ListAvailable` on any Windows machine.
-
-### 6. OEM-specific configuration
-
-Edit the OEM files at `x64\$OEM$\$1\Recovery\OEM\`:
-
-- `pre.ps1` — any deployment-specific settings, including the hardcoded AnyDesk password
-- `Activation\HWID_Activation.cmd` — Windows activation fallback (usually no changes needed)
-- `LGPO\Backup\` — replace with your own group policy backup if desired
-
-The framework files under `Apps\` are covered in [docs/APPS-FRAMEWORK.md](APPS-FRAMEWORK.md).
+- `feature/intel-vmd-14th-gen`
+- `fix/winre-marker-persistence`
+- `docs/troubleshooting-section`
+- `feature/oem-samsung-module`
 
 ---
 
-## Prepare Network Shares
+## Pull Request Process
 
-Create and populate the network shares the scripts expect.
+1. **Fork** the repository
+2. **Create a branch** from `main` using the naming convention above
+3. **Make your changes** following the script standards
+4. **Update `CHANGELOG.md`** — add your change under `[Unreleased]` in the appropriate section (`Added`, `Changed`, `Fixed`, `Removed`, `Security`)
+5. **Test end-to-end** on real hardware where applicable
+6. **Push** to your fork
+7. **Open a PR** against `main` with:
+   - A clear title matching the Conventional Commits format
+   - A description of **what** changed and **why**
+   - The **hardware and OS** you tested on
+   - A **link to the related issue** if one exists
+   - Screenshots or log excerpts if relevant
 
-### `\\SERVER\Shared`
+### PR title format
 
-Contains updates, driver packs, WinRE images, servicing components, and ScanState.
-
-```
-\\SERVER\Shared\
-├── OEM\
-│   ├── x64\
-│   │   ├── Dell.7z
-│   │   ├── HP.7z
-│   │   ├── Lenovo.7z
-│   │   └── ... (one .7z per vendor)
-│   └── x86\
-│       └── ... (x86 archives, if you support 32-bit hardware)
-├── DriverPacks\
-│   ├── Dell Latitude 5430 12th Gen Intel.7z
-│   ├── HP EliteBook 840 G9.7z
-│   └── ... (one .7z per supported model)
-├── Updates\
-│   ├── Win10\
-│   │   ├── x64\
-│   │   └── x86\
-│   └── Win11\
-├── WindowsRE\
-│   ├── Win10\
-│   │   ├── x64\winre.wim
-│   │   └── x86\winre.wim
-│   └── Win11\
-│       └── x64\winre.wim
-├── Servicing\
-│   └── Microsoft-OneCore-DirectX-Database-FOD-Package\
-├── ScanState\
-│   ├── amd64\
-│   └── x86\
-└── Drivers\
-    └── WinPE\
-        └── Storage\
-            └── Intel\
-                └── x64\
-                    ├── 19.5.8.1059.2\
-                    └── 20.2.6.1025.3\
-```
-
-Share permissions: `Network User` — Read.
-
-### `\\SERVER\Shared\OEM`
-
-Contains OEM app archives, addressed by the `ExtractOEMApps*.ps1` scripts.
+Match your commit message convention:
 
 ```
-\\SERVER\Shared\OEM\
-├── x64\
-│   ├── Dell.7z
-│   ├── HP.7z
-│   └── ...
-└── x86\
-    └── ...
+feat(apply-drivers): add support for 14th Gen Intel VMD
 ```
 
-Share permissions: `Network User` — Read.
+### What makes a good PR description
 
-Full details on archive naming, `.7z` splitting, and how the scripts select the right archive are in [docs/OEM.md](OEM.md).
+```markdown
+## Summary
+Adds support for 14th Gen Intel VMD drivers, which use a newer
+version than 11th-13th Gen.
+
+## Changes
+- Updated `Get-IntelVMDVersion` in ApplyOEMDrivers.ps1
+- Added 14th Gen to the generation map
+- Updated LoadWinPEDrivers.ps1 to use the new version
+
+## Testing
+- Tested on HP EliteBook 840 G11, UEFI, Win11 Pro x64
+- Full deployment completed successfully through OOBE
+- VMD driver version 20.2.6.1025.3 loaded in WinPE
+
+## Related Issue
+Closes #42
+
+## Checklist
+- [x] Follows script standards
+- [x] CHANGELOG.md updated under [Unreleased]
+- [x] Tested on real hardware
+- [x] No hardcoded drive letters
+- [x] Retry logic for DISM/robocopy
+- [x] Registry writes via reg.exe only
+```
 
 ---
 
-## Generate Boot Images
+## What Reviewers Look For
 
-Boot images are what PXE clients download. They contain WinPE plus the drivers and scripts needed to start the deployment.
+When reviewing a PR, the maintainer checks:
 
-### 1. Verify the boot image feature packs
-
-The repository's `Control\Settings.xml` already lists the correct WinPE feature packs. The critical ones are:
-
-- `winpe-dismcmdlets`
-- `winpe-dot3svc`
-- `winpe-enhancedstorage`
-- `winpe-fonts-legacy`
-- `winpe-fontsupport-winre`
-- `winpe-mdac`
-- `winpe-netfx`
-- `winpe-platformid`
-- `winpe-powershell`
-- `winpe-rndis`
-- `winpe-securebootcmdlets`
-- `winpe-storagewmi`
-- `dart8`
-
-Do **not** remove `winpe-storagewmi` — `SetTargetOSDisk.ps1` depends on it.
-
-### 2. Verify the boot add-on directory
-
-Confirm that `C:\DeploymentShare\Boot\Addon\x64\Program Files\7-Zip\` exists with the full 7-Zip installation. This is what gets injected into the boot image so the task sequence can extract `.7z` archives.
-
-If the folder is empty, re-copy from `C:\Source\MDT-TS-and-Scripts\DeploymentShare\Boot\Addon\x64\`.
-
-### 3. Configure driver injection into the boot image
-
-Under **Deployment Share** → **Properties** → **Windows PE** tab:
-
-- **Platform x64** → **Drivers and Patches** tab → set **Selection Profile** to `All Drivers`
-- **Platform x86** → same setting (only if you plan to deploy to 32-bit hardware)
-
-### 4. Update the deployment share
-
-Right-click the deployment share in Deployment Workbench and select **Update Deployment Share**.
-
-Choose:
-
-- **Completely regenerate the boot images** — on the first run
-- **Optimize the boot image updating process** — on subsequent runs
-
-This step takes **15–30 minutes**. It builds:
-
-- `C:\DeploymentShare\Boot\LiteTouchPE_x64.wim`
-- `C:\DeploymentShare\Boot\LiteTouchPE_x86.wim`
-
-### 5. Verify
-
-```powershell
-Get-ChildItem "C:\DeploymentShare\Boot\*.wim"
-```
-
-Both files should exist.
-
----
-
-## Import Boot Images
-
-### Path A — WDS
-
-1. Open **Windows Deployment Services** (`wdsmgmt.msc`)
-2. Expand **Servers** → `SERVER` → **Boot Images**
-3. Right-click **Boot Images** → **Add Boot Image**
-4. Browse to `C:\DeploymentShare\Boot\LiteTouchPE_x64.wim`
-5. Give it a descriptive name like `LiteTouch x64`
-6. Repeat for `LiteTouchPE_x86.wim` if you plan to deploy to 32-bit hardware
-
-### Path B — AOMEI PXE Boot
-
-1. Open **AOMEI PXE Boot**
-2. Select **Boot from custom image**
-3. Browse to `C:\DeploymentShare\Boot\LiteTouchPE_x64.wim`
-4. Start the PXE service
-
----
-
-## First Deployment
-
-### 1. Verify PXE response
-
-On a target machine:
-
-1. Enter BIOS/UEFI setup
-2. Enable PXE boot / network boot
-3. Ensure Secure Boot is either disabled or configured for your environment
-4. Set network boot to the highest boot priority
-5. Save and reboot
-
-The machine should boot into **LiteTouch WinPE** within 30–60 seconds.
-
-### 2. Walk through the wizard
-
-If `CustomSettings.ini` still has `SkipTaskSequence=NO`, you will see the LiteTouch wizard:
-
-1. **Welcome** — click **Next**
-2. **Credentials** — leave blank (WinPE uses `Bootstrap.ini`)
-3. **Task Sequence** — choose `Windows 11 Pro (64-bit)` or your preferred OS
-4. **Computer Details** — set computer name if `SkipComputerName=NO`
-5. **Applications** — select apps to install (if `SkipApplications=NO`)
-6. **Summary** — click **Begin**
-
-Deployment proceeds automatically. Expect 20–60 minutes for a full deployment.
-
-### 3. What happens during deployment
-
-Refer to the Deployment Flow diagram in the [README](../README.md#deployment-flow). The task sequence runs these phases in order:
-
-- Initialization
-- Validation
-- State Capture
-- Preinstall
-- Install
-- Postinstall
-- State Restore
-- OOBE (`SetupComplete.cmd` → `pre.ps1` → `Customizations.ps1` → `pbr.ps1`)
-
-### 4. Verify the logs
-
-After deployment, on the target machine:
-
-| Log location | Contents |
+| Item | Why |
 |---|---|
-| `C:\MININT\SMSOSD\OSDLOGS\` | MDT deployment logs (may be deleted by cleanup) |
-| `C:\ProgramData\OEM\Logs\` | OEM setup logs (`pre_*.log`, `SetupComplete.log`, `PBR_Deployment.log`) |
-| `C:\Windows\Temp\DeploymentLogs\` | Post-deployment summaries |
-
-Look for `[ERROR]` or `[FATAL]` entries.
-
----
-
-## Post-Deployment
-
-Once the OS is deployed and OOBE completes, log into the new machine with a local admin account and finalize the image.
-
-### 1. Apply Windows Updates
-
-Settings → Windows Update → **Check for updates**. Include **Optional updates** → **Driver updates**. Reboot as needed until no updates remain.
-
-### 2. Apply OEM updates
-
-Use the OEM Support Assistant (Dell Command Update, HP Support Assistant, Lenovo System Update, and so on) to install OEM-specific drivers and BIOS updates.
-
-### 3. Run the post-deployment scripts
-
-Scripts are in `C:\Scripts\` on the deployed machine. Run them in numerical order:
-
-| Script | Purpose |
-|---|---|
-| `0CleanWindowsUpdates.cmd` | Clean the Windows component store after updates |
-| `0Install-AnyDesk.cmd` | Install AnyDesk interactively (x64 only) |
-| `0KeepAwake.cmd` | Prevent sleep during maintenance |
-| `1Firstrun.cmd` | Interactive first pass: Windows Update, OEM utilities, GPU software |
-| `2Secondrun.cmd` | Interactive second pass after restart: final updates and marker decisions |
-| `3OEMDriversExport.cmd` | Export drivers to `\\SERVER\Shared\DriverPacks` or a DEPLOY USB |
-| `4ScanState.cmd` | Capture the PBR provisioning package and populate `C:\Recovery\AutoApply` |
-
-Restart when the scripts instruct you to.
-
-### 4. Export drivers back to the deployment share
-
-If `3OEMDriversExport.cmd` produced a `.7z` file, copy it to `\\SERVER\Shared\DriverPacks` so the same model can be deployed faster next time.
+| **WinPE safety** | No WMI/CIM in `Scripts\Custom\` unless a FeaturePack provides it |
+| **Defensive lookups** | `Select-Object -First 1` on volume and disk commands |
+| **Retry logic** | DISM and robocopy operations retry on failure |
+| **Silent operation** | No spurious output in task sequence scripts |
+| **Exit code preservation** | Failures are visible to the caller |
+| **Header documentation** | SYNOPSIS, DESCRIPTION, NOTES block present |
+| **CHANGELOG entry** | Added under `[Unreleased]` |
+| **No drive letter hardcoding** | Paths discovered via volume labels |
+| **PowerShell 5.1 compatible** | No PS7-only syntax |
+| **Registry write discipline** | All writes via `reg.exe` or framework helpers |
+| **Idempotence** | Repeated runs produce the same outcome |
+| **Tested on hardware** | PR description states the hardware used |
+| **Small, focused scope** | One logical change per PR |
 
 ---
 
-## Offline Media
+## Contributing to the Apps Framework
 
-For deployments without a server or network, the repository ships a pre-built offline media set in `MDT/Content/`. See [docs/OFFLINE-MEDIA.md](OFFLINE-MEDIA.md) for the full walkthrough.
+The Apps framework — `pbr.ps1`, the `Framework\` modules, the `OEM\` modules, and the `Manifests\` files — has additional standards beyond those above.
 
-Summary:
+### Before you write code
 
-1. Copy the `MDT` folder from the repository to the root of your system drive (e.g. `C:\Deploy\MDT`)
-2. Update the media set in Deployment Workbench
-3. Format a USB flash drive as **FAT32**, label it **`DEPLOY`**, mark active
-4. Copy `C:\Deploy\MDT\Content\*` to the USB root
-5. Copy the `Shared` folder to the USB root
+Read [docs/APPS-FRAMEWORK.md](docs/APPS-FRAMEWORK.md) end to end. It defines the contract between the framework, OEM modules, and manifests.
 
-The pre-built media uses SWM-split images so it fits on FAT32, which is required for UEFI boot on most hardware.
+### Additional rules
 
----
+- **Framework modules must not be edited lightly.** They are stable interfaces. If you believe a framework module needs a change, open an issue first and describe the reason.
+- **OEM modules must not write the registry directly.** Use the helpers exported by `Registry.psm1`.
+- **OEM modules must not manage the scheduled task directly** unless overriding `RegisterResumeTask`.
+- **OEM modules must not write stage markers directly.** Use `Set-DeploymentStage`.
+- **OEM modules must not log outside `LogDirectory`.** Use `Write-DeploymentLog`.
+- **Manifest additions must not introduce required fields.** Framework consumers read only the fields they know about; every other field must be optional with a documented default.
 
-## Verification Checklist
+### Adding a new OEM module
 
-### Deployment host
+1. Create `OEM\OEM.<Brand>.psm1` with at least a `Get-OEMProfile` function
+2. Create `Manifests\<Brand>.json` with the app list
+3. Ensure the profile's `Name` matches the module filename
+4. Ensure the profile's `ManifestFile` matches the manifest filename
+5. Ensure the profile's `MarkerRegistryPath` is distinct from every other OEM's
+6. Test on hardware from that OEM
+7. Update the OEM modules table in [docs/APPS-FRAMEWORK.md](docs/APPS-FRAMEWORK.md)
 
-- [ ] Hostname is `SERVER`
-- [ ] Deployment account `Network User` exists and is a member of `Administrators`
-- [ ] Account password is set, user cannot change password, password never expires
-- [ ] Static IP is configured outside the DHCP scope
-- [ ] ADK, WinPE Addon, SDK, MDT, PowerShell 7, and 7-Zip are installed
-- [ ] `MDT Templates.exe` has been extracted
-- [ ] Deployment share exists at `C:\DeploymentShare` and is shared as `DeploymentShare$`
-- [ ] Repository `DeploymentShare/` contents have been merged into `C:\DeploymentShare`
-- [ ] The Windows image has been imported into MDT
-- [ ] Task sequences point to the imported OS entry
-- [ ] `Control\Bootstrap.ini` has been edited
-- [ ] `Control\CustomSettings.ini` has been edited
-- [ ] `Control\Settings.xml` has been edited with the correct paths
-- [ ] `Control\Medias.xml` has been edited if using a non-default media path
-- [ ] Task sequence unattend files have been edited with the correct locale and time zone
-- [ ] `x64\$OEM$\$1\Recovery\OEM\pre.ps1` has been edited (AnyDesk password)
-- [ ] Boot images have been regenerated
-- [ ] Boot images have been imported into WDS (or AOMEI PXE Boot)
-- [ ] `\\SERVER\Shared` exists and contains the expected subfolders
-- [ ] `\\SERVER\Shared\OEM` exists and contains `x64` and `x86` subfolders
+### Canonical framework documentation
 
-### Target machine
+The framework has its own design and reference documentation, maintained separately from this repository. Before making changes that affect framework invariants, ensure your change is consistent with the canonical docs. If it is not, open an issue to discuss before submitting a PR.
 
-- [ ] PXE boots into LiteTouch WinPE
-- [ ] Task sequence picker appears (or is skipped)
-- [ ] Windows OS installs without errors
-- [ ] OEM drivers are applied during install
-- [ ] Updates are injected into the offline image
-- [ ] Recovery partition is created
-- [ ] OOBE completes without errors
-- [ ] `C:\ProgramData\OEM\Logs\` contains logs with no `[FATAL]` entries
-- [ ] Windows is activated (if OEM firmware key is present)
-- [ ] Office is installed and activated (if Office installer is present)
-- [ ] LGPO policies are applied
-- [ ] Framework convergence markers are written (`SYSTEM_DONE` and eventually `USER_DONE`)
+The framework's canonical docs are not shipped here. This repository ships the framework code and a user-facing overview in [docs/APPS-FRAMEWORK.md](docs/APPS-FRAMEWORK.md).
 
 ---
 
-## Troubleshooting Quick Reference
+## Areas Where Help Is Needed
 
-Full troubleshooting guide: [docs/TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+Some specific things the maintainer would love help with:
 
-| Symptom | Likely Cause | First Thing to Check |
-|---|---|---|
-| PXE client hangs at "Contacting DHCP" | DHCP scope or Option 066/067 misconfigured | DHCP Manager options |
-| PXE client downloads boot image then fails | Boot image incomplete or WDS not authorized | WDS event log |
-| LiteTouch WinPE boots but no task sequence picker | `SkipTaskSequence=YES` in `CustomSettings.ini` | `Control\CustomSettings.ini` |
-| Deployment fails at "Load WinPE Drivers" | VMD driver missing for the target CPU | `X:\MININT\SMSOSD\OSDLOGS\BDD.log` |
-| Deployment fails at "Format and Partition Disk" | Wrong UEFI/BIOS detection, or disk in use | `X:\MININT\SMSOSD\OSDLOGS\ZTIDiskpart.log` |
-| Deployment fails at "Install Operating System" | WIM missing or index wrong | Task sequence step, `OperatingSystems.xml` |
-| Deployment completes but no drivers | OEM driver pack not found for the model | `C:\ProgramData\OEM\Logs\pre_*.log`, search for "No driver folder found" |
-| Windows not activated | OEM firmware key missing or mismatched edition | `slmgr /dlv` on the target machine |
-| Office not activated | Office app was running during Ohook gate | `C:\ProgramData\OEM\Logs\pre_*.log`, search for "Office activation deferred" |
-| 7-Zip not found in WinPE | Boot image missing `Boot\Addon\x64` content | Verify `Boot.x64.ExtraDirectory` in `Settings.xml` |
+### 1. OEM license edition detection
 
-### Where to get help
+A script that reads the OEM digital license from the BIOS (`OA3xOriginalProductKeyDescription`), determines the licensed edition (for example, Home Single Language, Home, Pro), and sets the deployed OS edition to match during deployment.
 
-- **GitHub Discussions** — [github.com/ArthurJDurand/MDT-TS-and-Scripts/discussions](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/discussions)
-- **GitHub Issues** — [github.com/ArthurJDurand/MDT-TS-and-Scripts/issues](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/issues)
+Currently, `pre.ps1` activates only if the OEM license is Professional. Non-Pro licenses are not applied, and LGPO policies are applied regardless of edition.
 
-When asking for help, include:
+**Where to hook in:** `$OEM$\$1\Recovery\OEM\pre.ps1` and the task sequence State Restore phase.
 
-- Deployment host OS and role (server or desktop)
-- Target machine make, model, CPU generation, BIOS version
-- Which task sequence was used
-- The exact error message and the relevant log excerpt
-- Whether the failure is reproducible
+### 2. x86 framework support
+
+The x86 tree does not have the Apps framework. It uses monolith scripts that are not part of this repository. Contributing an x86 framework implementation, or documenting the x86 monolith scripts, would close a significant gap.
+
+### 3. Additional OEM packs
+
+Driver packs and app archives for:
+
+- Panasonic Toughbook
+- Fujitsu LifeBook
+- Samsung / LG laptops
+- Toshiba Dynabook (existing pack needs updating)
+- Clevo / Tongfang / XMG / Schenker
+
+### 4. Newer Intel and AMD storage drivers
+
+- Intel VMD for 14th Gen and beyond (Meteor Lake, Arrow Lake)
+- AMD RAID / NVMe drivers for Ryzen 7000, 8000, 9000 series
+
+### 5. Script improvements
+
+- Refactoring `pre.ps1` into smaller modules
+- Fixing the `Get-OSFamily` hardcoded `Win11` bug in `ExtractOEMDrivers.ps1`
+- Adding a `-DryRun` mode to destructive scripts (`CleanFixedDrives.ps1`, `FormatDataDrive.ps1`)
+- Adding structured logging to a file alongside the existing logs
+
+### 6. Documentation
+
+- Expanding `docs/TROUBLESHOOTING.md` with real-world error scenarios
+- Adding a "known working hardware" table to the README
+- Adding screenshots to the setup guide
+- Authoring the companion repository [`MDT-Windows-Image-Builder`](https://github.com/ArthurJDurand/MDT-Windows-Image-Builder) content
+
+If any of these interest you, **open a Discussion first** so we can scope it together.
+
+---
+
+## Reporting Bugs
+
+Found a bug? [Open an issue](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/issues/new) with:
+
+- **Description** — what you expected vs. what happened
+- **Steps to reproduce** — exact task sequence step, phase, or command
+- **Hardware** — make, model, CPU, BIOS/UEFI mode
+- **OS being deployed** — Win10 x64 / Win10 x86 / Win11 x64
+- **Relevant log file** — MDT logs are in `X:\MININT\SMSOSD\OSDLOGS\` (WinPE) or `C:\MININT\SMSOSD\OSDLOGS\` (full OS) during deployment; OEM logs are in `C:\ProgramData\OEM\Logs\` after OOBE
+- **Screenshots** if applicable
+
+**Please don't paste full logs inline** — attach them as files or link to a Gist.
+
+---
+
+## License of Contributions
+
+By submitting a pull request to this project, you agree that your contribution is licensed under the same [MIT License](LICENSE.md) that governs the project.
+
+You confirm that:
+
+- You have the right to submit the contribution
+- The contribution is your original work, or you have obtained permission to submit it under the MIT License
+- Any third-party code included in your contribution is compatible with the MIT License and clearly attributed
+
+---
+
+## Code of Conduct
+
+This project follows the [Contributor Covenant Code of Conduct](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
+
+In short: be respectful, be patient, assume good faith, and focus on the technical problem. Harassment, personal attacks, and dismissive behavior are not tolerated. Violations can be reported to the maintainer via a [private GitHub security advisory](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/security/advisories/new).
+
+---
+
+## Questions?
+
+- **General questions or ideas:** [GitHub Discussions](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/discussions)
+- **Bug reports:** [GitHub Issues](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/issues)
+- **Security vulnerabilities:** [Private security advisory](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/security/advisories/new)
+- **Direct contact:** See the [author's GitHub profile](https://github.com/ArthurJDurand)
+
+---
+
+## Thank You
+
+Whether you submit a driver pack, fix a typo, or report a bug on a machine you have access to — **your contribution matters**. This project is built on community knowledge, and every improvement helps someone deploy Windows a little faster.
+
+Thank you for being part of it.
+
+---
+
+<div align="center">
+
+**Happy deploying!** 🚀
+
+</div>

@@ -1,0 +1,746 @@
+# Offline Media (USB Deployment)
+
+This document describes how to build a bootable USB flash drive that can deploy Windows 10 or Windows 11 without a network, without a server, and without MDT infrastructure at the deployment site.
+
+Offline media is useful when:
+
+- The target machine is at a remote site with no network
+- The network is unreliable or too slow to stream multi-GB images
+- You need to deploy to a machine that cannot reach the deployment share
+- You want a self-contained kit for field technicians
+- You are deploying to a machine that has no PXE support
+
+The USB is **self-contained** — it carries the boot image, the OS image, the OEM drivers, the OEM apps, the updates, and the scripts. Nothing is downloaded at deployment time.
+
+---
+
+## Table of Contents
+
+- [How It Works](#how-it-works)
+- [Requirements](#requirements)
+- [Overview of the Build](#overview-of-the-build)
+- [Step 1 — Create the MDT Media Set](#step-1--create-the-mdt-media-set)
+- [Step 2 — Format and Label the USB Drive](#step-2--format-and-label-the-usb-drive)
+- [Step 3 — Copy the MDT Media Content](#step-3--copy-the-mdt-media-content)
+- [Step 4 — Copy the OEM Payload Content](#step-4--copy-the-oem-payload-content)
+- [USB Layout After Copying](#usb-layout-after-copying)
+- [How the Scripts Detect the USB](#how-the-scripts-detect-the-usb)
+- [Handling FAT32's 4 GB Limit](#handling-fat32s-4-gb-limit)
+- [Booting from the USB](#booting-from-the-usb)
+- [Verification Checklist](#verification-checklist)
+- [Updating an Existing USB](#updating-an-existing-usb)
+- [Deploying Without a USB — Alternatives](#deploying-without-a-usb--alternatives)
+- [Troubleshooting](#troubleshooting)
+- [Best Practices](#best-practices)
+
+---
+
+## How It Works
+
+The USB build has two halves that are copied together onto the drive:
+
+1. **The MDT media set** — a self-contained LiteTouch WinPE environment that contains the task sequences, the OS images, and the scripts. This half is generated automatically by the Deployment Workbench.
+
+2. **The OEM payload** — the driver packs, OEM app archives, updates, WinRE images, and supporting tools that the scripts pull at deployment time. This half is copied manually from a network share or from the companion OneDrive folder.
+
+When the target machine boots from the USB:
+
+1. The LiteTouch WinPE boot image loads.
+2. `Bootstrap.ini` sets `DeployRoot` to the USB volume (via `%DEPLOYROOT%`).
+3. The task sequence runs as usual.
+4. Whenever a script looks for OEM content, it first checks the network share and then falls back to the USB by looking for a volume labeled **`DEPLOY`**.
+
+This means the same scripts work whether the deployment is network-based or USB-based, as long as the USB is labeled `DEPLOY` and the content structure matches.
+
+---
+
+## Requirements
+
+### Hardware
+
+| Component | Minimum | Recommended |
+|---|---|---|
+| USB flash drive | 32 GB | 128 GB or larger |
+| USB port on target | USB 2.0 or 3.0 | USB 3.0 (much faster) |
+
+**Size requirements by deployment type:**
+
+| What you want to deploy | Minimum USB size |
+|---|---|
+| Windows 10 x64 only, no OEM packs | 16 GB |
+| Windows 11 x64 only, no OEM packs | 20 GB |
+| Windows 11 x64 + Windows 10 x64, no OEM packs | 32 GB |
+| Windows 11 x64 + Windows 10 x64 + OEM drivers | 64 GB |
+| Both OS + both architectures + OEM drivers + apps + updates | 128 GB |
+| Everything, including full driver pack library | 256 GB |
+
+### Software
+
+- MDT installed on the build machine
+- Windows ADK for Windows 11 with the Windows PE Addon
+- A populated deployment share (see [docs/SETUP.md](SETUP.md))
+- 7-Zip (for splitting archives if needed)
+
+### Content
+
+- The deployment share is complete and working via network
+- The OEM content (drivers, apps, updates, WinRE, servicing, ScanState) is available either on the network share or in the companion OneDrive folder
+
+---
+
+## Overview of the Build
+
+The build has four major steps:
+
+1. **Create the MDT media set** — generates a self-contained folder at `C:\Deploy\MDT\Content` containing the boot image, task sequences, and OS images.
+2. **Format and label the USB** — FAT32, label `DEPLOY`, marked active.
+3. **Copy the MDT media content** — from `C:\Deploy\MDT\Content` to the USB root.
+4. **Copy the OEM payload content** — from the network share or OneDrive to the USB root.
+
+Total build time depends on network speed and USB write speed. Expect **45 minutes to 3 hours** for a full build.
+
+---
+
+## Step 1 — Create the MDT Media Set
+
+The MDT media set is a self-contained snapshot of your deployment share. It is generated once and does not update automatically — you must regenerate it whenever you change the deployment share.
+
+### 1.1 — Configure the media root path
+
+Open `Control\Medias.xml` in your deployment share and confirm the `<Root>` element points to where you want the media generated. The default is:
+
+```xml
+<Root>D:\Deploy\MDT</Root>
+```
+
+If you want a different path, edit it here. For this guide we assume `C:\Deploy\MDT`.
+
+### 1.2 — Verify the media exists in Deployment Workbench
+
+Open **Deployment Workbench**. Under your deployment share, look for **Advanced Configuration** → **Media**.
+
+If you do not see a media entry called `MEDIA001`:
+
+1. Right-click **Media** → **New Media Set**
+2. **Media path:** `C:\Deploy\MDT`
+3. **Media name:** `MEDIA001`
+4. **Selection Profile:** `Everything` (or a custom profile if you want a smaller set)
+5. **Platforms:** check both `x86` and `x64` if you support both, or only `x64` if you support only 64-bit
+6. Click **Next** → **Next** → **Finish**
+
+### 1.3 — Regenerate the media
+
+In Deployment Workbench:
+
+1. Expand **Media** and click `MEDIA001`
+2. In the right pane, right-click the media entry and select **Update Media Content**
+
+Wait for the process to complete. It will:
+
+- Copy the boot image
+- Copy the OS images referenced by your task sequences
+- Copy the task sequences
+- Copy the scripts
+- Copy any applications, packages, and drivers selected by the selection profile
+
+The content ends up in `C:\Deploy\MDT\Content`.
+
+### 1.4 — Verify the media content
+
+Confirm the following files exist:
+
+```powershell
+Test-Path "C:\Deploy\MDT\Content\Boot\LiteTouchPE_x64.wim"
+Test-Path "C:\Deploy\MDT\Content\Control\Bootstrap.ini"
+Test-Path "C:\Deploy\MDT\Content\Operating Systems"
+Test-Path "C:\Deploy\MDT\Content\Scripts"
+Test-Path "C:\Deploy\MDT\Content\Task Sequences"
+```
+
+All should return `True`.
+
+### 1.5 — Customize the media Bootstrap.ini
+
+The media build generates a `Bootstrap.ini` under `C:\Deploy\MDT\Content\Control\` that is optimized for USB deployment. It typically contains:
+
+```ini
+[Settings]
+Priority=Default
+
+[Default]
+DeployRoot=%DEPLOYROOT%
+SkipBDDWelcome=YES
+UserID=Network User
+UserPassword=p@$$w0rd
+UserDomain=server.local
+```
+
+The `%DEPLOYROOT%` variable tells WinPE to use the root of the USB drive as the deployment share, rather than a network share.
+
+**If you see `DeployRoot=\\SERVER\DeploymentShare$`**, edit the media `Bootstrap.ini` to use `%DEPLOYROOT%` instead, otherwise the USB deployment will still try to reach the network.
+
+---
+
+## Step 2 — Format and Label the USB Drive
+
+The USB must be **FAT32**, labeled **`DEPLOY`**, and marked as the active partition. This is required for:
+
+- Pre-UEFI hardware to boot from the USB
+- UEFI hardware to boot from the USB without Secure Boot complications
+- The deployment scripts to find the USB by volume label
+
+### 2.1 — Identify the USB drive number
+
+Plug in the USB. In an elevated PowerShell session:
+
+```powershell
+Get-Disk | Where-Object { $_.BusType -eq 'USB' }
+```
+
+Note the disk number (e.g. `1`, `2`).
+
+### 2.2 — Wipe and repartition
+
+Replace `<N>` with the disk number from the previous step.
+
+```powershell
+$disk = <N>
+
+# Wipe the disk
+Clear-Disk -Number $disk -RemoveData -RemoveOEM -Confirm:$false
+
+# Initialize as MBR (required for BIOS boot from USB)
+Initialize-Disk -Number $disk -PartitionStyle MBR
+
+# Create a primary partition using the whole disk
+$partition = New-Partition -DiskNumber $disk -UseMaximumSize -IsActive -AssignDriveLetter
+
+# Format as FAT32 with the label DEPLOY
+Format-Volume -Partition $partition -FileSystem FAT32 -NewFileSystemLabel "DEPLOY" -Confirm:$false
+```
+
+### 2.3 — Verify
+
+```powershell
+Get-Volume | Where-Object { $_.FileSystemLabel -eq 'DEPLOY' }
+```
+
+Confirm:
+
+- **DriveLetter:** assigned (e.g. `E`)
+- **FileSystem:** `FAT32`
+- **FileSystemLabel:** `DEPLOY`
+
+Note the drive letter — you will use it as `<USB>` in the next steps.
+
+### 2.4 — Alternative — GUI method
+
+If you prefer a GUI:
+
+1. Open **Disk Management** (`diskmgmt.msc`)
+2. Right-click the USB disk → **Delete Volume** for every existing partition
+3. Right-click the unallocated space → **New Simple Volume**
+4. Format as **FAT32**
+5. Set the volume label to **`DEPLOY`**
+6. Right-click the new volume → **Mark Partition as Active**
+
+---
+
+## Step 3 — Copy the MDT Media Content
+
+Copy the entire media set from `C:\Deploy\MDT\Content` to the root of the USB.
+
+```powershell
+$usb = "E:\"   # Replace with your USB drive letter
+
+robocopy "C:\Deploy\MDT\Content" $usb /E /COPY:DAT /R:2 /W:5 /MT:8
+```
+
+The `/MT:8` flag uses 8 threads, which significantly speeds up copying many small files.
+
+**What this copies:**
+
+- `Boot\` — LiteTouch WinPE boot images
+- `Control\` — Bootstrap.ini, CustomSettings.ini, Settings.xml
+- `Operating Systems\` — OS WIM files referenced by your task sequences
+- `Scripts\` — Task sequence scripts
+- `Task Sequences\` — Task sequence definitions and Unattend.xml
+- `$OEM$\` — OEM orchestration scripts and configuration
+- `Applications\`, `Packages\`, `Out-of-box Drivers\` — only if selected by the media selection profile
+
+This step takes 5–45 minutes depending on the size of your OS images and USB speed.
+
+---
+
+## Step 4 — Copy the OEM Payload Content
+
+The OEM payload is not included in the MDT media set — it must be copied separately. This is the driver packs, OEM app archives, updates, WinRE images, and supporting tools.
+
+### 4.1 — Obtain the OEM payload
+
+The payload is available in two places:
+
+- **Network share** (if you have one): `\\SERVER\Shared`
+- **Companion OneDrive folder:** [1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg](https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6)
+
+If you are copying from the network share, the following subfolders are what you want:
+
+- `OEM\` — OEM app archives
+- `DriverPacks\` — model-specific driver archives
+- `Updates\` — Windows updates (`.msu` / `.cab`)
+- `WindowsRE\` — WinRE images
+- `Servicing\` — DirectX FOD package
+- `ScanState\` — USMT ScanState tool
+- `Drivers\WinPE\` — WinPE boot image drivers (only needed if you want to rebuild the boot image later)
+
+### 4.2 — Copy the OEM payload to the USB root
+
+The layout on the USB should mirror the network share:
+
+```powershell
+$usb = "E:\"   # Replace with your USB drive letter
+$source = "\\SERVER\Shared"
+
+# Copy each payload folder
+robocopy "$source\OEM"          "$usb\OEM"          /E /COPY:DAT /R:2 /W:5 /MT:8
+robocopy "$source\DriverPacks"  "$usb\DriverPacks"  /E /COPY:DAT /R:2 /W:5 /MT:8
+robocopy "$source\Updates"      "$usb\Updates"      /E /COPY:DAT /R:2 /W:5 /MT:8
+robocopy "$source\WindowsRE"    "$usb\WindowsRE"    /E /COPY:DAT /R:2 /W:5 /MT:8
+robocopy "$source\Servicing"    "$usb\Servicing"    /E /COPY:DAT /R:2 /W:5 /MT:8
+robocopy "$source\ScanState"    "$usb\ScanState"    /E /COPY:DAT /R:2 /W:5 /MT:8
+```
+
+**Optional** — if you want to include the WinPE storage drivers for local boot image rebuilds:
+
+```powershell
+robocopy "$source\Drivers\WinPE" "$usb\Drivers\WinPE" /E /COPY:DAT /R:2 /W:5 /MT:8
+```
+
+### 4.3 — Verify the copied structure
+
+```powershell
+Get-ChildItem "E:\" | Select-Object Name
+```
+
+Expected top-level entries:
+
+```
+Boot
+Content            (if MDT created one — see the note below)
+Control
+OEM
+DriverPacks
+Operating Systems
+Scripts
+Task Sequences
+Updates
+WindowsRE
+Servicing
+ScanState
+$OEM$
+```
+
+> **Note about a `Content` subfolder:** If your media set generated a `Content\` subfolder inside the USB root, you have an extra layer of nesting. This happens if you copied from the wrong source path. The contents of `C:\Deploy\MDT\Content\` should be copied **into** the USB root, not into a `Content\` folder on the USB. Fix this by moving the files up one level:
+>
+> ```powershell
+> Move-Item "E:\Content\*" "E:\" -Force
+> Remove-Item "E:\Content" -Force
+> ```
+
+---
+
+## USB Layout After Copying
+
+The final USB root should look like this:
+
+```
+DEPLOY (USB root)\
+├── Boot\
+│   ├── LiteTouchPE_x64.wim
+│   └── LiteTouchPE_x86.wim          (if x86 support enabled)
+├── Control\
+│   ├── Bootstrap.ini
+│   ├── CustomSettings.ini
+│   ├── Medias.xml
+│   └── Settings.xml
+├── Operating Systems\
+│   ├── Win10Prox64\
+│   ├── Win10Prox86\
+│   └── Win11Prox64\
+├── Out-of-box Drivers\              (if included in selection profile)
+├── Scripts\
+│   ├── Custom\
+│   │   ├── ApplyOEMDrivers.ps1
+│   │   ├── LoadWinPEDrivers.ps1
+│   │   └── ... (all task sequence scripts)
+│   └── (stock MDT scripts)
+├── Task Sequences\
+│   ├── WIN10PROX64\
+│   ├── WIN10PROX86\
+│   └── WIN11PROX64\
+├── $OEM$\
+│   ├── $1\
+│   │   ├── Recovery\OEM\
+│   │   └── Scripts\
+│   └── $$\
+│       └── Setup\
+│           └── SetupComplete.cmd
+├── OEM\
+│   ├── x64\
+│   │   ├── Dell.7z
+│   │   ├── HP.7z
+│   │   └── ... (all vendor packs)
+│   └── x86\
+├── DriverPacks\
+│   ├── Dell Latitude 5430.7z
+│   └── ... (all model-specific packs)
+├── Updates\
+│   ├── Win10\
+│   │   ├── x64\
+│   │   └── x86\
+│   └── Win11\
+├── WindowsRE\
+│   ├── Win10\
+│   └── Win11\
+├── Servicing\
+│   └── Microsoft-OneCore-DirectX-Database-FOD-Package\
+├── ScanState\
+│   ├── amd64\
+│   └── x86\
+└── Drivers\                          (optional)
+    └── WinPE\
+        └── Storage\
+            └── Intel\
+```
+
+---
+
+## How the Scripts Detect the USB
+
+Every script that reads OEM content from a network share has a fallback that looks for a volume labeled `DEPLOY`. The pattern is consistent across all scripts:
+
+```powershell
+$PrimaryPath = "\\SERVER\Shared\DriverPacks"
+
+if (Test-Path $PrimaryPath) {
+    return $PrimaryPath
+}
+
+$USBDrive = Get-Volume -FileSystemLabel 'DEPLOY' | Select-Object -First 1
+if ($USBDrive) {
+    $USBPath = Join-Path -Path ($USBDrive.DriveLetter + ":") -ChildPath "DriverPacks"
+    if (Test-Path $USBPath) {
+        return $USBPath
+    }
+}
+
+return $null
+```
+
+**Implications:**
+
+- The USB must have the exact label **`DEPLOY`** (uppercase). A USB labeled `Deploy` or `DEPLOY-USB` will not be detected.
+- The USB must be mounted (i.e. plugged in and readable) at the time the script runs.
+- If both the network share and the USB are available, the network share wins. This is by design — if you are on-site with network access, you get the latest content.
+
+**Scripts with USB fallback:**
+
+| Script | USB path used |
+|---|---|
+| `ApplyUpdates10x64.ps1` | `Updates\Win10\x64` |
+| `ApplyUpdates10x86.ps1` | `Updates\Win10\x86` |
+| `ApplyUpdates11.ps1` | `Updates\Win11` |
+| `ExtractOEMAppsx64.ps1` | `OEM\x64` |
+| `ExtractOEMAppsx86.ps1` | `OEM\x86` |
+| `ExtractOEMDrivers.ps1` | `DriverPacks` |
+| `WinRE.ps1` | `WindowsRE\<OS>\<arch>` |
+| `ScanWindowsImage64.ps1` | `Servicing` |
+| `ScanStatex64.ps1` | `ScanState` |
+| `OEMDriversExport.ps1` | `DriverPacks` (write destination) |
+
+---
+
+## Handling FAT32's 4 GB Limit
+
+FAT32 cannot store a single file larger than 4 GB. Many of your OS images and OEM packs will exceed this.
+
+### OS images are handled automatically
+
+MDT's media generation splits the OS WIM files into `.swm` parts automatically. You do not need to do anything.
+
+### OEM packs must be split manually
+
+The scripts expect split `.7z` archives in the format:
+
+```
+Dell.7z.001
+Dell.7z.002
+Dell.7z.003
+```
+
+**Splitting a large `.7z` archive:**
+
+```powershell
+# Split Dell.7z into 3 GB parts (leaves headroom under the 4 GB FAT32 limit)
+7z a -v3g "Dell.7z" "C:\Staging\Dell\"
+```
+
+This produces `Dell.7z.001`, `Dell.7z.002`, etc. Copy all parts to the USB.
+
+**Extraction during deployment:**
+
+The scripts detect split archives by matching the pattern `^<Name>\.7z\.\d+$`, sort the parts by their numeric suffix, and extract using the first part. 7-Zip reads the split volume automatically.
+
+### If a pack is under 4 GB
+
+A single `.7z` file (no `.001` suffix) works fine. Do not split what does not need splitting.
+
+---
+
+## Booting from the USB
+
+### BIOS / legacy boot
+
+1. Enter the BIOS setup on the target machine (usually F2, F10, F12, Del, or Esc during POST)
+2. Set the boot order so USB HDD / USB Storage Device is first
+3. Disable Secure Boot if it exists
+4. Save and exit
+
+### UEFI boot
+
+1. Enter the UEFI setup
+2. Enable **USB boot**
+3. If Secure Boot is enabled:
+   - Either disable Secure Boot temporarily
+   - Or enroll the LiteTouch PE certificate in the Secure Boot database (advanced)
+4. Set USB to first boot priority
+5. Save and exit
+
+### If the machine does not boot from USB
+
+- Try a different USB port (USB 2.0 ports are more reliable for pre-UEFI boot)
+- Verify the USB was marked **active** (`New-Partition -IsActive`)
+- Verify the USB is **MBR**, not GPT
+- Recreate the USB using the PowerShell method in [Step 2](#step-2--format-and-label-the-usb-drive)
+
+### What you see when it boots
+
+The target machine loads LiteTouch WinPE. Because the media `Bootstrap.ini` has `SkipBDDWelcome=YES`, you go straight to the task sequence picker.
+
+If `CustomSettings.ini` has `SkipTaskSequence=NO`, you choose the OS to deploy.
+
+Deployment proceeds exactly as with a network-based deployment.
+
+---
+
+## Verification Checklist
+
+Before declaring the USB ready, verify:
+
+### USB structure
+
+- [ ] USB is labeled `DEPLOY` (exact uppercase)
+- [ ] USB is formatted as **FAT32**
+- [ ] USB partition is marked **active**
+- [ ] USB is **MBR**, not GPT
+- [ ] `Boot\LiteTouchPE_x64.wim` exists
+- [ ] `Control\Bootstrap.ini` exists and has `DeployRoot=%DEPLOYROOT%`
+- [ ] `Operating Systems\` contains your OS images (or `.swm` parts)
+- [ ] `Task Sequences\` contains your task sequence folders
+- [ ] `Scripts\Custom\` contains all task sequence scripts
+- [ ] `$OEM$\` contains the full OEM orchestration structure
+
+### OEM payload
+
+- [ ] `OEM\x64\` contains at least one vendor `.7z` archive (splits are OK)
+- [ ] `DriverPacks\` contains at least one driver `.7z` archive
+- [ ] `Updates\Win10\x64\` and/or `Updates\Win11\` contain `.msu` files (or are empty if you do not inject updates)
+- [ ] `WindowsRE\` contains a `winre.wim` for at least one OS
+- [ ] `Servicing\Microsoft-OneCore-DirectX-Database-FOD-Package\` contains the FOD `.cab`
+- [ ] `ScanState\amd64\scanstate.exe` exists
+
+### Boot test
+
+- [ ] USB boots into LiteTouch WinPE on a test machine
+- [ ] Task sequence picker appears (or is skipped as configured)
+- [ ] Deployment completes end-to-end without errors
+- [ ] After deployment, `C:\Recovery\OEM\` contains the extracted app and driver content
+- [ ] After OOBE, `C:\ProgramData\OEM\Logs\` contains logs with no `[FATAL]` entries
+
+---
+
+## Updating an Existing USB
+
+When you change the deployment share, the OS images, or the OEM payload, you need to regenerate the affected parts of the USB.
+
+### Updating the MDT media set
+
+1. In Deployment Workbench, right-click the media entry → **Update Media Content**
+2. Wait for it to complete
+3. Re-copy `C:\Deploy\MDT\Content\*` to the USB root:
+
+```powershell
+robocopy "C:\Deploy\MDT\Content" "E:\" /E /COPY:DAT /R:2 /W:5 /MT:8
+```
+
+Robocopy skips files that have not changed, so this is usually fast.
+
+### Updating the OEM payload
+
+If you only changed the OEM content:
+
+```powershell
+robocopy "\\SERVER\Shared\OEM"          "E:\OEM"          /E /COPY:DAT /R:2 /W:5 /MT:8
+robocopy "\\SERVER\Shared\DriverPacks"  "E:\DriverPacks"  /E /COPY:DAT /R:2 /W:5 /MT:8
+# ... etc for the folders that changed
+```
+
+### When to fully rebuild
+
+Rebuild the USB from scratch when:
+
+- You change the USB layout (e.g. new folder added)
+- You add or remove an OS image
+- You change `Bootstrap.ini` or `CustomSettings.ini` in a way that affects the media
+- You change the media selection profile
+
+---
+
+## Deploying Without a USB — Alternatives
+
+If a USB is not practical for your scenario, consider:
+
+### Network share deployment
+
+If the target can reach `\\SERVER\DeploymentShare$` over the network, use the PXE server deployment path. This is the standard MDT deployment method and is what the rest of this documentation assumes. See [docs/SETUP.md](SETUP.md).
+
+### Portable deployment share (external hard drive)
+
+If your payload exceeds 128 GB, use an external USB hard drive instead of a flash drive:
+
+- Format as **NTFS** (no 4 GB file limit)
+- Include the same content structure
+- Configure the BIOS/UEFI to boot from USB HDD
+
+**Caveat:** Booting from a USB hard drive is less reliable than from a flash drive. Some firmware will not treat USB HDD as a bootable device.
+
+### Deployment via WDS from a temporary server
+
+If you have network but no permanent server, spin up a temporary WDS server on a laptop:
+
+1. Install the DHCP and WDS roles on a laptop
+2. Configure the laptop with a static IP
+3. Connect the laptop and the target to a small switch
+4. Point the target's BIOS at PXE boot
+5. Deploy
+
+This is faster than a USB for one-off deployments but requires more setup time.
+
+---
+
+## Troubleshooting
+
+### USB does not boot
+
+| Symptom | Likely Cause | Fix |
+|---|---|---|
+| BIOS does not see the USB | USB is GPT, or not active | Reformat as MBR, mark active |
+| BIOS sees USB but boot fails | Boot sector missing or wrong | Recreate using PowerShell method |
+| Machine boots to internal OS instead | Boot order wrong | Set USB first in BIOS/UEFI |
+| Secure Boot violation | Secure Boot enabled | Disable Secure Boot for the boot |
+| UEFI boots to shell | Wrong boot path | Use a USB that supports both BIOS and UEFI |
+
+### Deployment starts but cannot find content
+
+| Symptom | Likely Cause | Fix |
+|---|---|---|
+| "DeployRoot not found" error | `Bootstrap.ini` has wrong `DeployRoot` | Verify `DeployRoot=%DEPLOYROOT%` in the media `Bootstrap.ini` |
+| Task sequence fails at "Extract OEM Drivers" | USB is not labeled `DEPLOY` | Reformat with the exact label |
+| Task sequence fails at "Apply OEM Drivers" | Driver pack is not on the USB | Verify `E:\DriverPacks\` contains the correct `.7z` |
+| Task sequence fails at "Install Operating System" | OS WIM is not on the USB | Regenerate media content and re-copy |
+| "Not enough space" during OS apply | USB partition is too small or FAT32 limit | Use a larger USB, or verify `.swm` splits exist |
+
+### Split archive fails to extract
+
+| Symptom | Likely Cause | Fix |
+|---|---|---|
+| "Unexpected end of archive" | Missing part | Verify all `.7z.00x` parts are on the USB |
+| "Not enough memory" | Archive is too large for the available RAM | Use a smaller split size (2 GB instead of 3 GB) |
+| "Cannot open file" | One part is corrupt | Re-download or re-split the archive |
+
+### Post-OOBE failures
+
+| Symptom | Likely Cause | Fix |
+|---|---|---|
+| Windows activation fails | OEM firmware key missing (test machine) | Expected — activate manually or ignore |
+| Office installation fails | Office installer not in `C:\Recovery\OEM\Apps\` | Verify the OEM app pack includes Office |
+| LGPO fails | LGPO.exe not in `C:\Recovery\OEM\LGPO\` | Verify the LGPO.ps1 updater ran, or copy LGPO manually |
+| Payload updaters fail | No internet on target | Expected for offline deployments — use the payloads from the USB directly |
+
+### USB is slow
+
+| Symptom | Likely Cause | Fix |
+|---|---|---|
+| Copy to USB takes hours | USB 2.0, or slow flash chip | Use a USB 3.0 drive on a USB 3.0 port |
+| Deployment is slow | USB read speed | Same as above |
+| Post-OOBE is slow | Scripts are reading from USB | Move payloads to `C:\Recovery\OEM` early in the task sequence (see below) |
+
+**Optimization:** For offline deployments, you can pre-copy the OEM payload from the USB to `C:\Recovery\OEM` during the task sequence, before OOBE. This makes the OOBE phase much faster because it reads from the local disk. Add a task sequence step after `CopyOEM` that runs:
+
+```powershell
+robocopy "D:\OEM\x64\..." "C:\Recovery\OEM\" /E
+```
+
+Where `D:` is the drive letter the USB gets assigned in WinPE.
+
+---
+
+## Best Practices
+
+### Build a dedicated offline USB
+
+Do not reuse the same USB flash drive for other purposes. Keep one USB dedicated to offline deployments and label it clearly. This avoids accidental reformatting.
+
+### Document the USB build
+
+Keep a text file on the USB root named `BUILD-INFO.txt` with:
+
+- Date the USB was built
+- Deployment share revision (Git commit hash if using version control)
+- OEM payload versions
+- Any custom modifications
+
+This saves time when you need to figure out what is on an old USB.
+
+### Use USB 3.0 drives
+
+USB 2.0 drives are painfully slow for multi-GB OS images. A USB 3.0 drive with a good controller (SanDisk Extreme, Samsung BAR Plus, Kingston DataTraveler) makes a big difference.
+
+### Keep a spare
+
+Always have a second USB drive ready. Flash drives fail. If your only USB fails mid-deployment, you are stuck.
+
+### Verify before traveling
+
+If you are using the USB for a field deployment:
+
+1. Test the USB on the same model of target machine before leaving
+2. Verify the deployment completes end-to-end
+3. Confirm the target machine boots correctly after deployment
+4. Then travel
+
+### Refresh the USB periodically
+
+Drivers and updates change. Rebuild the USB at least every quarter, or whenever a major driver pack update lands.
+
+### Do not store sensitive data on the USB
+
+`Bootstrap.ini` contains the deployment service account password in plaintext. If the USB is lost or stolen, that password is exposed. Use a dedicated, low-privilege deployment account with a unique password, and rotate it if the USB is lost.
+
+### Consider write-protection
+
+Some USB drives have a physical write-protect switch. If yours does, leave it enabled after the USB is built. This prevents accidental modification during deployment.
+
+---
+
+*See [docs/OEM.md](OEM.md) for the OEM content structure, [docs/SCRIPTS.md](SCRIPTS.md) for the scripts that consume it, and [docs/TROUBLESHOOTING.md](TROUBLESHOOTING.md) for more error scenarios.*

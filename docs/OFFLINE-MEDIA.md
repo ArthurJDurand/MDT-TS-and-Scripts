@@ -282,7 +282,7 @@ Copy the media set to the USB root.
 
 ```powershell
 $usb = "E:\"   # Replace with your USB drive letter
-robocopy "C:\path\to\MDT-TS-and-Scripts\MDT\Content\Deploy" $usb /E /COPY:DAT /R:2 /W:5 /MT:8
+robocopy "C:\path\to\MDT-Zero-Touch-Deployment\MDT\Content\Deploy" $usb /E /COPY:DAT /R:2 /W:5 /MT:8
 ```
 
 **From a freshly generated media set** (Option B above):
@@ -661,7 +661,7 @@ This is faster than a USB for one-off deployments but requires more setup time.
 |---|---|---|
 | Windows activation fails | OEM firmware key missing (test machine) | Expected — activate manually or ignore |
 | Office installation fails | Office installer not in `C:\Recovery\OEM\Apps\` | Verify the OEM app pack includes Office |
-| LGPO fails | LGPO.exe not in `C:\Recovery\OEM\LGPO\` | Verify LGPO ships in the vendor app pack or pre.ps1 installs it |
+| LGPO fails | LGPO.exe not in `C:\Recovery\OEM\LGPO\` | Verify LGPO ships in the vendor app pack or `pre.ps1` installs it |
 | Framework phases do not converge | Missing framework files, or a required app failed | Check `C:\ProgramData\OEM\Logs\PBR_Deployment.log` |
 
 ### USB is slow

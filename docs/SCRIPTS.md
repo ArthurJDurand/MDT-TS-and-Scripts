@@ -26,6 +26,7 @@ For the deployment phases referenced throughout, see the [Deployment Flow](../RE
   - [WinRE.ps1](#winreps1)
   - [CleanupScripts.ps1](#cleanupscriptsps1)
   - [CopyOEM.wsf](#copyoemwsf)
+- [Stock MDT Scripts Used](#stock-mdt-scripts-used)
 - [$OEM$ Setup and Orchestration](#oem-setup-and-orchestration)
   - [SetupComplete.cmd](#setupcompletecmd)
 - [$OEM$ Configuration](#oem-configuration)
@@ -70,11 +71,21 @@ The repository ships two parallel trees, one per architecture:
 
 ```
 DeploymentShare\
-├── Boot\Addon\x64\                        Bundled 7-Zip for the boot image
-├── Control\                               Deployment share configuration
+├── Boot\
+│   └── Addon\
+│       ├── x64\                            Bundled 7-Zip for the x64 boot image
+│       └── x86\                            Bundled 7-Zip for the x86 boot image
+├── Control\                                Deployment share configuration and task sequences
 ├── Scripts\
 │   ├── CopyOEM.wsf
-│   └── Custom\                            Task sequence scripts
+│   ├── ZTIBde.wsf
+│   ├── ZTIUtility.vbs
+│   ├── DeployWiz_SelectTS.vbs
+│   └── Custom\                             Task sequence scripts
+├── Templates\                              Stock MDT unattend templates
+├── Tools\
+│   ├── x64\                                BGInfo64, Microsoft.BDD.Utility.dll
+│   └── x86\                                BGInfo, Microsoft.BDD.Utility.dll
 ├── x64\
 │   └── $OEM$\
 │       ├── $$\
@@ -519,6 +530,25 @@ Then:
 
 ---
 
+## Stock MDT Scripts Used
+
+This repository does not modify the stock MDT scripts it depends on. They ship as part of the standard MDT installation and are copied into the deployment share. If you upgrade MDT, they may be updated.
+
+| File | Purpose |
+|---|---|
+| `Scripts\ZTIUtility.vbs` | Core MDT utility library. Referenced by every WSF script. Do not edit. |
+| `Scripts\ZTIBde.wsf` | BitLocker enablement script used by the Enable BitLocker task sequence step (disabled by default in this project). |
+| `Scripts\DeployWiz_SelectTS.vbs` | The task sequence picker shown by LiteTouch. Not used when `SkipTaskSequence=YES`. |
+| `Tools\x64\Bginfo64.exe` | BGInfo (x64). Runs as part of the stock MDT bootstrap to write system information to the desktop wallpaper during deployment. |
+| `Tools\x64\microsoft.bdd.utility.dll` | MDT utility library (x64). |
+| `Tools\x86\Bginfo.exe` | BGInfo (x86). |
+| `Tools\x86\microsoft.bdd.utility.dll` | MDT utility library (x86). |
+| `Templates\Unattend_PE_x64.xml` | Stock MDT unattend template used when generating WinPE boot images. |
+
+**Do not edit these files.** They are overwritten when MDT is updated or when the deployment share is regenerated. Customizations belong in `Scripts\Custom\` or in the `$OEM$` trees.
+
+---
+
 ## $OEM$ Setup and Orchestration
 
 Located under `DeploymentShare\<arch>\$OEM$\$$\Setup\Scripts\`. This path is copied to `C:\Windows\Setup\Scripts\` on the target, where Windows automatically runs `SetupComplete.cmd` at the end of OOBE.
@@ -620,7 +650,7 @@ Located under `DeploymentShare\<arch>\$OEM$\$1\Recovery\OEM\`.
 **Known limitations:**
 
 - **AnyDesk password hardcoded** as `$AnyDeskPassword = 'p@$$w0rd'`. Change this before using AnyDesk outside an isolated lab.
-- **Large script** (67 KB x64, 45 KB x86). Refactor candidate.
+- **Large script** (68 KB x64, 45 KB x86). Refactor candidate.
 - The UWP version guard `Skip-IfNewerProvisioned` requires the package filename to contain a version string in the format `_X.Y.Z.W_`. Packages without a versioned filename are always installed.
 - Office activation is deferred if any Office application is running in an interactive user session. This can leave Office unactivated if a user has Office open during OOBE.
 - `Wait-SystemIdle` uses WMI as a fallback. On machines where WMI is also broken, it sleeps for 5 seconds and returns.
@@ -869,6 +899,10 @@ Scripts must run under the WinPE and Windows OOBE versions of PowerShell, which 
 ### 10. No `exit` in task sequence scripts
 
 Return rather than `exit`. Scripts invoked from `SetupComplete.cmd` are standalone and may use `exit`.
+
+### 11. Do not edit stock MDT scripts
+
+Files under `Scripts\` (outside `Scripts\Custom\`), `Tools\`, and `Templates\` are stock MDT content. They are overwritten when MDT is updated. Customizations belong in `Scripts\Custom\` or in the `$OEM$` trees.
 
 ---
 

@@ -1,6 +1,6 @@
 # Apps Framework
 
-This document describes the OEM Apps deployment framework that ships with this project. The framework lives under `DeploymentShare\x64\$OEM$\$1\Recovery\OEM\Apps\` (and the parallel `x86` tree) and is invoked by `pbr.ps1` during deployment.
+This document describes the OEM Apps deployment framework that ships with this project. The framework lives under `DeploymentShare\x64\$OEM$\$1\Recovery\OEM\Apps\` and is invoked by `pbr.ps1` during deployment.
 
 **The framework is a subsystem of this project.** It is deeply integrated into the deployment chain — it runs at OOBE and at first logon, installs OEM-specific applications, generates Start and taskbar layouts, and reports convergence state. It is not a standalone library, and its own internal design documentation is maintained separately from this repository. This file describes what ships in this repo, how it works, and how to extend it.
 
@@ -88,7 +88,7 @@ DeploymentShare\x64\$OEM$\$1\Recovery\OEM\Apps\
     └── Surface.json
 ```
 
-The `x86` tree contains a parallel structure, adapted for 32-bit deployments. Framework module contents are architecturally identical; manifests and OEM modules may differ where a given OEM does not ship 32-bit app packs.
+The x86 tree does not ship the framework. It uses monolith scripts that are not part of this repository.
 
 ---
 
@@ -581,6 +581,7 @@ All logs are written UTF-8 without BOM.
 - **Partial AutoApply states are not detected.** Either AutoApply owns layout completely, or the framework does. There is no middle ground.
 - **Layout files are the only working pin-delivery mechanism** on Windows 10 version 1903 and later, and on all Windows 11 builds. The `Shell.Application` `taskbarpin` and `startpin` COM verbs were removed by Microsoft in 1903. This is why the framework ships a layout subsystem rather than relying on COM.
 - **Registry writes must go through the framework helpers.** Direct writes will violate invariant 7 and risk the offline-hive unload problem.
+- **x86 is not covered.** The x86 tree does not ship the framework. It uses monolith scripts that are not part of this repository.
 
 ---
 

@@ -13,11 +13,11 @@ body:
       value: |
         Thanks for taking the time to suggest an improvement. Before submitting, please:
 
-        1. **Search [existing issues](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/issues)** and **[Discussions](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/discussions)** to avoid duplicates.
-        2. **Check the [CONTRIBUTING.md → Areas Where Help Is Needed](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/blob/main/CONTRIBUTING.md#areas-where-help-is-needed)** section — your idea may already be on the roadmap.
-        3. **Check the [Known Limitations](https://github.com/ArthurJDurand/MDT-TS-and-Scripts#known-limitations)** section in the README.
+        1. **Search [existing issues](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/issues)** and **[Discussions](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/discussions)** to avoid duplicates.
+        2. **Check the [CONTRIBUTING.md → Areas Where Help Is Needed](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/blob/main/CONTRIBUTING.md#areas-where-help-is-needed)** section — your idea may already be on the roadmap.
+        3. **Check the [Known Limitations](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment#known-limitations)** section in the README.
 
-        For open-ended ideas or brainstorming, please start a **[Discussion](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/discussions)** instead of an issue.
+        For open-ended ideas or brainstorming, please start a **[Discussion](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/discussions)** instead of an issue.
 
   - type: checkboxes
     id: preflight
@@ -42,12 +42,14 @@ body:
         - New OEM driver pack
         - New OEM app pack
         - New third-party application
-        - Hardware support (VMD, RAID, NVMe, etc.)
-        - Windows edition support (Home, Education, LTSC, etc.)
-        - Payload updater improvement
+        - Hardware support (VMD, RAID, NVMe, and so on)
+        - Windows edition support (Home, Education, LTSC, and so on)
+        - OEM Apps framework — new OEM module
+        - OEM Apps framework — new manifest entry
+        - OEM Apps framework — new hook or extension
         - Documentation
-        - Build / CI / repository infrastructure
-        - Refactor / code quality
+        - Build, CI, or repository infrastructure
+        - Refactor or code quality
         - Other (specify in Description)
     validations:
       required: true

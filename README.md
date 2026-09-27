@@ -2,58 +2,54 @@
 
 # MDT Task Sequences & Custom Scripts
 
-**Zero-touch deployment framework for Windows 10 & 11 Pro with dynamic OEM driver injection, Intel VMD storage support, offline update integration, and OEM customization.**
+**A production-oriented Microsoft Deployment Toolkit (MDT) deployment share for Windows 10 and Windows 11, with dynamic OEM driver injection, Intel VMD storage support, offline update integration, an OEM Apps framework, and offline media support.**
 
 [![MDT](https://img.shields.io/badge/MDT-6.3.8456.1000-0078D4)](https://www.microsoft.com/en-us/download/details.aspx?id=54259)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4)](https://www.microsoft.com/windows)
 [![ADK](https://img.shields.io/badge/ADK-Windows%2011-0078D4)](https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install)
-[![Release](https://img.shields.io/github/v/release/ArthurJDurand/MDT-TS-and-Scripts?include_prereleases&sort=semver)](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/releases)
-[![Last Commit](https://img.shields.io/github/last-commit/ArthurJDurand/MDT-TS-and-Scripts)](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/commits/main)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
 [![Sponsor](https://img.shields.io/badge/Sponsor-ArthurJDurand-ea4aaa?logo=github-sponsors&logoColor=white)](https://github.com/sponsors/ArthurJDurand)
 
-[Quick Start](#quick-start) · [Features](#features) · [Scripts Reference](#scripts-reference) · [Repository Structure](#repository-structure) · [Documentation](#documentation) · [Support](#support-this-project) · [Contributing](#contributing)
+[Features](#features) · [Repository Structure](#repository-structure) · [Quick Start](#quick-start) · [Documentation](#documentation) · [Support](#support-this-project) · [Contributing](#contributing)
 
 </div>
 
 ---
 
 > [!IMPORTANT]
-> **This repository is only half of the project.** The scripts, task sequences, and configuration files live here — but the **operating system images, OEM driver packs, OEM app archives, update packages, and supporting tools** are distributed via the [shared OneDrive folder](https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6). You **must** download and merge both to have a working deployment share. See [Quick Start](#quick-start).
+> **This repository ships the deployment share content, not a complete installer.** Cloning the repo gives you the scripts, task sequences, configuration files, and OEM content, but you must have a working MDT environment (ADK, WinPE Addon, MDT, and a created deployment share) before you can use it. See [Quick Start](#quick-start) and [docs/SETUP.md](docs/SETUP.md).
 
 > [!NOTE]
-> **Windows 10 reached end of support on October 14, 2025.** The Windows 10 task sequences remain in this project for legacy hardware and existing deployments, but new deployments should target Windows 11 Pro.
+> **Windows 10 reached end of support on October 14, 2025.** The Windows 10 task sequences remain for legacy hardware and existing deployments. New deployments should target Windows 11 Pro. The x86 tree is maintained for legacy 32-bit hardware only.
 
 ---
 
 ## What This Is
 
-A production-oriented Microsoft Deployment Toolkit (MDT) deployment share that goes well beyond stock MDT. It deploys 64-bit Windows 10 Pro and 64-bit Windows 11 Pro (plus 32-bit Windows 10 Pro), extracts and injects OEM customizations and drivers, and installs third-party software — all from a single PXE boot.
+A production-oriented Microsoft Deployment Toolkit (MDT) deployment share that goes well beyond stock MDT. It deploys Windows 10 and Windows 11 Pro, applies OEM drivers and customizations, installs third-party applications, and supports both PXE and USB-based deployment.
 
-Built and maintained by [Arthur Durand](https://github.com/ArthurJDurand), this framework is designed for technicians who need a repeatable, vendor-agnostic imaging solution across Dell, HP, Lenovo, Acer, ASUS, MSI, and other OEM hardware.
+The project is designed for technicians who need a repeatable, vendor-agnostic imaging solution across Dell, HP, Lenovo, Acer, ASUS, MSI, and other OEM hardware.
 
-### Highlights
+### What Makes It Different
 
-- **Dynamic OEM driver extraction** — Model-specific driver packs are extracted from `.7z` archives and applied to the offline image via DISM
+- **Dynamic OEM driver injection** — Model-specific driver packs are selected by matching the target hardware against archive filenames and are applied to the offline image via DISM
 - **Intel VMD storage support** — Automatically loads the correct VMD driver for 10th/11th Gen+ Intel platforms during WinPE when internal storage is not detected
-- **Smart target disk selection** — Prioritizes NVMe SSDs, then SATA SSDs, then HDDs
+- **OEM Apps framework** — A two-phase deployment engine that installs per-vendor applications and generates Start and taskbar layouts, with vendor-specific modules for eleven OEMs
 - **Offline update injection** — Applies `.cab`/`.msu` packages to the offline image during deployment
-- **Custom WinRE deployment** — Configures recovery partition with conditional VMD driver injection
-- **OEM app extraction** — Extracts manufacturer-specific app archives to `C:\Recovery\OEM`
-- **LGPO application** — Applies local group policies from `$OEM$\$1\Recovery\OEM\LGPO`
-- **Offline media support** — Build a DEPLOY-labeled USB flash drive for deployments without a server
-- **Self-updating OEM payloads** — Companion GitHub repositories deliver the latest Apps, Drivers, and LGPO archives via hash-verified `.7z` downloads
+- **WinRE deployment** — Configures the Windows Recovery Environment with conditional VMD driver injection
+- **Push-button reset extensibility** — Custom PBR configuration that restores OEM content after a factory reset
+- **Offline media support** — A pre-built offline media set in `MDT/Content/` for deployments without a server, using SWM-split images so the media fits on FAT32 USB
 
 ### Who This Is For
 
-This project assumes **working knowledge** of the following:
+This project assumes **working knowledge** of:
 
 - Windows Server and Windows Desktop editions
-- Networking (DHCP, DNS, subnetting, SMB shares)
+- Networking (DHCP, DNS, SMB, subnetting)
 - Windows deployment concepts (WinPE, DISM, unattend.xml, WIM)
 - Microsoft Deployment Toolkit and the Windows ADK
 
-If any of those are unfamiliar, start with Microsoft's own MDT documentation before attempting this project.
+If any of those are unfamiliar, work through Microsoft's own MDT documentation first. This project extends MDT — it does not teach it.
 
 ---
 
@@ -62,89 +58,61 @@ If any of those are unfamiliar, start with Microsoft's own MDT documentation bef
 | Feature | Description |
 |---|---|
 | **Three Task Sequences** | `WIN11PROX64`, `WIN10PROX64`, `WIN10PROX86` |
-| **Dynamic Driver Injection** | OEM, WLAN, and storage drivers applied based on system model and CPU generation |
+| **Dynamic Driver Injection** | OEM and WLAN drivers applied based on system model and CPU generation |
 | **Intel VMD Support** | Loads VMD drivers in WinPE when internal storage is not detected |
 | **Disk Management** | Wipes fixed drives, selects optimal target disk, partitions BIOS/UEFI, creates recovery partitions |
 | **Update Integration** | Injects `.cab`/`.msu` updates into the offline image before first boot |
 | **OEM App Extraction** | Extracts manufacturer-specific app archives to `C:\Recovery\OEM` |
 | **OEM Driver Extraction** | Extracts model-specific driver archives to `C:\Recovery\OEM\Drivers` |
-| **WinRE Configuration** | Deploys and configures Windows Recovery Environment on the recovery partition |
-| **LGPO Application** | Applies local group policies from `$OEM$\$1\Recovery\OEM\LGPO` |
-| **OEM License Activation** | Activates the OEM digital license during first boot via `pre.ps1` |
-| **Office Installation & Activation** | Installs Microsoft Office from `$OEM$` and activates via Ohook when safe |
-| **Third-Party Applications** | 7-Zip, WinRAR, AnyDesk, RustDesk, DymaxIO, Acronis Drive Monitor (HDD-only) |
-| **Post-Deployment Cleanup** | Removes MDT artifacts (`_SMSTaskSequence`, `MININT`, `LTIBootstrap.vbs`) |
-| **Offline Media** | Full support for DEPLOY-labeled USB flash drive deployments |
-| **Network Share Fallback** | All extraction scripts fall back to `\\SERVER\Shared` or a DEPLOY USB when network is unavailable |
-| **Self-Updating Payloads** | Companion repos deliver Apps/Drivers/LGPO archives with SHA-256 verification from Gists |
+| **WinRE Configuration** | Deploys and configures WinRE on the recovery partition |
+| **OEM Apps Framework** | Two-phase framework for per-vendor app installation and layout generation (x64 only) |
+| **Local Group Policy** | Applies policies via LGPO during OOBE |
+| **OEM License Activation** | Activates the OEM digital license during first boot |
+| **Push-Button Reset** | Custom PBR chain that restores OEM content after a factory reset |
+| **Offline Media** | Pre-built media set for USB-based deployments |
+| **Network Share Fallback** | All extraction scripts fall back to a DEPLOY-labeled USB when the network is unavailable |
 
 ---
 
-## Deployment Flow
+## Repository Structure
+
+The repository root contains documentation, GitHub configuration, and two payload folders:
 
 ```
-   ┌─────────────┐
-   │  PXE Boot   │
-   └──────┬──────┘
-          ▼
-   ┌─────────────────────────────────────┐
-   │  WinPE (LiteTouchPE_x64/x86)        │
-   │  • Gather rules (ZTIGather)         │
-   │  • Load VMD if storage missing      │
-   └──────┬──────────────────────────────┘
-          ▼
-   ┌─────────────────────────────────────┐
-   │  Validation Phase                    │
-   │  • Validate hardware                 │
-   │  • BIOS/UEFI check                   │
-   └──────┬──────────────────────────────┘
-          ▼
-   ┌─────────────────────────────────────┐
-   │  Preinstall Phase                    │
-   │  • Wipe fixed drives                 │
-   │  • Select optimal target disk        │
-   │  • Partition (BIOS MBR / UEFI GPT)   │
-   │  • Create recovery partition         │
-   │  • Format secondary data drive       │
-   └──────┬──────────────────────────────┘
-          ▼
-   ┌─────────────────────────────────────┐
-   │  Install Phase                       │
-   │  • Apply OS image                    │
-   │  • Inject offline updates            │
-   │  • Copy OEM files ($OEM$)            │
-   │  • Extract OEM apps + drivers        │
-   │  • Apply OEM + VMD drivers           │
-   └──────┬──────────────────────────────┘
-          ▼
-   ┌─────────────────────────────────────┐
-   │  Postinstall Phase                   │
-   │  • Configure WinRE                   │
-   │  • Cleanup scripts                   │
-   └──────┬──────────────────────────────┘
-          ▼
-   ┌─────────────────────────────────────┐
-   │  State Restore Phase                 │
-   │  • Install applications              │
-   │  • Final cleanup                     │
-   └──────┬──────────────────────────────┘
-          ▼
-   ┌─────────────────────────────────────┐
-   │  OOBE (SetupComplete.cmd)            │
-   │  • pre.ps1         (activation,      │
-   │                     drivers, LGPO,   │
-   │                     app installs)    │
-   │  • Customizations.ps1                │
-   │  • pbr.ps1         (push-button      │
-   │                     reset package)   │
-   └─────────────────────────────────────┘
+MDT-TS-and-Scripts/
+├── DeploymentShare/                 The contents to merge into your MDT deployment share
+│   ├── Boot/
+│   │   └── Addon/x64/               Bundled 7-Zip for the WinPE boot image
+│   ├── Control/                     Bootstrap.ini, CustomSettings.ini, Settings.xml, Medias.xml, task sequences
+│   ├── Scripts/
+│   │   ├── CopyOEM.wsf
+│   │   └── Custom/                  Task sequence scripts
+│   ├── x64/
+│   │   └── $OEM$/                   x64 OEM content, Apps framework, activation, layout
+│   └── x86/
+│       └── $OEM$/                   x86 OEM content (monolith scripts, no framework)
+├── MDT/
+│   └── Content/Deploy/              Pre-built offline media set (SWM-split images)
+├── Prerequisites/                   DHCP/WDS config templates, MDT Templates, AOMEI PXE Boot
+├── docs/                            Detailed documentation
+├── .github/                         Issue templates, PR template, funding, release notes
+├── CHANGELOG.md
+├── CODE_OF_CONDUCT.md
+├── CONTRIBUTING.md
+├── LICENSE.md
+├── README.md
+└── .gitignore
 ```
+
+The `DeploymentShare/` folder mirrors the layout MDT creates when you create a new deployment share. Merge its contents into your own share after creating it.
+
+The x86 tree does not ship the Apps framework. It uses monolith scripts that are not part of this repository. See [Known Limitations](#known-limitations).
 
 ---
 
 ## Quick Start
 
-> **Prerequisites:** Windows Server (with DHCP + WDS) **or** a Windows desktop PC (with AOMEI PXE Boot), Windows ADK for Windows 11, Windows PE Addon, Windows SDK, MDT, and a deployment share.
+> **Prerequisites:** Windows Server (with DHCP + WDS) or a Windows desktop PC (with AOMEI PXE Boot), plus Windows ADK for Windows 11, Windows PE Addon, Windows SDK, and MDT.
 
 ### 1. Clone the repository
 
@@ -152,172 +120,48 @@ If any of those are unfamiliar, start with Microsoft's own MDT documentation bef
 git clone https://github.com/ArthurJDurand/MDT-TS-and-Scripts.git
 ```
 
-### 2. Download the companion content
+### 2. Prepare your environment
 
-Download the [shared OneDrive folder](https://1drv.ms/u/s!AgS7zfLQOVekkLIt0kn2tt8g-8WNAg?e=4ziRu6) and merge its contents with the cloned repository. **This step is mandatory** — the OS images, OEM packs, and update packages are not stored in Git.
+- **Server path:** Rename the host to `SERVER`, create a `Network User` account (member of `Administrators`, password never expires, user cannot change password), install the DHCP and WDS roles, and import the provided configs.
+- **Desktop path:** Rename the host to `SERVER`, create the same `Network User` account, and install AOMEI PXE Boot.
 
-### 3. Prepare your environment
+Full setup steps for both paths are in [docs/SETUP.md](docs/SETUP.md).
 
-- **Server path:** Rename host to `SERVER`, create a `Network User` account (password `p@$$w0rd`, member of `Administrators`), install the DHCP and WDS roles, and import the provided configs.
-- **Desktop path:** Rename host to `SERVER`, create the same `Network User` account, install AOMEI PXE Boot.
+### 3. Create a deployment share
 
-### 4. Create and merge the deployment share
+Open Deployment Workbench (Microsoft Deployment Toolkit) and create a new deployment share. The default location is `C:\DeploymentShare`. Close the Workbench.
 
-Create a new deployment share in Deployment Workbench (default location `C:\DeploymentShare`), then merge the contents of this repository **and** the shared OneDrive folder into it.
+### 4. Merge this repository into the deployment share
+
+Copy the contents of `DeploymentShare/` from this repository into your new deployment share, merging folders.
+
+```powershell
+robocopy "C:\path\to\MDT-TS-and-Scripts\DeploymentShare" "C:\DeploymentShare" /E /COPY:DAT /R:2 /W:5
+```
 
 ### 5. Configure `Control\Bootstrap.ini`
 
 Edit `DeployRoot`, `UserID`, `UserPassword`, and `UserDomain` to match your environment.
 
 > [!WARNING]
-> `Bootstrap.ini` stores credentials in **plaintext**. Use a least-privilege deployment account and restrict share permissions to the minimum required. Never commit real credentials to a public repository.
+> `Bootstrap.ini` stores credentials in **plaintext**. Use a least-privilege deployment account and restrict share permissions. Never commit real credentials to a public repository.
 
-### 6. Generate boot images and PXE boot
+### 6. Prepare network shares
 
-Update your deployment share, import `LiteTouchPE_x64.wim` and `LiteTouchPE_x86.wim` into WDS (or select them in AOMEI PXE Boot), then PXE boot a client.
+Create and populate the shares the scripts expect:
 
-**→ See [docs/SETUP.md](docs/SETUP.md) for the complete step-by-step guide.**
-
----
-
-## Scripts Reference
-
-### Task Sequence Scripts (`Scripts\Custom\`)
-
-| Script | Purpose |
+| Share | Purpose |
 |---|---|
-| `LoadWinPEDrivers.ps1` | Loads the latest Intel VMD storage driver in WinPE when internal storage is not detected. Writes a marker file so downstream scripts know VMD was required. |
-| `CleanFixedDrives.ps1` | Wipes all internal (non-USB) drives using `Clear-Disk -RemoveData -RemoveOEM`. |
-| `SetTargetOSDisk.ps1` | Selects the first NVMe SSD, or first SATA SSD, or first non-USB disk as the target OS disk. Sets `OSDDiskIndex`. |
-| `CreateRecoveryPartition-BIOS.ps1` | Shrinks the Windows partition and creates a BIOS recovery partition (ID 27, NTFS). |
-| `CreateRecoveryPartition-UEFI.ps1` | Shrinks the Windows partition and creates a UEFI recovery partition (GUID `de94bba4-06d1-4d40-a16a-bfd50179d6ac`, GPT attributes `0x8000000000000001`). |
-| `FormatDataDrive.ps1` | Formats any additional raw internal disk as a GPT Data drive with a 128 MB MSR partition. |
-| `ApplyUpdates10x64.ps1` | Injects Windows 10 x64 updates (`.cab`/`.msu`) into the offline image. |
-| `ApplyUpdates10x86.ps1` | Injects Windows 10 x86 updates into the offline image. |
-| `ApplyUpdates11.ps1` | Injects Windows 11 updates into the offline image. |
-| `ExtractOEMAppsx64.ps1` | Extracts manufacturer-specific app `.7z` archives from `\\SERVER\OEM\x64` or a DEPLOY USB to `C:\Recovery\OEM`. |
-| `ExtractOEMAppsx86.ps1` | x86 variant of the OEM app extraction. |
-| `ExtractOEMDrivers.ps1` | Extracts the model-specific driver `.7z` archive from `\\SERVER\Shared\DriverPacks` or a DEPLOY USB to `C:\Recovery\OEM\Drivers`. |
-| `ApplyOEMDrivers.ps1` | Applies extracted OEM, WLAN, and Intel VMD drivers to the offline Windows image via DISM. |
-| `WinRE.ps1` | Deploys and configures WinRE on the recovery partition, optionally injecting VMD drivers. |
-| `CleanupScripts.ps1` | Removes MDT artifacts (`_SMSTaskSequence`, `MININT`, `LTIBootstrap.vbs`) after deployment. |
-| `CopyOEM.wsf` | Copies `$OEM$\$1` and `$OEM$\$$` content from the deployment share to the target OS (based on Michael Niehaus's original script). |
+| `\\SERVER\Shared` | Updates, DriverPacks, WindowsRE, Servicing, ScanState |
+| `\\SERVER\Shared\OEM` | OEM app archives (`.7z`) |
 
-### `$OEM$` Orchestration Scripts (`$OEM$\$$\\Setup\`)
+Details are in [docs/OEM.md](docs/OEM.md).
 
-| Script | Purpose |
-|---|---|
-| `SetupComplete.cmd` | Runs at the end of OOBE. Orchestrates `pre.ps1`, `Customizations.ps1`, and `pbr.ps1` in sequence, then cleans up MDT artifacts. |
+### 7. Build the boot images and PXE boot
 
-### `$OEM$` Configuration Scripts (`$OEM$\$1\Recovery\OEM\`)
+Update the deployment share in Deployment Workbench to regenerate the boot images. Import them into WDS (or select them in AOMEI PXE Boot) and PXE boot a client.
 
-| Script | Purpose |
-|---|---|
-| `pre.ps1` | Runs during `SetupComplete.cmd`. Installs OEM drivers, WLAN, Intel VMD, applies LGPO, activates Windows and Office, installs third-party apps, and configures the OEM\Update scheduled task. Maintains its own inline version history. |
-| `Customizations.ps1` | Runs after `pre.ps1` for additional OEM customizations. |
-| `Apps\pbr.ps1` | Runs after `Customizations.ps1` to create the push-button reset provisioned package. |
-
-### `$OEM$` Activation Scripts (`$OEM$\$1\Recovery\OEM\Activation\`)
-
-| Script | Purpose |
-|---|---|
-| `HWID_Activation.cmd` | HWID-based Windows activation fallback when the firmware OEM key fails. Called by `pre.ps1`. |
-| `Ohook_Activation.cmd` | Office activation via Ohook. Called by `pre.ps1` after `Test-OfficeSafeForActivation` confirms no Office app is running. |
-
-### `$OEM$` Payload Updater Scripts (`$OEM$\$1\Recovery\OEM\`)
-
-| Script | Purpose |
-|---|---|
-| `Apps.ps1` | Downloads the latest Apps `.7z` split archive from a companion GitHub repository, verifies SHA-256 against a Gist, and extracts to `C:\Recovery\OEM\Apps`. |
-| `Drivers.ps1` | Downloads the latest Drivers `.7z` split archive from a companion GitHub repository, verifies SHA-256 against a Gist, and extracts to `C:\Recovery\OEM\Drivers`. |
-| `LGPO.ps1` | Downloads the latest `LGPO.7z` from a companion GitHub repository, verifies SHA-256 against a Gist, and extracts to `C:\Recovery\OEM\LGPO`. |
-
-### `$OEM$` Application Configurators (`$OEM$\$1\Recovery\OEM\Apps\`)
-
-| Script | Purpose |
-|---|---|
-| `RustDesk.ps1` | Applies RustDesk configuration after installation (password, relay server, persistence). |
-| `DymaxIOLicense.ps1` | Applies the DymaxIO license after installation. Returns exit code 2 if DymaxIO is not present. |
-| `Update.xml` | Task Scheduler definition imported by `pre.ps1` as the `OEM\Update` scheduled task. |
-
-### `$OEM$` Post-Deployment Scripts (`$OEM$\$1\Scripts\`)
-
-| Script | Purpose |
-|---|---|
-| `OEMDriversExport.ps1` | Exports drivers from the deployed OS, archives them as `.7z`, and copies to `\\SERVER\Shared\DriverPacks` or a DEPLOY USB. |
-| `ScanWindowsImage64.ps1` | Cleans the Driver Store and restores the `Microsoft-OneCore-DirectX-Database-FOD-Package`. |
-| `ScanStatex64.ps1` | Creates a provisioned package for push-button reset using USMT `ScanState`. |
-
-**→ See [docs/SCRIPTS.md](docs/SCRIPTS.md) for detailed documentation of every script, including parameters, environment variables, and known limitations.**
-
----
-
-## Related Repositories
-
-The updater scripts (`Apps.ps1`, `Drivers.ps1`, `LGPO.ps1`) pull payloads from three companion GitHub repositories. Each archive is split into `.7z.001`, `.7z.002`, … parts and hash-verified against a GitHub Gist.
-
-| Repository | Payload | Extracted To |
-|---|---|---|
-| [`52250179/Update-PBR-Extensibility-Apps`](https://github.com/52250179/Update-PBR-Extensibility-Apps) | OEM application installers | `C:\Recovery\OEM\Apps` |
-| [`52250179/Update-PBR-Extensibility-Drivers`](https://github.com/52250179/Update-PBR-Extensibility-Drivers) | Model-specific driver packs | `C:\Recovery\OEM\Drivers` |
-| [`52250179/Update-PBR-Extensibility-LGPO`](https://github.com/52250179/Update-PBR-Extensibility-LGPO) | LGPO tool and policy backups | `C:\Recovery\OEM\LGPO` |
-
-If any of these repositories become unavailable, replace the `$GistUrl`, `$RepoOwner`, and `$RepoName` variables in the corresponding `.ps1` file with your own.
-
----
-
-## Repository Structure
-
-```
-MDT-TS-and-Scripts/
-├── Control/                       # Deployment share control files
-│   ├── Bootstrap.ini              # WinPE bootstrap (server, creds, domain)
-│   ├── CustomSettings.ini         # Rules for zero-touch deployment
-│   ├── Medias.xml                 # Offline media configuration
-│   └── Settings.xml               # Deployment share settings
-├── Scripts/
-│   └── Custom/                    # Task sequence PowerShell scripts
-│       ├── ApplyOEMDrivers.ps1
-│       ├── ApplyUpdates10x64.ps1
-│       ├── ApplyUpdates10x86.ps1
-│       ├── ApplyUpdates11.ps1
-│       ├── CleanFixedDrives.ps1
-│       ├── CleanupScripts.ps1
-│       ├── CreateRecoveryPartition-BIOS.ps1
-│       ├── CreateRecoveryPartition-UEFI.ps1
-│       ├── ExtractOEMAppsx64.ps1
-│       ├── ExtractOEMAppsx86.ps1
-│       ├── ExtractOEMDrivers.ps1
-│       ├── FormatDataDrive.ps1
-│       ├── LoadWinPEDrivers.ps1
-│       ├── SetTargetOSDisk.ps1
-│       └── WinRE.ps1
-├── $OEM$/                         # Copied to C:\Windows\Setup\Scripts
-│   ├── $1/                        # Copied to the root of the target OS
-│   │   ├── Recovery/OEM/          # pre.ps1, Apps.ps1, Drivers.ps1, LGPO.ps1, LGPO, Activation, Apps
-│   │   └── Scripts/               # OEMDriversExport, ScanWindowsImage64, ScanStatex64
-│   └── $$/                        # Copied to C:\Windows
-│       └── Setup/                 # SetupComplete.cmd
-├── Operating Systems/             # Win10 x64, Win10 x86, Win11 x64 WIMs
-├── Out-of-box Drivers/            # MDT-managed drivers
-├── Boot/                          # LiteTouchPE_x64.wim, LiteTouchPE_x86.wim
-├── Task Sequences/                # WIN10PROX64, WIN10PROX86, WIN11PROX64
-├── Prerequisites/                 # DHCP/WDS configs, MDT templates, AOMEI
-├── Updates/                       # .cab/.msu update packages (Win10 x64/x86, Win11)
-├── docs/                          # Detailed documentation
-│   ├── SETUP.md
-│   ├── SCRIPTS.md
-│   ├── OEM.md
-│   ├── OFFLINE-MEDIA.md
-│   └── TROUBLESHOOTING.md
-├── .github/
-│   ├── FUNDING.yml
-│   └── release.yml
-├── CHANGELOG.md
-├── CONTRIBUTING.md
-├── LICENSE
-└── README.md
-```
+**→ See [docs/SETUP.md](docs/SETUP.md) for the complete walkthrough.**
 
 ---
 
@@ -325,27 +169,73 @@ MDT-TS-and-Scripts/
 
 | Document | Description |
 |---|---|
-| [docs/SETUP.md](docs/SETUP.md) | Complete prerequisites, server/desktop setup, deployment share creation, and PXE deployment walkthrough |
-| [docs/SCRIPTS.md](docs/SCRIPTS.md) | Detailed documentation for every custom script, including parameters, environment variables, and known limitations |
-| [docs/OEM.md](docs/OEM.md) | OEM app and driver pack preparation, `.7z` naming conventions, and directory structure |
+| [docs/SETUP.md](docs/SETUP.md) | Complete prerequisites, server and desktop setup, deployment share creation, and PXE deployment walkthrough |
+| [docs/SCRIPTS.md](docs/SCRIPTS.md) | Reference for every script in the repository, with parameters, dependencies, and known limitations |
+| [docs/APPS-FRAMEWORK.md](docs/APPS-FRAMEWORK.md) | The OEM Apps framework — phases, modules, manifests, extension points |
+| [docs/OEM.md](docs/OEM.md) | OEM driver pack and app archive structure, `.7z` naming conventions, network share layout |
 | [docs/OFFLINE-MEDIA.md](docs/OFFLINE-MEDIA.md) | Creating a DEPLOY-labeled USB flash drive for serverless deployments |
+| [docs/WINDOWS-MEDIA.md](docs/WINDOWS-MEDIA.md) | Obtaining or building a Windows installation image |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common errors, log locations, and fixes |
 | [CHANGELOG.md](CHANGELOG.md) | Version history and notable changes |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute scripts, OEM packs, and improvements |
 
 ---
 
-## Offline Media (USB Deployment)
+## Deployment Flow
 
-You can create an offline media set on a USB flash drive to deploy without a server:
-
-1. Copy the `MDT` folder from this repository to the root of your system drive (e.g., `C:\Deploy\MDT`).
-2. Update your Media in Deployment Workbench.
-3. Format a USB flash drive as **FAT32**, label it **`DEPLOY`**, and mark the partition active.
-4. Copy the contents of your Media Set (`C:\Deploy\MDT\Content`) to the root of the USB drive.
-5. Copy the contents of the `Shared` folder to the root of the USB drive.
-
-**→ See [docs/OFFLINE-MEDIA.md](docs/OFFLINE-MEDIA.md) for the full walkthrough.**
+```
+PXE or USB boot
+        │
+        ▼
+  WinPE (LiteTouchPE)
+  • Gather rules
+  • Load VMD driver if storage is missing
+        │
+        ▼
+  Validation
+  • Hardware check, BIOS/UEFI check
+        │
+        ▼
+  Preinstall
+  • Wipe fixed drives
+  • Select optimal target disk
+  • Partition (BIOS MBR / UEFI GPT)
+  • Create recovery partition
+  • Format secondary data drive
+        │
+        ▼
+  Install
+  • Apply OS image
+  • Inject offline updates
+  • Copy $OEM$ content
+  • Extract OEM apps + drivers
+  • Apply OEM + VMD drivers
+        │
+        ▼
+  Postinstall
+  • Configure WinRE
+  • Clean up deployment artifacts
+        │
+        ▼
+  State Restore
+  • Install MDT applications
+  • Apply local GPOs
+        │
+        ▼
+  OOBE → SetupComplete.cmd
+  • pre.ps1           OEM configuration, activation, third-party apps
+  • Customizations.ps1 Branding, offline hive hardening
+  • pbr.ps1           OEM Apps framework (SYSTEM phase)
+        │
+        ▼
+  First logon → resume task → pbr.ps1 (USER phase)
+  • Winget installs, health check, layout generation
+        │
+        ▼
+  Post-deployment (manual, by technician)
+  • Run C:\Scripts\0..4 in order
+  • Capture PBR provisioning package
+```
 
 ---
 
@@ -353,42 +243,31 @@ You can create an offline media set on a USB flash drive to deploy without a ser
 
 ### Deployment Server (Windows Server)
 
-- Windows Server with the **DHCP Server** and **WDS Server** roles installed
-- Static IP address on your subnet (outside the DHCP scope)
-- Hostname renamed to `SERVER`
-- Local account `Network User` (member of `Administrators`)
-- Password-protected sharing disabled
+- Windows Server with the **DHCP Server** and **WDS Server** roles
+- Static IP address outside the DHCP scope
+- Hostname set to `SERVER`
+- Local account `Network User`, member of `Administrators`
+- Password-protected sharing disabled (lab only)
 
 ### Deployment Workstation (Windows Desktop)
 
 - Any desktop edition of Windows 10 or Windows 11
-- **AOMEI PXE Boot** server
-- Hostname renamed to `SERVER`
-- Local account `Network User` (member of `Administrators`)
-- Password-protected sharing disabled
+- AOMEI PXE Boot
+- Hostname set to `SERVER`
+- Local account `Network User`, member of `Administrators`
 
-### Software (Both)
+### Software (both paths)
 
-- **PowerShell 7**
-- **Windows ADK for Windows 11**
-- **Windows PE Addon for the ADK**
-- **Windows SDK for Windows 11**
-- **Microsoft Deployment Toolkit (MDT)**
-- **7-Zip** (installed at `C:\Program Files\7-Zip\7z.exe` — required by the payload updater scripts)
-
-### Network Shares
-
-| Share | Purpose |
-|---|---|
-| `\\SERVER\DeploymentShare$` | MDT deployment share |
-| `\\SERVER\Shared` | Updates, DriverPacks, WindowsRE, Servicing, ScanState |
-| `\\SERVER\OEM` | OEM app archives (`.7z`) |
+- PowerShell 7
+- Windows ADK for Windows 11
+- Windows PE Addon for the ADK
+- Windows SDK for Windows 11
+- Microsoft Deployment Toolkit `6.3.8456.1000`
+- 7-Zip (the bundled copy in `Boot/Addon/x64/` is used by the boot image; the deployed OS installs its own copy)
 
 ---
 
 ## Configuration Files to Edit
-
-Most users will only need to edit a few files:
 
 | File | What to edit |
 |---|---|
@@ -396,86 +275,70 @@ Most users will only need to edit a few files:
 | `Control\CustomSettings.ini` | Rules for computer name, domain join, applications |
 | `Control\Medias.xml` | `Root` if you use a non-default offline media path |
 | `Control\Settings.xml` | `UNCPath`, `PhysicalPath`, `Boot.x86.ExtraDirectory`, `Boot.x64.ExtraDirectory` |
-| `Task Sequences\WIN10PROX64\Unattend.xml` | Locales and time zone |
-| `Task Sequences\WIN11PROX64\Unattend.xml` | Locales and time zone |
-| `$OEM$\$1\Recovery\OEM\pre.ps1` | AnyDesk password, OEM license activation, LGPO application |
-| `$OEM$\$1\Recovery\OEM\Apps.ps1` | Companion repo owner/name, Gist hash URL |
-| `$OEM$\$1\Recovery\OEM\Drivers.ps1` | Companion repo owner/name, Gist hash URL |
-| `$OEM$\$1\Recovery\OEM\LGPO.ps1` | Companion repo owner/name, Gist hash URL |
-| `$OEM$\$1\Scripts\OEMDriversExport.ps1` | Driver export destination |
-| `$OEM$\$1\Scripts\ScanWindowsImage64.ps1` | Servicing path |
-| `$OEM$\$1\Scripts\ScanStatex64.ps1` | ScanState tool path |
+| `Task Sequences\WIN10PROX64\Unattend.xml` | Locale and time zone |
+| `Task Sequences\WIN11PROX64\Unattend.xml` | Locale and time zone |
+| `x64\$OEM$\$1\Recovery\OEM\pre.ps1` | AnyDesk password, activation settings, third-party app list |
+| `x64\$OEM$\$1\Recovery\OEM\LGPO\Backup` | Local group policies (replace with your own backup if desired) |
 
 ---
 
 ## After OS Deployment
 
-Once the OS is deployed, use the scripts in `C:\Scripts` on the deployed client to finalize the image:
+Once the OS is deployed and OOBE completes, run the scripts in `C:\Scripts\` on the deployed machine in numerical order. Restart when instructed.
 
 | Script | Purpose |
 |---|---|
-| `1CleanImage.cmd` | Cleans up the Windows image after Windows Updates |
-| `2CleanupDriverStore` | Cleans up the Driver Store |
-| `3OEMDriversExport` | Captures drivers, archives as `.7z`, copies to `\\SERVER\Shared\DriverPacks` or a DEPLOY USB |
-| `4ScanState` | Creates a provisioned package for push-button reset |
-
-Apply updates and drivers via Windows Update (including Optional Driver updates), then use the bundled OEM Support/Update apps to install OEM drivers and updates.
+| `0CleanWindowsUpdates.cmd` | Clean the Windows component store after Windows Updates |
+| `0Install-AnyDesk.cmd` | Install AnyDesk interactively (x64 only) |
+| `0KeepAwake.cmd` | Prevent sleep during long-running maintenance |
+| `1Firstrun.cmd` | Interactive first pass: Windows Update, OEM utility setup, GPU software |
+| `2Secondrun.cmd` | Interactive second pass after restart: final updates and marker decisions |
+| `3OEMDriversExport.cmd` | Export drivers, save to `\\SERVER\Shared\DriverPacks` or a DEPLOY USB |
+| `4ScanState.cmd` | Capture a PBR provisioning package and populate `C:\Recovery\AutoApply` |
 
 ---
 
 ## Known Limitations
 
-- **Windows 10 end of support:** Windows 10 reached end of support on October 14, 2025. The Win10 task sequences are provided for legacy hardware and existing deployments only.
-- **Plaintext credentials:**
-  - `Control\Bootstrap.ini` stores the deployment share account in cleartext. Use a least-privilege deployment account and restrict share permissions. Never commit real credentials to a public repository.
-  - `$OEM$\$1\Recovery\OEM\pre.ps1` contains a hardcoded `$AnyDeskPassword = 'p@$$w0rd'`. **Change this before using AnyDesk in any non-lab environment.**
-- **MDT lifecycle:** Microsoft Deployment Toolkit is no longer under active development. This project targets MDT `6.3.8456.1000`.
-- **WinPE feature packs:** Some scripts assume specific WinPE feature packs. `winpe-wmi` is **not** included by default in `Scripts\Custom\`. Scripts in `Scripts\Custom\` use registry-based hardware detection to stay WinPE-safe. Scripts in `$OEM$` run in the full OS and may use WMI/CIM.
-- **VMD driver versions:** Intel VMD driver versions are hardcoded for specific CPU generations in `LoadWinPEDrivers.ps1` and `ApplyOEMDrivers.ps1`. New generations require updates to the generation map.
-- **x86 task sequence:** The `WIN10PROX86` task sequence is provided for legacy 32-bit hardware. VMD and some driver packs are x64-only and will not apply.
-- **OEM packs are model-specific:** `ExtractOEMDrivers.ps1` relies on exact or partial model string matching. Unknown models will fall through without a driver pack.
-- **No built-in application installation:** `Applications.xml` and `Packages.xml` are empty by default. Add your own applications via MDT or the `$OEM$` folder.
-- **Companion repos and Gists are external dependencies:** `Apps.ps1`, `Drivers.ps1`, and `LGPO.ps1` rely on GitHub repositories and Gists owned by a third party (`52250179`). If those become unavailable, replace the variables in each script with your own.
-- **Office activation is deferred when Office is running:** `pre.ps1` fails closed if any Office application is running in an interactive user session. The machine may complete OOBE with Office installed but not yet activated.
+- **Windows 10 end of support:** Windows 10 reached end of support on October 14, 2025. Win10 task sequences are for legacy hardware and existing deployments only.
+- **Plaintext credentials:** `Control\Bootstrap.ini` stores credentials in cleartext. Use a least-privilege deployment account and restrict share permissions. Never commit real credentials.
+- **AnyDesk password is hardcoded** in `pre.ps1` as `p@$$w0rd`. Change it before using AnyDesk outside an isolated lab.
+- **MDT is no longer under active development.** This project targets MDT `6.3.8456.1000`.
+- **Framework is x64-only.** The OEM Apps framework ships only in the x64 tree. The x86 tree uses monolith scripts that are not part of this repository. Post-deployment updates via `Update.xml` are x64-only.
+- **VMD driver versions are hardcoded** for specific CPU generations in `LoadWinPEDrivers.ps1` and `ApplyOEMDrivers.ps1`. New generations require code updates.
+- **`ExtractOEMDrivers.ps1` hardcodes the OS family to Win11** when resolving the driver pack path. This is a latent bug for Win10 deployments — the Win10 task sequence will look in the Win11 driver pack folder.
+- **x86 task sequence cannot use VMD.** Intel VMD drivers are x64-only. The x86 task sequence will not attempt VMD loading.
+- **OEM driver packs are model-specific.** `ExtractOEMDrivers.ps1` relies on model string matching. Unknown models fall through without a driver pack.
+- **No built-in MDT application installation.** `Applications.xml` and `Packages.xml` are empty. Add your own applications via MDT or the `$OEM$` folder.
+- **Framework canonical docs are not in this repository.** The framework's design rationale and internal reference documentation are maintained separately. See [docs/APPS-FRAMEWORK.md](docs/APPS-FRAMEWORK.md) for the framework overview that ships here.
 
 **→ See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for common errors and fixes.**
 
 ---
 
+## Related Projects
+
+| Project | Purpose |
+|---|---|
+| [`MDT-Windows-Image-Builder`](https://github.com/ArthurJDurand/MDT-Windows-Image-Builder) | Companion repository with a full guide on building a custom Windows installation image using UUPDump, Hyper-V, and audit mode. Required if you want to produce your own `install.wim`. |
+
+The `MDT-Windows-Image-Builder` repository is where the deep guide for image creation lives. This repository expects you to already have a Windows `install.wim` (or an ISO containing one) to import into MDT.
+
+---
+
 ## Contributing
 
-Contributions are welcome and encouraged! This project improves through community feedback.
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to submit changes, script standards, and areas where help is needed.
 
 ### Script Standards
 
-All PowerShell scripts in `Scripts/Custom/` must:
-
-- Be **WinPE-safe** — use the registry and file system only; avoid WMI/CIM in WinPE unless `winpe-wmi` is added to FeaturePacks. (Scripts in `$OEM$` run in the full OS and are exempt.)
-- Use `Get-Volume ... | Select-Object -First 1` when retrieving volume letters
-- Include retry logic for DISM and robocopy operations
-- Be silent (no `Write-Host` unless absolutely necessary for diagnostics)
-- Preserve exit codes — do not mask errors
-
-**→ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guidelines.**
-
-### Ideas for Contributions
-
-- **OEM license edition detection** — A script that sets the deployed Windows edition to match the OEM license (e.g., Home Single Language) during deployment, and limits LGPO application to Pro edition
-- **Additional OEM packs** — Driver and app packs for OEMs not yet covered
-- **New hardware support** — VMD/storage driver updates for newer Intel and AMD platforms
-- **Script improvements** — Any bug fixes or enhancements to existing scripts
+Scripts in `Scripts\Custom\` must be WinPE-safe. Scripts in `$OEM$` may use WMI/CIM but must write to the registry via `reg.exe` only. Full rules are in [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/SCRIPTS.md](docs/SCRIPTS.md).
 
 ---
 
 ## Support This Project
 
-This project is maintained in my spare time and provided free of charge. If it saved you or your organization time, please consider [sponsoring ongoing maintenance](https://github.com/sponsors/ArthurJDurand). Sponsorship helps fund issue triage, script improvements, OEM driver pack updates, and documentation.
+This project is maintained in spare time and provided free of charge. If it saved you or your organization time, consider [sponsoring ongoing maintenance](https://github.com/sponsors/ArthurJDurand). Sponsorship funds issue triage, script improvements, OEM pack updates, and documentation.
 
 [![Sponsor](https://img.shields.io/badge/Sponsor-ArthurJDurand-ea4aaa?logo=github-sponsors&logoColor=white)](https://github.com/sponsors/ArthurJDurand)
 
@@ -483,7 +346,7 @@ This project is maintained in my spare time and provided free of charge. If it s
 
 ## License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+MIT License — see [LICENSE.md](LICENSE.md).
 
 ---
 
@@ -500,9 +363,9 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 ## Acknowledgments
 
 - The MDT community for ongoing documentation and scripts
-- Microsoft for the Deployment Toolkit and ADK
-- Michael Niehaus for the original `CopyOEM.wsf` script
-- All contributors who have shared OEM packs, scripts, and feedback
+- Microsoft for the Deployment Toolkit and the Windows ADK
+- Michael Niehaus for the original `CopyOEM.wsf`
+- All contributors who have shared driver packs, scripts, and feedback
 
 ---
 

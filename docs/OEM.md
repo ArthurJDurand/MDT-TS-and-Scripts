@@ -4,6 +4,8 @@ This document describes how OEM content — driver packs, application archives, 
 
 The deployment scripts never hardcode model-specific content. They detect the target hardware at deployment time and pull the matching pack from a known location. This document is the reference for what those locations should look like.
 
+The OEM app archives themselves are built by the companion repository [`MDT-OEM-Extensibility`](https://github.com/ArthurJDurand/MDT-OEM-Extensibility). This document describes how the deployment share consumes them, not how they are assembled.
+
 ---
 
 ## Table of Contents
@@ -176,7 +178,12 @@ For deployments without a server, the same content lives on a USB flash drive la
 
 ```
 DEPLOY (USB root)\
-├── Content\              (MDT media set — generated or pre-built)
+├── Boot\                 (from the MDT media set)
+├── Control\              (from the MDT media set)
+├── Operating Systems\    (from the MDT media set, SWM-split)
+├── Scripts\              (from the MDT media set)
+├── Task Sequences\       (from the MDT media set)
+├── $OEM$\                (from the MDT media set)
 ├── OEM\
 │   ├── x64\
 │   └── x86\
@@ -221,6 +228,8 @@ The USB is FAT32, which has a **4 GB per-file limit**. Any archive larger than 4
 The exact structure is up to you — `ExtractOEMAppsx64.ps1` extracts the archive into `C:\Recovery\OEM` preserving its internal folder structure.
 
 **One `.7z` per vendor.** The scripts do not combine archives.
+
+**Building the archives:** The archives are produced by the companion repository [`MDT-OEM-Extensibility`](https://github.com/ArthurJDurand/MDT-OEM-Extensibility). That repository contains the per-vendor recipes, the download tooling, and the packer that produces the `.7z` files. It is the source of truth for what goes into each vendor's archive.
 
 ### Driver Packs
 
@@ -386,10 +395,10 @@ Lenovo ThinkPad T14 Gen 3 12th Gen Intel.7z
 
 **Format:** `<ArchiveName>.7z.001`, `.002`, `.003`, ...
 
-`ExtractOEMDrivers.ps1` and the payload updaters:
+`ExtractOEMDrivers.ps1` and `ExtractOEMApps*.ps1`:
 
 1. Sort all parts by numeric suffix.
-2. Copy or download all parts.
+2. Copy all parts.
 3. Validate with `7z t <first-part>`.
 4. Extract with `7z x <first-part>` — 7-Zip reads the split volume from `.001` and continues automatically.
 
@@ -442,17 +451,29 @@ Dell Latitude 5430 12th Gen Intel.7z
 
 ```
 Dell.7z
-├── Apps\
-│   ├── DellCommandUpdate.exe
-│   ├── DellDigitalDelivery.exe
-│   ├── DellOptimizer.exe
-│   ├── SupportAssist.exe
-│   └── ...
-├── Drivers\
-│   └── ... (optional)
-├── LayoutModification.xml         (optional, overrides the base layout)
-├── TaskbarLayoutModification.xml  (optional)
-└── ...
+├── Customizations.ps1             Vendor-specific pre-install script
+├── csup.txt                       Vendor metadata consumed by SetupComplete
+├── gpsFix.reg                     Registry tweaks
+├── OEMinfo.reg                    OEM branding registry
+├── unattend.xml                   OEM-attend overlay for PBR
+├── OEM.7z                         Infrastructure extracted to C:\OEM
+├── Customizations\
+│   ├── Dell.7z                    Wallpapers and themes (default family)
+│   └── G-series.7z                Additional assets for the G-series family
+└── Apps\
+    ├── CommandCenter\
+    │   ├── v5\Alienware-Command-Center-5-x-Full-Installer.exe
+    │   └── v6\Alienware-Command-Center-Application-Full-Installer.exe
+    ├── CommandUpdate\
+    │   ├── Dell-Command-Update-Windows-Universal-Application.exe
+    │   ├── PreinstallKit\windowsdesktop-runtime-10.0.11-win-x64.exe
+    │   └── UWP\DellCommandUpdate.appxbundle
+    ├── FusionService\
+    ├── MyAlienware\
+    ├── Optimizer\
+    ├── PowerManagerService\
+    ├── PrecisionOptimizer\
+    └── SupportAssist\
 ```
 
 Anything under `Apps\` is available to `pre.ps1` (which scans `C:\Recovery\OEM\Apps\` for installers) and to the OEM Apps framework (which reads manifests under `Apps\Manifests\`).
@@ -545,6 +566,8 @@ Add an entry for the new vendor:
 ### 6. Test
 
 Deploy to a Framework machine and verify that `C:\Recovery\OEM\Apps\FrameworkControlPanel.exe` exists after OOBE.
+
+**Note:** If you are adding a vendor to the OEM Apps framework as well, the recipe and manifest for that vendor live in the companion repository [`MDT-OEM-Extensibility`](https://github.com/ArthurJDurand/MDT-OEM-Extensibility). The deployment share consumes the resulting archives; it does not build them.
 
 ---
 
@@ -671,4 +694,4 @@ Copy the updated archive to offline media if applicable, then test a deployment.
 
 ---
 
-*See [docs/SCRIPTS.md](SCRIPTS.md) for the scripts that consume this content, and [docs/OFFLINE-MEDIA.md](OFFLINE-MEDIA.md) for building the DEPLOY USB.*
+*See [docs/SCRIPTS.md](SCRIPTS.md) for the scripts that consume this content, [docs/APPS-FRAMEWORK.md](APPS-FRAMEWORK.md) for the framework that installs OEM apps, and [docs/OFFLINE-MEDIA.md](OFFLINE-MEDIA.md) for building the DEPLOY USB. The OEM archives themselves are built by [`MDT-OEM-Extensibility`](https://github.com/ArthurJDurand/MDT-OEM-Extensibility).*

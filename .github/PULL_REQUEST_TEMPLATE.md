@@ -30,6 +30,7 @@ Closes #
 - [ ] ⚠️ Breaking change (fix or feature that changes existing behaviour; may require users to update their deployment share, task sequence, or configuration)
 - [ ] 🔧 Driver or hardware support (new model, new CPU generation, new VMD/RAID driver)
 - [ ] 📦 OEM pack addition (driver pack or app archive for a new vendor/model)
+- [ ] 🧩 OEM Apps framework change (module, manifest, hook, or framework internal)
 - [ ] 📝 Documentation only (no script changes)
 - [ ] 🧹 Refactor or maintenance (no functional change)
 - [ ] 🔒 Security fix
@@ -41,17 +42,20 @@ Closes #
   This helps reviewers focus and helps users know what to re-test.
 -->
 
-- [ ] `Scripts/Custom/` — task sequence scripts (WinPE-safe)
-- [ ] `$OEM$/$$/Setup/` — `SetupComplete.cmd` orchestrator
-- [ ] `$OEM$/$1/Recovery/OEM/` — OOBE scripts (`pre.ps1`, `Customizations.ps1`, payload updaters, activation)
-- [ ] `$OEM$/$1/Scripts/` — post-deployment scripts
-- [ ] `Control/` — MDT configuration (`Bootstrap.ini`, `CustomSettings.ini`, `Settings.xml`, `Medias.xml`)
-- [ ] `Task Sequences/` — task sequence definitions or `Unattend.xml`
-- [ ] `Operating Systems/` — WIM metadata (not the WIM files themselves)
-- [ ] `Out-of-box Drivers/` — MDT driver metadata
-- [ ] `Prerequisites/` — server/desktop setup configs
-- [ ] `docs/` — documentation
-- [ ] Repository infrastructure (`.github/`, `LICENSE`, `CHANGELOG.md`, etc.)
+- [ ] `DeploymentShare\Scripts\Custom\` — task sequence scripts (WinPE-safe)
+- [ ] `DeploymentShare\<arch>\$OEM$\$$\Setup\` — `SetupComplete.cmd` orchestrator
+- [ ] `DeploymentShare\<arch>\$OEM$\$1\Recovery\OEM\` — OOBE scripts (`pre.ps1`, `Customizations.ps1`, activation, layout)
+- [ ] `DeploymentShare\<arch>\$OEM$\$1\Recovery\OEM\Apps\Framework\` — OEM Apps framework modules
+- [ ] `DeploymentShare\<arch>\$OEM$\$1\Recovery\OEM\Apps\OEM\` — OEM modules
+- [ ] `DeploymentShare\<arch>\$OEM$\$1\Recovery\OEM\Apps\Manifests\` — OEM manifest files
+- [ ] `DeploymentShare\<arch>\$OEM$\$1\Recovery\OEM\Apps\pbr.ps1` — framework entry point
+- [ ] `DeploymentShare\<arch>\$OEM$\$1\Scripts\` — post-deployment scripts
+- [ ] `DeploymentShare\Control\` — MDT configuration (`Bootstrap.ini`, `CustomSettings.ini`, `Settings.xml`, `Medias.xml`)
+- [ ] `DeploymentShare\Task Sequences\` — task sequence definitions or `Unattend.xml`
+- [ ] `MDT\Content\` — offline media set
+- [ ] `Prerequisites\` — server/desktop setup configs
+- [ ] `docs\` — documentation
+- [ ] Repository infrastructure (`.github/`, `LICENSE.md`, `CHANGELOG.md`, `.gitignore`)
 
 ## Changes Made
 
@@ -142,8 +146,8 @@ Closes #
 
 ### Script Standards (see CONTRIBUTING.md)
 
-- [ ] Scripts in `Scripts/Custom/` are **WinPE-safe** (registry and file system only; no WMI/CIM/Storage module unless a FeaturePack was added)
-- [ ] Scripts in `$OEM$` follow the same quality standards where applicable (defensive lookups, retry logic, exit-code preservation)
+- [ ] Scripts in `Scripts\Custom\` are **WinPE-safe** (registry and file system only; no WMI/CIM/Storage module unless a FeaturePack was added)
+- [ ] Scripts in `$OEM$` and the framework follow the same quality standards where applicable (defensive lookups, retry logic, exit-code preservation)
 - [ ] All volume/disk lookups use `Select-Object -First 1` or equivalent defensive handling
 - [ ] DISM and robocopy operations include retry logic
 - [ ] Task sequence scripts are silent — no spurious `Write-Host` or `Write-Output`
@@ -151,12 +155,13 @@ Closes #
 - [ ] No hardcoded drive letters — paths are discovered via volume labels
 - [ ] Scripts are PowerShell 5.1 compatible (no PS7-only syntax)
 - [ ] Every script has an updated `.SYNOPSIS` / `.DESCRIPTION` / `.NOTES` header block
-- [ ] Payload updaters (`Apps.ps1`, `Drivers.ps1`, `LGPO.ps1`) remain idempotent
+- [ ] **Registry writes use `reg.exe` exclusively** — no PowerShell Registry Provider writes
+- [ ] Framework changes respect the architectural invariants in `docs/APPS-FRAMEWORK.md`
 
 ### Repository Hygiene
 
 - [ ] `CHANGELOG.md` updated under `[Unreleased]` in the appropriate section (`Added`, `Changed`, `Fixed`, `Removed`, `Security`)
-- [ ] No large binaries committed (`.wim`, `.iso`, `.cab`, `.msu`, `.7z`, `.exe`, `.msi` over ~10 MB)
+- [ ] No large binaries committed outside the intentional binary locations documented in `.gitignore`
 - [ ] No credentials, API keys, tokens, or secrets committed
 - [ ] No unrelated files, formatting changes, or drive-by refactors included
 - [ ] Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat(scope): …`, `fix(scope): …`, etc.)
@@ -168,6 +173,7 @@ Closes #
 - [ ] User-facing documentation updated (`README.md` or `docs/*`) if behaviour changed
 - [ ] If a new script was added, it is listed in the Scripts Reference (README or `docs/SCRIPTS.md`)
 - [ ] If a new OEM pack was added, `docs/OEM.md` reflects the new directory structure
+- [ ] If a new OEM module was added, `docs/APPS-FRAMEWORK.md` lists the OEM and its hooks
 - [ ] If a new configuration file was added, it is listed in the Configuration Files to Edit table
 
 ### Testing

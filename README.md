@@ -79,7 +79,7 @@ If any of those are unfamiliar, work through Microsoft's own MDT documentation f
 The repository root contains documentation, GitHub configuration, and two payload folders:
 
 ```
-MDT-TS-and-Scripts/
+MDT-Zero-Touch-Deployment/
 ├── DeploymentShare/                 The contents to merge into your MDT deployment share
 │   ├── Boot/
 │   │   └── Addon/x64/               Bundled 7-Zip for the WinPE boot image
@@ -117,7 +117,7 @@ The x86 tree does not ship the Apps framework. It uses monolith scripts that are
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/ArthurJDurand/MDT-TS-and-Scripts.git
+git clone https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment.git
 ```
 
 ### 2. Prepare your environment
@@ -136,7 +136,7 @@ Open Deployment Workbench (Microsoft Deployment Toolkit) and create a new deploy
 Copy the contents of `DeploymentShare/` from this repository into your new deployment share, merging folders.
 
 ```powershell
-robocopy "C:\path\to\MDT-TS-and-Scripts\DeploymentShare" "C:\DeploymentShare" /E /COPY:DAT /R:2 /W:5
+robocopy "C:\path\to\MDT-Zero-Touch-Deployment\DeploymentShare" "C:\DeploymentShare" /E /COPY:DAT /R:2 /W:5
 ```
 
 ### 5. Configure `Control\Bootstrap.ini`
@@ -355,7 +355,7 @@ MIT License — see [LICENSE.md](LICENSE.md).
 **Arthur Durand**
 
 - GitHub: [@ArthurJDurand](https://github.com/ArthurJDurand)
-- Repository: [MDT-TS-and-Scripts](https://github.com/ArthurJDurand/MDT-TS-and-Scripts)
+- Repository: [MDT-Zero-Touch-Deployment](https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment)
 - Sponsor: [github.com/sponsors/ArthurJDurand](https://github.com/sponsors/ArthurJDurand)
 
 ---
@@ -374,4 +374,3 @@ MIT License — see [LICENSE.md](LICENSE.md).
 **If this project helped you deploy Windows faster, consider giving it a ⭐**
 
 </div>
-```

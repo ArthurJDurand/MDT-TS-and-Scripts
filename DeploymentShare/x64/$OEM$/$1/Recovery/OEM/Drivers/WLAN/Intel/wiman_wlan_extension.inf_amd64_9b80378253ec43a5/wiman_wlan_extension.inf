@@ -1,0 +1,250 @@
+;
+; Intel Wireless WiFi Link Adapters
+; wiman_wlan_extension
+;
+; Copyright (C) 1997-2021 Intel Corporation. All rights reserved.
+;
+; The information and source code contained herein is the exclusive
+; property of Intel Corporation and may not be disclosed, examined
+; or reproduced in whole or in part without explicit written authorization
+; from the company.
+;
+
+[Version]
+Signature="$WINDOWS NT$"
+Class = Extension
+ClassGuid = {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+Provider=%ManufacturerName%
+ExtensionId = {BABE2782-EB1B-46A7-871A-F043D3200542}
+CatalogFile=wiman_wlan_extension.cat
+;//
+;// Configure PnP manager to prevent applications from directly modifying the files that are copied
+;//  by INF CopyFiles directives.
+;//
+PnPLockdown = 1
+DriverVer = 10/20/2025,2543.98.178.0
+
+[Manufacturer]
+%ManufacturerName%=Intel, NTamd64.10.0...16299
+
+;// Note:
+;// This Extension INF is to be used as-is by OEMs wishing to opt-in for Intel® Wireless Manageability.
+;// CHIDs must be added to the Extension INF's Shipping Label.
+;// For more details see:
+;// https://docs.microsoft.com/en-us/windows-hardware/drivers/install/using-an-extension-inf-file
+;//
+[Intel.NTamd64.10.0...16299]
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_HECI, PCI\VEN_8086&DEV_02E0   ;ME14.0 - CML   HECI1
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_HECI, PCI\VEN_8086&DEV_06E0   ;ME14.0 - CML   HECI1
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_HECI, PCI\VEN_8086&DEV_43E0   ;ME15.0 - TGL   HECI1
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_HECI, PCI\VEN_8086&DEV_A0E0   ;ME15.0 - TGL   HECI1
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_HECI_uCode_ADL, PCI\VEN_8086&DEV_7AE8   ;ME16.0 - ADL-S HECI1
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_HECI_uCode_ADL, PCI\VEN_8086&DEV_51E0   ;ME16.0 - ADL-P HECI1
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_HECI_uCode_RPL, PCI\VEN_8086&DEV_7A68   ;ME17.0 - RPL HECI1
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_HECI_IO_MTL_M, PCI\VEN_8086&DEV_7E70   ;ME18.0 - MTL_M HECI1
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_HECI_IO_MTL_M, PCI\VEN_8086&DEV_7770   ;ME18.0 - ARL-H HECI1
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_HECI_IO_MTL_S, PCI\VEN_8086&DEV_7F68   ;ME19.0 - MTL_S/ARL_P HECI1
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_HECI_IO_LNL_M, PCI\VEN_8086&DEV_A870   ;ME20.0 - LNL_M HECI1
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_HECI_IO_21_0, PCI\VEN_8086&DEV_E370   ;ME21.0 - H
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_HECI_IO_21_0, PCI\VEN_8086&DEV_E470   ;ME21.0 - P
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_HECI_IO_21_50, PCI\VEN_8086&DEV_4D70   ;ME21.5 - PCD
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_HECI_IO_22_0, PCI\VEN_8086&DEV_6E68   ;ME22.0 - S
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_HECI_IO_23_0, PCI\VEN_8086&DEV_D370   ;ME23.0 - H
+
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_00008086 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_00108086 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_00188086 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_00308086 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_00388086 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_00608086 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_00A08086 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_02108086 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_02308086 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_02388086 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_02608086 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_02A08086 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_14108086 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_15501A56 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_15511A56 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_15521A56 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_16108086 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_20308086 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_40108086 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_40188086 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_40308086 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_80108086 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2526&SUBSYS_60108086 ; THP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_271B&SUBSYS_00108086 ; THP1
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_271B&SUBSYS_02108086 ; THP1
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2720&SUBSYS_00308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2720&SUBSYS_00388086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2720&SUBSYS_00608086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2720&SUBSYS_00A08086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2720&SUBSYS_02308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2720&SUBSYS_02388086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2720&SUBSYS_02608086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2720&SUBSYS_02A08086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2720&SUBSYS_15511A56 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2720&SUBSYS_15521A56 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2720&SUBSYS_00708086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2720&SUBSYS_20308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2720&SUBSYS_40308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2723&SUBSYS_00008086 ; CCP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2723&SUBSYS_00808086 ; CCP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2723&SUBSYS_00888086 ; CCP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2723&SUBSYS_16531A56 ; CCP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2723&SUBSYS_20808086 ; CCP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2723&SUBSYS_40808086 ; CCP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_2723&SUBSYS_40888086 ; CCP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_30DC&SUBSYS_00308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_30DC&SUBSYS_00388086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_30DC&SUBSYS_00608086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_30DC&SUBSYS_00A08086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_30DC&SUBSYS_02308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_30DC&SUBSYS_02388086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_30DC&SUBSYS_02608086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_30DC&SUBSYS_02A08086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_30DC&SUBSYS_15511A56 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_30DC&SUBSYS_15521A56 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_30DC&SUBSYS_20308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_30DC&SUBSYS_40308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_31DC&SUBSYS_00308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_31DC&SUBSYS_00388086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_31DC&SUBSYS_00608086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_31DC&SUBSYS_00A08086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_31DC&SUBSYS_02308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_31DC&SUBSYS_02388086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_31DC&SUBSYS_02608086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_31DC&SUBSYS_02A08086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_31DC&SUBSYS_15511A56 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_31DC&SUBSYS_15521A56 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_31DC&SUBSYS_20308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_31DC&SUBSYS_40308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_3DF0&SUBSYS_00308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_3DF0&SUBSYS_00388086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_3DF0&SUBSYS_00608086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_3DF0&SUBSYS_00A08086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_3DF0&SUBSYS_02308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_3DF0&SUBSYS_02388086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_3DF0&SUBSYS_02608086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_3DF0&SUBSYS_02A08086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_3DF0&SUBSYS_15511A56 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_3DF0&SUBSYS_15521A56 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_3DF0&SUBSYS_20308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_3DF0&SUBSYS_40308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_9DF0&SUBSYS_00308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_9DF0&SUBSYS_00388086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_9DF0&SUBSYS_00608086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_9DF0&SUBSYS_00A08086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_9DF0&SUBSYS_02308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_9DF0&SUBSYS_02388086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_9DF0&SUBSYS_02608086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_9DF0&SUBSYS_02A08086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_9DF0&SUBSYS_15511A56 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_9DF0&SUBSYS_15521A56 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_9DF0&SUBSYS_20308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_9DF0&SUBSYS_40308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_A370&SUBSYS_00308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_A370&SUBSYS_00388086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_A370&SUBSYS_00608086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_A370&SUBSYS_00A08086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_A370&SUBSYS_02308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_A370&SUBSYS_02388086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_A370&SUBSYS_02608086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_A370&SUBSYS_02A08086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_A370&SUBSYS_15511A56 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_A370&SUBSYS_15521A56 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_A370&SUBSYS_20308086 ; JFP
+%WiManWlanExtension.Desc% = WiManWlanExtInstallSection_WiFi, PCI\VEN_8086&DEV_A370&SUBSYS_40308086 ; JFP
+
+[WiManWlanExtInstallSection_WiFi.NT]
+
+[WiManWlanExtInstallSection_WiFi.NT.Components]
+AddComponent = WiMan_Component,,WiMan_ComponentInstall_WiFi
+
+[WiMan_ComponentInstall_WiFi]
+ComponentIds=842ADBFC-7499-407B-BD91-A52842585D0B ;WiMan as WiFi extension
+
+[WiManWlanExtInstallSection_HECI.NT]
+
+[WiManWlanExtInstallSection_HECI.NT.Components]
+AddComponent = WiMan_Component,,WiMan_ComponentInstall_HECI
+
+[WiMan_ComponentInstall_HECI]
+ComponentIds=B74B5286-A7A5-444D-973B-71A66AF711BE ;WiMan as HECI extension
+
+[WiManWlanExtInstallSection_HECI_uCode_ADL.NT]
+
+[WiManWlanExtInstallSection_HECI_uCode_ADL.NT.Components]
+AddComponent = WiMan_Component,,WiMan_ComponentInstall_HECI_uCode_ADL
+
+[WiMan_ComponentInstall_HECI_uCode_ADL]
+ComponentIds=D1D545FE-A4C1-45BD-8C7C-2B90A7C3734A ;WiMan as HECI extension supporting uCode update on ADL
+
+[WiManWlanExtInstallSection_HECI_uCode_RPL.NT]
+
+[WiManWlanExtInstallSection_HECI_uCode_RPL.NT.Components]
+AddComponent = WiMan_Component,,WiMan_ComponentInstall_HECI_uCode_RPL
+
+[WiMan_ComponentInstall_HECI_uCode_RPL]
+ComponentIds=2CD1F6E8-34D3-478C-963E-D2E483BA4DFA ;WiMan as HECI extension supporting uCode update on RPL
+
+[WiManWlanExtInstallSection_HECI_IO_MTL_M.NT]
+
+[WiManWlanExtInstallSection_HECI_IO_MTL_M.NT.Components]
+AddComponent = WiMan_Component,,WiMan_ComponentInstall_HECI_IO_MTL_M
+
+[WiMan_ComponentInstall_HECI_IO_MTL_M]
+ComponentIds=E4B9BAF3-7014-4E93-BE10-2922B68D1F40 ;WiMan as HECI extension supporting target IO on MTL_M
+
+[WiManWlanExtInstallSection_HECI_IO_MTL_S.NT]
+
+[WiManWlanExtInstallSection_HECI_IO_MTL_S.NT.Components]
+AddComponent = WiMan_Component,,WiMan_ComponentInstall_HECI_IO_MTL_S
+
+[WiMan_ComponentInstall_HECI_IO_MTL_S]
+ComponentIds=9349315B-8A5C-4404-8F85-1B20DD1FF186 ;WiMan as HECI extension supporting target IO on MTL_S
+
+[WiManWlanExtInstallSection_HECI_IO_LNL_M.NT]
+
+[WiManWlanExtInstallSection_HECI_IO_LNL_M.NT.Components]
+AddComponent = WiMan_Component,,WiMan_ComponentInstall_HECI_IO_LNL_M
+
+[WiMan_ComponentInstall_HECI_IO_LNL_M]
+ComponentIds=CF38EC04-E209-44E4-8335-7851A90DFDDA ;WiMan as HECI extension supporting target IO on LNL_M
+
+[WiManWlanExtInstallSection_HECI_IO_21_0.NT]
+
+[WiManWlanExtInstallSection_HECI_IO_21_0.NT.Components]
+AddComponent = WiMan_Component,,WiMan_ComponentInstall_HECI_IO_21_0
+
+[WiMan_ComponentInstall_HECI_IO_21_0]
+ComponentIds=61644C3B-183D-4A26-B62C-ED4AD98114B6 ;WiMan as HECI extension supporting target IO on 21_0
+
+[WiManWlanExtInstallSection_HECI_IO_21_50.NT]
+
+[WiManWlanExtInstallSection_HECI_IO_21_50.NT.Components]
+AddComponent = WiMan_Component,,WiMan_ComponentInstall_HECI_IO_21_50
+
+[WiMan_ComponentInstall_HECI_IO_21_50]
+ComponentIds=ACBD9348-71F9-48A4-9F54-81AD44EA1FDB ;WiMan as HECI extension supporting target IO on 21_50
+
+[WiManWlanExtInstallSection_HECI_IO_22_0.NT]
+
+[WiManWlanExtInstallSection_HECI_IO_22_0.NT.Components]
+AddComponent = WiMan_Component,,WiMan_ComponentInstall_HECI_IO_22_0
+
+[WiMan_ComponentInstall_HECI_IO_22_0]
+ComponentIds=A3C034FB-7B7A-4A23-9218-A458760ACD60 ;WiMan as HECI extension supporting target IO on 22_0
+
+[WiManWlanExtInstallSection_HECI_IO_23_0.NT]
+
+[WiManWlanExtInstallSection_HECI_IO_23_0.NT.Components]
+AddComponent = WiMan_Component,,WiMan_ComponentInstall_HECI_IO_23_0
+
+[WiMan_ComponentInstall_HECI_IO_23_0]
+ComponentIds=86B43EA6-26B1-469D-97EE-FB3C3B89F161 ;WiMan as HECI extension supporting target IO on 23_0
+
+[Strings]
+ManufacturerName="Intel"
+WiManWlanExtension.Desc = "Intel® Wireless Manageability Driver extension"

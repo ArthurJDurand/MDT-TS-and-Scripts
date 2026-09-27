@@ -6,7 +6,7 @@
 		<CreatedBy>SERVER\Administrator</CreatedBy>
 		<LastModifiedTime>2022-10-14 7:19:19 am</LastModifiedTime>
 		<LastModifiedBy>SERVER\Administrator</LastModifiedBy>
-		<Root>C:\Deploy\MDT</Root>
+		<Root>D:\Deploy\MDT</Root>
 		<SelectionProfile>Everything</SelectionProfile>
 		<SupportX86>True</SupportX86>
 		<SupportX64>True</SupportX64>

@@ -1,0 +1,27 @@
+rem == ResetPartitions.txt ==
+
+convert mbr
+
+rem == 1. System partition =========================
+create partition primary size=388
+format quick fs=ntfs label="System"
+assign letter="S"
+active
+
+
+rem == 2. Windows partition ========================
+rem ==    a. Create the Windows partition ==========
+create partition primary
+shrink minimum=1000
+format quick fs=ntfs label="Windows"
+assign letter="W"
+
+
+rem == 3. Recovery image partition ===============
+create partition primary
+format quick fs=ntfs label="Recovery"
+assign letter="R"
+set id=27
+
+list volume
+exit

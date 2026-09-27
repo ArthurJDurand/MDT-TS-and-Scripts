@@ -1,0 +1,27 @@
+{
+  "name": "Huawei",
+  "apps": [
+    {
+      "AppName": "PC Manager",
+      "InstallerPath": "C:\\Recovery\\OEM\\Apps\\PCManager",
+      "InstallerFilter": "",
+      "InstallerCandidates": [],
+      "InstallerArgs": "",
+      "AppxPackageName": "",
+      "WingetAppId": "",
+      "WingetSource": "",
+      "SupplementalWingetAppID": "",
+      "SupplementalWingetSource": "",
+      "ProductFamilies": [],
+      "PrerequisiteApps": [],
+      "ConflictingApps": [],
+      "ServiceGated": false,
+      "Required": false,
+      "MobileOnly": false,
+      "InstallPhase": "UserOnly",
+      "RequiresInteractive": true,
+      "CustomInstaller": "Install-HuaweiPCManager",
+      "Pinning": { "Type": "Desktop", "Id": "%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\Huawei\\PC Manager.lnk", "Taskbar": true }
+    }
+  ]
+}

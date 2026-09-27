@@ -7,7 +7,7 @@
   <SupportX86>True</SupportX86>
   <SupportX64>True</SupportX64>
   <UNCPath>\\SERVER\DeploymentShare$</UNCPath>
-  <PhysicalPath>C:\DeploymentShare</PhysicalPath>
+  <PhysicalPath>D:\DeploymentShare</PhysicalPath>
   <MonitorHost>
   </MonitorHost>
   <MonitorEventPort>9800</MonitorEventPort>
@@ -21,7 +21,7 @@
   <Boot.x86.IncludeVideoDrivers>True</Boot.x86.IncludeVideoDrivers>
   <Boot.x86.IncludeSystemDrivers>True</Boot.x86.IncludeSystemDrivers>
   <Boot.x86.BackgroundFile>%INSTALLDIR%\Samples\Background.bmp</Boot.x86.BackgroundFile>
-  <Boot.x86.ExtraDirectory>C:\DeploymentShare\Boot\Addon\x86</Boot.x86.ExtraDirectory>
+  <Boot.x86.ExtraDirectory>D:\DeploymentShare\Boot\Addon\x86</Boot.x86.ExtraDirectory>
   <Boot.x86.GenerateGenericWIM>False</Boot.x86.GenerateGenericWIM>
   <Boot.x86.GenerateGenericISO>False</Boot.x86.GenerateGenericISO>
   <Boot.x86.GenericWIMDescription>Generic Windows PE (x86)</Boot.x86.GenericWIMDescription>
@@ -40,7 +40,7 @@
   <Boot.x64.IncludeVideoDrivers>True</Boot.x64.IncludeVideoDrivers>
   <Boot.x64.IncludeSystemDrivers>True</Boot.x64.IncludeSystemDrivers>
   <Boot.x64.BackgroundFile>%INSTALLDIR%\Samples\Background.bmp</Boot.x64.BackgroundFile>
-  <Boot.x64.ExtraDirectory>C:\DeploymentShare\Boot\Addon\x64</Boot.x64.ExtraDirectory>
+  <Boot.x64.ExtraDirectory>D:\DeploymentShare\Boot\Addon\x64</Boot.x64.ExtraDirectory>
   <Boot.x64.GenerateGenericWIM>False</Boot.x64.GenerateGenericWIM>
   <Boot.x64.GenerateGenericISO>False</Boot.x64.GenerateGenericISO>
   <Boot.x64.GenericWIMDescription>Generic Windows PE (x64)</Boot.x64.GenericWIMDescription>

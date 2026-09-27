@@ -32,6 +32,7 @@ Complete walkthrough for installing, configuring, and deploying with the MDT Zer
 | Phase | First-time setup |
 |---|---|
 | Software installation | 45–90 min |
+| Prerequisite fixes | 5–15 min |
 | Role configuration (server or desktop) | 20–45 min |
 | Deployment share creation | 10–15 min |
 | Merge repository into deployment share | 5–15 min |
@@ -58,7 +59,9 @@ This project requires a Windows `install.wim` (or an ISO containing one) to impo
 - **Build your own** with UUPDump and audit mode — see the companion repository [MDT-Windows-Image-Builder](https://github.com/ArthurJDurand/MDT-Windows-Image-Builder) and [docs/WINDOWS-MEDIA.md](WINDOWS-MEDIA.md)
 - **Use an existing image** you have on hand (Microsoft ISO, VLSC, or a pre-built image from your organization)
 
-Have the image ready before you begin the deployment share steps.
+You also need OEM payload archives (`Dell.7z`, `HP.7z`, and so on) for the manufacturers you intend to support. These are built by the companion repository [MDT-OEM-Extensibility](https://github.com/ArthurJDurand/MDT-OEM-Extensibility).
+
+Have the OS image and OEM archives ready before you begin the deployment share steps.
 
 ---
 
@@ -88,6 +91,23 @@ Install in this order:
 6. **7-Zip** — install to the default location `C:\Program Files\7-Zip\`
 
 Download links are in the [README](../README.md).
+
+### Prerequisite fixes
+
+The repository ships `Prerequisites\All MDT Fixes 2025.exe`. This is a self-extracting archive containing:
+
+- ADK and WinPE Addon fixes required for modern Windows builds
+- MDT template patches
+- The fix for KB4564442 (server-side deployment reliability)
+- The fix for the HTA Script Error on Windows Server
+
+**Run this before touching the deployment share.** Its patches are required for modern Windows builds and for reliable WDS-based deployment.
+
+```powershell
+& "C:\path\to\MDT-Zero-Touch-Deployment\Prerequisites\All MDT Fixes 2025.exe"
+```
+
+Extract to the default location offered by the archive. It typically targets `C:\Program Files\Microsoft Deployment Toolkit`.
 
 ### Network topology (server path)
 
@@ -272,9 +292,15 @@ Skip ahead to [Prepare the Deployment Host](#prepare-the-deployment-host).
 
 These steps are identical for both paths.
 
-### 1. Extract MDT Templates
+### 1. Run the MDT Fixes bundle
 
-In the repository's `Prerequisites\` folder, run `MDT Templates.exe` and extract to the default location (usually `C:\Program Files\Microsoft Deployment Toolkit\Templates`).
+In the repository's `Prerequisites\` folder, run `All MDT Fixes 2025.exe` and extract to the default location (usually `C:\Program Files\Microsoft Deployment Toolkit`). This applies ADK fixes, WinPE Addon updates, and MDT template patches that modern Windows builds require.
+
+Verify the MDT installation is intact:
+
+```powershell
+Test-Path "C:\Program Files\Microsoft Deployment Toolkit\Bin\Microsoft.BDD.PSSnapIn.dll"
+```
 
 ### 2. Install the remaining software
 
@@ -298,6 +324,10 @@ git clone https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment.git C:\Sour
 ### 4. Prepare your Windows image
 
 Have your Windows `install.wim` ready. If you need to build one, see the companion repository [MDT-Windows-Image-Builder](https://github.com/ArthurJDurand/MDT-Windows-Image-Builder) and [docs/WINDOWS-MEDIA.md](WINDOWS-MEDIA.md).
+
+### 5. Prepare your OEM archives
+
+Have your OEM payload archives ready. These are built by the companion repository [MDT-OEM-Extensibility](https://github.com/ArthurJDurand/MDT-OEM-Extensibility). You will place them on the network shares in [Prepare Network Shares](#prepare-network-shares).
 
 ---
 
@@ -327,11 +357,13 @@ When Windows asks to merge or replace, choose **Merge** for folders and **Replac
 
 After this, `C:\DeploymentShare` contains:
 
-- `Boot\Addon\x64\` (bundled 7-Zip)
-- `Control\` (configuration)
-- `Scripts\Custom\` (task sequence scripts)
-- `x64\$OEM$\` (x64 OEM content and framework)
-- `x86\$OEM$\` (x86 OEM content)
+- `Boot\Addon\x64\` and `Boot\Addon\x86\` — bundled 7-Zip for both boot images
+- `Control\` — configuration files and the three task sequence folders (`WIN10PROX64`, `WIN10PROX86`, `WIN11PROX64`)
+- `Scripts\` and `Scripts\Custom\` — MDT bootstrap scripts and the task sequence scripts
+- `Templates\` — stock MDT unattend templates
+- `Tools\x64\` and `Tools\x86\` — BGInfo and the MDT utility library
+- `x64\$OEM$\` — x64 OEM content, Apps framework, activation, layout
+- `x86\$OEM$\` — x86 OEM content
 - Plus the standard MDT folders created by the wizard
 
 ### Re-open Deployment Workbench
@@ -419,32 +451,34 @@ Controls the deployment share itself.
 
 Default contents assume:
 
-- Physical path: `D:\DeploymentShare`
+- Physical path: `C:\DeploymentShare`
 - UNC path: `\\SERVER\DeploymentShare$`
-- Boot.x64.ExtraDirectory: `D:\DeploymentShare\Boot\Addon\x64`
-- Boot.x86.ExtraDirectory: `D:\DeploymentShare\Boot\Addon\x86`
+- Boot.x64.ExtraDirectory: `C:\DeploymentShare\Boot\Addon\x64`
+- Boot.x86.ExtraDirectory: `C:\DeploymentShare\Boot\Addon\x86`
 
 **Update these to match your environment:**
 
-- `PhysicalPath` — your share's local path (e.g. `C:\DeploymentShare`)
+- `PhysicalPath` — your share's local path
 - `UNCPath` — your server's UNC path
 - `Boot.x86.ExtraDirectory` and `Boot.x64.ExtraDirectory` — your local share path plus `\Boot\Addon\x86` (or `x64`)
 
-The `Boot.x64.ExtraDirectory` path is critical — the repository ships 7-Zip at `Boot\Addon\x64\Program Files\7-Zip\`, which is copied into the WinPE boot image so the boot image can extract `.7z` archives during deployment.
+The `Boot.x64.ExtraDirectory` and `Boot.x86.ExtraDirectory` paths are critical. The repository ships 7-Zip at `Boot\Addon\x64\Program Files\7-Zip\` and `Boot\Addon\x86\Program Files\7-Zip\`, which are copied into the WinPE boot images so the boot images can extract `.7z` archives during deployment.
 
 ### 4. `Medias.xml`
 
-Controls offline media generation. Default root: `D:\Deploy\MDT`. If you use a different folder, update the `<Root>` element.
+Controls offline media generation. Default root: `C:\Deploy\MDT`. If you use a different folder, update the `<Root>` element.
 
 See [docs/OFFLINE-MEDIA.md](OFFLINE-MEDIA.md) for the full offline media workflow.
 
 ### 5. Task Sequence unattend files
 
+The task sequences live under `Control\WIN10PROX64\`, `Control\WIN10PROX86\`, and `Control\WIN11PROX64\`, each with a `ts.xml` (the sequence definition) and an `Unattend.xml` (the OS answer file).
+
 Edit the following in each file to match your locale and time zone:
 
-- `Task Sequences\WIN10PROX64\Unattend.xml`
-- `Task Sequences\WIN10PROX86\Unattend.xml`
-- `Task Sequences\WIN11PROX64\Unattend.xml`
+- `Control\WIN10PROX64\Unattend.xml`
+- `Control\WIN10PROX86\Unattend.xml`
+- `Control\WIN11PROX64\Unattend.xml`
 
 ```xml
 <component name="Microsoft-Windows-International-Core-WinPE" ...>
@@ -487,10 +521,17 @@ Contains updates, driver packs, WinRE images, servicing components, and ScanStat
 \\SERVER\Shared\
 ├── OEM\
 │   ├── x64\
+│   │   ├── Acer.7z
+│   │   ├── ASUS.7z
 │   │   ├── Dell.7z
+│   │   ├── Dynabook.7z
+│   │   ├── Gigabyte.7z
 │   │   ├── HP.7z
+│   │   ├── Huawei.7z
 │   │   ├── Lenovo.7z
-│   │   └── ... (one .7z per vendor)
+│   │   ├── Microsoft.7z
+│   │   ├── MSI.7z
+│   │   └── Proline.7z
 │   └── x86\
 │       └── ... (x86 archives, if you support 32-bit hardware)
 ├── DriverPacks\
@@ -526,21 +567,9 @@ Share permissions: `Network User` — Read.
 
 ### `\\SERVER\Shared\OEM`
 
-Contains OEM app archives, addressed by the `ExtractOEMApps*.ps1` scripts.
+The OEM app archives live at `\\SERVER\Shared\OEM\` in the structure shown above. The `ExtractOEMApps*.ps1` scripts read from this folder.
 
-```
-\\SERVER\Shared\OEM\
-├── x64\
-│   ├── Dell.7z
-│   ├── HP.7z
-│   └── ...
-└── x86\
-    └── ...
-```
-
-Share permissions: `Network User` — Read.
-
-Full details on archive naming, `.7z` splitting, and how the scripts select the right archive are in [docs/OEM.md](OEM.md).
+Build these archives with the companion repository [MDT-OEM-Extensibility](https://github.com/ArthurJDurand/MDT-OEM-Extensibility). See [docs/OEM.md](OEM.md) for the archive naming conventions, `.7z` splitting, and how the scripts select the right archive per vendor.
 
 ---
 
@@ -568,11 +597,18 @@ The repository's `Control\Settings.xml` already lists the correct WinPE feature 
 
 Do **not** remove `winpe-storagewmi` — `SetTargetOSDisk.ps1` depends on it.
 
-### 2. Verify the boot add-on directory
+### 2. Verify the boot add-on directories
 
-Confirm that `C:\DeploymentShare\Boot\Addon\x64\Program Files\7-Zip\` exists with the full 7-Zip installation. This is what gets injected into the boot image so the task sequence can extract `.7z` archives.
+Confirm that both bundled 7-Zip installations exist:
 
-If the folder is empty, re-copy from `C:\Source\MDT-Zero-Touch-Deployment\DeploymentShare\Boot\Addon\x64\`.
+```powershell
+Test-Path "C:\DeploymentShare\Boot\Addon\x64\Program Files\7-Zip\7z.exe"
+Test-Path "C:\DeploymentShare\Boot\Addon\x86\Program Files\7-Zip\7z.exe"
+```
+
+Both should return `True`. These are what get injected into the boot images so the task sequence can extract `.7z` archives.
+
+If either folder is empty, re-copy from `C:\Source\MDT-Zero-Touch-Deployment\DeploymentShare\Boot\Addon\`.
 
 ### 3. Configure driver injection into the boot image
 
@@ -715,17 +751,19 @@ If `3OEMDriversExport.cmd` produced a `.7z` file, copy it to `\\SERVER\Shared\Dr
 
 ## Offline Media
 
-For deployments without a server or network, the repository ships a pre-built offline media set in `MDT/Content/`. See [docs/OFFLINE-MEDIA.md](OFFLINE-MEDIA.md) for the full walkthrough.
+For deployments without a server or network, you can generate a bootable USB flash drive from your deployment share. The media set is **not shipped in this repository** — you create it on demand with Deployment Workbench.
 
 Summary:
 
-1. Copy the `MDT` folder from the repository to the root of your system drive (e.g. `C:\Deploy\MDT`)
-2. Update the media set in Deployment Workbench
+1. Create a media set in Deployment Workbench (default path `C:\Deploy\MDT`)
+2. Update the media content — MDT copies the boot image, OS images, task sequences, and scripts
 3. Format a USB flash drive as **FAT32**, label it **`DEPLOY`**, mark active
-4. Copy `C:\Deploy\MDT\Content\*` to the USB root
-5. Copy the `Shared` folder to the USB root
+4. Copy the media content from `C:\Deploy\MDT\Content\` to the USB root
+5. Copy the OEM payload from `\\SERVER\Shared\` to the USB root
 
-The pre-built media uses SWM-split images so it fits on FAT32, which is required for UEFI boot on most hardware.
+The generated media uses SWM-split images so it fits on FAT32, which is required for UEFI boot on most hardware.
+
+Full walkthrough: [docs/OFFLINE-MEDIA.md](OFFLINE-MEDIA.md).
 
 ---
 
@@ -738,7 +776,7 @@ The pre-built media uses SWM-split images so it fits on FAT32, which is required
 - [ ] Account password is set, user cannot change password, password never expires
 - [ ] Static IP is configured outside the DHCP scope
 - [ ] ADK, WinPE Addon, SDK, MDT, PowerShell 7, and 7-Zip are installed
-- [ ] `MDT Templates.exe` has been extracted
+- [ ] `Prerequisites\All MDT Fixes 2025.exe` has been run
 - [ ] Deployment share exists at `C:\DeploymentShare` and is shared as `DeploymentShare$`
 - [ ] Repository `DeploymentShare/` contents have been merged into `C:\DeploymentShare`
 - [ ] The Windows image has been imported into MDT

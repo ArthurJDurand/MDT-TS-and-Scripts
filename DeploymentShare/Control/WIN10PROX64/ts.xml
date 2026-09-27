@@ -11,14 +11,6 @@
     <variable name="OSGUID" property="OSGUID">{0cabe44a-4e43-4e52-abad-7edfb42704a8}</variable>
   </globalVarList>
   <group name="Initialization" disable="false" continueOnError="false" description="Initialize the TS environment" expand="false">
-    <step type="BDD_RunPowerShellAction" name="Load Storarage Driver" description="" disable="false" continueOnError="true" successCodeList="0 3010">
-      <defaultVarList>
-        <variable name="ScriptName" property="ScriptName">%SCRIPTROOT%\Custom\LoadStorageDriver.ps1</variable>
-        <variable name="Parameters" property="Parameters"></variable>
-        <variable name="PackageID" property="PackageID"></variable>
-      </defaultVarList>
-      <action>cscript.exe "%SCRIPTROOT%\ZTIPowerShell.wsf</action>
-    </step>
     <step type="BDD_Gather" name="Gather local only" disable="false" continueOnError="false" successCodeList="0 3010" description="" startIn="">
       <defaultVarList>
         <variable name="GatherLocalOnly" property="GatherLocalOnly">true</variable>
@@ -204,6 +196,14 @@
         </defaultVarList>
         <action>cscript.exe "%SCRIPTROOT%\ZTIValidate.wsf"</action>
       </step>
+      <step type="BDD_RunPowerShellAction" name="Load WinPE Drivers" description="" disable="false" continueOnError="false" successCodeList="0 3010">
+        <defaultVarList>
+          <variable name="ScriptName" property="ScriptName">%SCRIPTROOT%\Custom\LoadWinPEDrivers.ps1</variable>
+          <variable name="Parameters" property="Parameters"></variable>
+          <variable name="PackageID" property="PackageID"></variable>
+        </defaultVarList>
+        <action>cscript.exe "%SCRIPTROOT%\ZTIPowerShell.wsf</action>
+      </step>
       <step type="BDD_RunPowerShellAction" name="Clean All Fixed Drives" description="" disable="false" continueOnError="true" successCodeList="0 3010">
         <defaultVarList>
           <variable name="ScriptName" property="ScriptName">%SCRIPTROOT%\Custom\CleanFixedDrives.ps1</variable>
@@ -212,7 +212,7 @@
         </defaultVarList>
         <action>cscript.exe "%SCRIPTROOT%\ZTIPowerShell.wsf</action>
       </step>
-      <step type="BDD_RunPowerShellAction" name="Set Target OS Disk" description="" disable="false" continueOnError="true" successCodeList="0 3010">
+      <step type="BDD_RunPowerShellAction" name="Set Target OS Disk" description="" disable="false" continueOnError="false" successCodeList="0 3010">
         <defaultVarList>
           <variable name="ScriptName" property="ScriptName">%SCRIPTROOT%\Custom\SetTargetOSDisk.ps1</variable>
           <variable name="Parameters" property="Parameters"></variable>
@@ -294,7 +294,7 @@
         </defaultVarList>
         <action>cscript.exe "%SCRIPTROOT%\ZTIDiskpart.wsf"</action>
       </step>
-      <step type="BDD_RunPowerShellAction" name="Create Recovery Partition (BIOS)" description="" disable="false" continueOnError="true" successCodeList="0 3010">
+      <step type="BDD_RunPowerShellAction" name="Create Recovery Partition (BIOS)" description="" disable="false" continueOnError="false" successCodeList="0 3010">
         <defaultVarList>
           <variable name="ScriptName" property="ScriptName">%SCRIPTROOT%\Custom\CreateRecoveryPartition-BIOS.ps1</variable>
           <variable name="Parameters" property="Parameters"></variable>
@@ -309,7 +309,7 @@
           </expression>
         </condition>
       </step>
-      <step type="BDD_RunPowerShellAction" name="Create Recovery Partition (UEFI)" description="" disable="false" continueOnError="true" successCodeList="0 3010">
+      <step type="BDD_RunPowerShellAction" name="Create Recovery Partition (UEFI)" description="" disable="false" continueOnError="false" successCodeList="0 3010">
         <defaultVarList>
           <variable name="ScriptName" property="ScriptName">%SCRIPTROOT%\Custom\CreateRecoveryPartition-UEFI.ps1</variable>
           <variable name="Parameters" property="Parameters"></variable>
@@ -396,7 +396,7 @@
         <variable name="LoadProfile" property="LoadProfile">false</variable>
       </defaultVarList>
     </step>
-    <step type="SMS_TaskSequence_RunCommandLineAction" name="Enable BitLocker (Offline)" description="" disable="false" continueOnError="true" startIn="" successCodeList="0 3010" runIn="WinPEandFullOS">
+    <step type="SMS_TaskSequence_RunCommandLineAction" name="Enable BitLocker (Offline)" description="" disable="true" continueOnError="true" startIn="" successCodeList="0 3010" runIn="WinPEandFullOS">
       <action>cscript.exe "%SCRIPTROOT%\ZTIBDE.wsf"</action>
       <defaultVarList>
         <variable name="RunAsUser" property="RunAsUser">false</variable>
@@ -448,7 +448,7 @@
       </defaultVarList>
       <action>cscript.exe "%SCRIPTROOT%\LTIApply.wsf"</action>
     </step>
-    <step type="BDD_RunPowerShellAction" name="Apply Updates" description="" disable="false" continueOnError="true" successCodeList="0 3010">
+    <step type="BDD_RunPowerShellAction" name="Apply Updates" description="" disable="false" continueOnError="false" successCodeList="0 3010">
       <defaultVarList>
         <variable name="ScriptName" property="ScriptName">%SCRIPTROOT%\Custom\ApplyUpdates10x64.ps1</variable>
         <variable name="Parameters" property="Parameters"></variable>
@@ -456,7 +456,7 @@
       </defaultVarList>
       <action>cscript.exe "%SCRIPTROOT%\ZTIPowerShell.wsf</action>
     </step>
-    <step type="SMS_TaskSequence_RunCommandLineAction" name="Copy OEM files" description="" disable="false" continueOnError="true" startIn="" successCodeList="0 3010" runIn="WinPEandFullOS">
+    <step type="SMS_TaskSequence_RunCommandLineAction" name="Copy OEM files" description="" disable="false" continueOnError="false" startIn="" successCodeList="0 3010" runIn="WinPEandFullOS">
       <defaultVarList>
         <variable name="PackageID" property="PackageID"></variable>
         <variable name="RunAsUser" property="RunAsUser">false</variable>
@@ -466,7 +466,7 @@
       </defaultVarList>
       <action>cscript.exe "%SCRIPTROOT%\CopyOEM.wsf</action>
     </step>
-    <step type="BDD_RunPowerShellAction" name="Extract OEM Apps" description="" disable="false" continueOnError="true" successCodeList="0 3010">
+    <step type="BDD_RunPowerShellAction" name="Extract OEM Apps" description="" disable="false" continueOnError="false" successCodeList="0 3010">
       <defaultVarList>
         <variable name="ScriptName" property="ScriptName">%SCRIPTROOT%\Custom\ExtractOEMAppsx64.ps1</variable>
         <variable name="Parameters" property="Parameters"></variable>
@@ -474,7 +474,7 @@
       </defaultVarList>
       <action>cscript.exe "%SCRIPTROOT%\ZTIPowerShell.wsf</action>
     </step>
-    <step type="BDD_RunPowerShellAction" name="Extract OEM Drivers" description="" disable="false" continueOnError="true" successCodeList="0 3010">
+    <step type="BDD_RunPowerShellAction" name="Extract OEM Drivers" description="" disable="false" continueOnError="false" successCodeList="0 3010">
       <defaultVarList>
         <variable name="ScriptName" property="ScriptName">%SCRIPTROOT%\Custom\ExtractOEMDrivers.ps1</variable>
         <variable name="Parameters" property="Parameters"></variable>
@@ -482,7 +482,7 @@
       </defaultVarList>
       <action>cscript.exe "%SCRIPTROOT%\ZTIPowerShell.wsf</action>
     </step>
-    <step type="BDD_RunPowerShellAction" name="Apply OEM Drivers" description="" disable="false" continueOnError="true" successCodeList="0 3010">
+    <step type="BDD_RunPowerShellAction" name="Apply OEM Drivers" description="" disable="false" continueOnError="false" successCodeList="0 3010">
       <defaultVarList>
         <variable name="ScriptName" property="ScriptName">%SCRIPTROOT%\Custom\ApplyOEMDrivers.ps1</variable>
         <variable name="Parameters" property="Parameters"></variable>
@@ -541,7 +541,7 @@
         <variable name="PackageSelectionProfile" property="PackageSelectionProfile">All Packages</variable>
       </defaultVarList>
     </step>
-    <step type="SMS_TaskSequence_RunCommandLineAction" name="Add Windows Recovery (WinRE)" description="" disable="false" continueOnError="false" startIn="" successCodeList="0 3010" runIn="WinPEandFullOS">
+    <step type="SMS_TaskSequence_RunCommandLineAction" name="Add Windows Recovery (WinRE)" description="" disable="true" continueOnError="false" startIn="" successCodeList="0 3010" runIn="WinPEandFullOS">
       <action>cscript.exe "%SCRIPTROOT%\ZTIWinRE.wsf"</action>
       <defaultVarList>
         <variable name="RunAsUser" property="RunAsUser">false</variable>
@@ -550,9 +550,9 @@
         <variable name="LoadProfile" property="LoadProfile">false</variable>
       </defaultVarList>
     </step>
-    <step type="BDD_RunPowerShellAction" name="Verify Windows Recovery (WinRE)" description="" disable="false" continueOnError="false" successCodeList="0 3010">
+    <step type="BDD_RunPowerShellAction" name="Add Windows Recovery (WinRE)" description="" disable="false" continueOnError="false" successCodeList="0 3010">
       <defaultVarList>
-        <variable name="ScriptName" property="ScriptName">%SCRIPTROOT%\Custom\VerifyWinRE.ps1</variable>
+        <variable name="ScriptName" property="ScriptName">%SCRIPTROOT%\Custom\WinRE.ps1</variable>
         <variable name="Parameters" property="Parameters"></variable>
         <variable name="PackageID" property="PackageID"></variable>
       </defaultVarList>
@@ -658,7 +658,7 @@
       </defaultVarList>
     </step>
     <group name="Custom Tasks" disable="false" continueOnError="false" expand="true" description=""></group>
-    <step type="SMS_TaskSequence_EnableBitLockerAction" name="Enable BitLocker" continueOnError="true" successCodeList="0 3010" description="" startIn="">
+    <step type="SMS_TaskSequence_EnableBitLockerAction" name="Enable BitLocker" continueOnError="true" successCodeList="0 3010" description="" startIn="" disable="true">
       <action>cscript.exe "%SCRIPTROOT%\ZTIBde.wsf"</action>
       <condition>
         <expression type="SMS_TaskSequence_VariableConditionExpression">

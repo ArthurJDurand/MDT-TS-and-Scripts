@@ -1,0 +1,49 @@
+{
+  "name": "Surface",
+  "apps": [
+    {
+      "AppName": "Microsoft.SurfaceHub",
+      "InstallerPath": "C:\\Recovery\\OEM\\Apps\\SurfaceHub",
+      "InstallerFilter": "",
+      "InstallerCandidates": [],
+      "InstallerArgs": "",
+      "AppxPackageName": "Microsoft.SurfaceHub",
+      "WingetAppId": "9WZDNCRFJB8P",
+      "WingetSource": "msstore",
+      "SupplementalWingetAppID": "",
+      "SupplementalWingetSource": "",
+      "ProductFamilies": [],
+      "PrerequisiteApps": [],
+      "ConflictingApps": [],
+      "ServiceGated": false,
+      "Required": false,
+      "MobileOnly": false,
+      "InstallPhase": "Any",
+      "RequiresInteractive": false,
+      "CustomInstaller": "",
+      "Pinning": { "Type": "AUMID", "Id": "Microsoft.SurfaceHub_8wekyb3d8bbwe!App", "Taskbar": true }
+    },
+    {
+      "AppName": "Microsoft.SurfaceDiagnostics",
+      "InstallerPath": "C:\\Recovery\\OEM\\Apps\\SurfaceDiagnostics",
+      "InstallerFilter": "",
+      "InstallerCandidates": [],
+      "InstallerArgs": "",
+      "AppxPackageName": "Microsoft.SurfaceDiagnostics",
+      "WingetAppId": "9NF1MR6C60ZF",
+      "WingetSource": "msstore",
+      "SupplementalWingetAppID": "",
+      "SupplementalWingetSource": "",
+      "ProductFamilies": [],
+      "PrerequisiteApps": [],
+      "ConflictingApps": [],
+      "ServiceGated": false,
+      "Required": false,
+      "MobileOnly": false,
+      "InstallPhase": "Any",
+      "RequiresInteractive": false,
+      "CustomInstaller": "",
+      "Pinning": { "Type": "AUMID", "Id": "Microsoft.SurfaceDiagnostics_8wekyb3d8bbwe!App", "Taskbar": false }
+    }
+  ]
+}

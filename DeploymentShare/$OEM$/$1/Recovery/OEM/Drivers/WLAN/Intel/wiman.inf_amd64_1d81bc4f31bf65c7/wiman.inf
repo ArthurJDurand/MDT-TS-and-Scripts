@@ -1,0 +1,336 @@
+;
+; Intel Wireless WiFi Link Adapters
+; wiman
+;
+; Copyright (C) 1997-2021 Intel Corporation. All rights reserved.
+;
+; The information and source code contained herein is the exclusive
+; property of Intel Corporation and may not be disclosed, examined
+; or reproduced in whole or in part without explicit written authorization
+; from the company.
+;
+
+[Version]
+Signature="$WINDOWS NT$"
+Class=SoftwareComponent
+ClassGuid={5c4c3332-344d-483c-8739-259e934c9cc8}
+Provider=%ManufacturerName%
+CatalogFile=WiMan.cat
+PnpLockDown=1
+DriverVer = 10/20/2025,2543.98.178.0
+KmdfLibraryVersion = 1.15
+
+[DestinationDirs]
+DefaultDestDir = 13
+Drivers_Dir_WiFi = 13, WiMan
+Drivers_Dir_HECI = 13, WiManH
+Drivers_Dir_HECI_uCode = 13, WiManHu
+Drivers_Dir_HECI_IO = 13, WiManHio
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+WiMan.sys  = 1,WiMan
+WiManH.sys  = 1,WiManH
+WiManHu.sys  = 1,WiManHu
+WiManHio.sys  = 1,WiManHio
+PFU_16_1_PP.bin   = 1,WiManHu
+PFU_16_1_PD.bin   = 1,WiManHu
+PFU_17_0_PP.bin   = 1,WiManHu
+PFU_17_0_PD.bin   = 1,WiManHu
+PFU_18_1_PP.bin = 1,WiManHio
+PFU_18_1_PD.bin = 1,WiManHio
+PFU_19_0_PP.bin = 1,WiManHio
+PFU_19_0_PD.bin = 1,WiManHio
+PFU_20_0_PP.bin = 1,WiManHio
+PFU_20_0_PD.bin = 1,WiManHio
+PFU_21_0_PP.bin = 1,WiManHio
+PFU_21_0_PD.bin = 1,WiManHio
+PFU_21_50_PP.bin = 1,WiManHio
+PFU_21_50_PD.bin = 1,WiManHio
+PFU_22_0_PP.bin = 1,WiManHio
+PFU_22_0_PD.bin = 1,WiManHio
+PFU_23_0_PP.bin = 1,WiManHio
+PFU_23_0_PD.bin = 1,WiManHio
+PNVM_HIO.bin     = 1,WiManHio
+PNVM.bin     = 1,WiManHu
+
+;*****************************************
+; Install Section
+;*****************************************
+
+[Manufacturer]
+%ManufacturerName%=Intel, NTamd64.10.0...16299
+
+[Intel.NTamd64.10.0...16299]
+%WiMan.DeviceDesc%=WiMan_WiFi_Device, SWC\842ADBFC-7499-407B-BD91-A52842585D0B  ; WiMan hw-id as WiFi extension
+%WiManH.DeviceDesc%=WiMan_HECI_Device, SWC\B74B5286-A7A5-444D-973B-71A66AF711BE  ; WiMan hw-id as HECI extension
+%WiManHu.DeviceDesc%=WiMan_HECI_uCode_ADL_Device, SWC\D1D545FE-A4C1-45BD-8C7C-2B90A7C3734A  ; WiMan hw-id as HECI extension supporting ucode update on ADL
+%WiManHu.DeviceDesc%=WiMan_HECI_uCode_RPL_Device, SWC\2CD1F6E8-34D3-478C-963E-D2E483BA4DFA  ; WiMan hw-id as HECI extension supporting ucode update on RPL
+%WiManHio.DeviceDesc%=WiMan_HECI_IO_MTL_M_Device, SWC\E4B9BAF3-7014-4E93-BE10-2922B68D1F40  ; WiMan hw-id as HECI extension supporting target IO on MTL_M
+%WiManHio.DeviceDesc%=WiMan_HECI_IO_MTL_S_Device, SWC\9349315B-8A5C-4404-8F85-1B20DD1FF186  ; WiMan hw-id as HECI extension supporting target IO on MTL_S
+%WiManHio.DeviceDesc%=WiMan_HECI_IO_LNL_M_Device, SWC\CF38EC04-E209-44E4-8335-7851A90DFDDA  ; WiMan hw-id as HECI extension supporting target IO on LNL_M
+%WiManHio.DeviceDesc%=WiMan_HECI_IO_21_0_Device, SWC\61644C3B-183D-4A26-B62C-ED4AD98114B6  ; WiMan hw-id as HECI extension supporting target IO on 21.0
+%WiManHio.DeviceDesc%=WiMan_HECI_IO_21_50_Device, SWC\ACBD9348-71F9-48A4-9F54-81AD44EA1FDB  ; WiMan hw-id as HECI extension supporting target IO on 21.5
+%WiManHio.DeviceDesc%=WiMan_HECI_IO_22_0_Device, SWC\A3C034FB-7B7A-4A23-9218-A458760ACD60  ; WiMan hw-id as HECI extension supporting target IO on 22.0
+%WiManHio.DeviceDesc%=WiMan_HECI_IO_23_0_Device, SWC\86B43EA6-26B1-469D-97EE-FB3C3B89F161  ; WiMan hw-id as HECI extension supporting target IO on 23.0
+
+[WiMan_WiFi_Device.NT]
+AddReg = Reg_Common_WPP_16
+CopyFiles=Drivers_Dir_WiFi
+
+[WiMan_HECI_Device.NT]
+AddReg = Reg_Common_WPP_16
+CopyFiles=Drivers_Dir_HECI
+
+[WiMan_HECI_uCode_ADL_Device.NT]
+AddReg = Reg_Common_WPP_16
+CopyFiles=Drivers_Dir_HECI_uCode
+
+[WiMan_HECI_uCode_ADL_Device.NT.HW]
+AddReg = WiManHu.PfuFile_ADL.reg
+
+[WiMan_HECI_uCode_RPL_Device.NT]
+AddReg = Reg_Common_WPP_16
+CopyFiles=Drivers_Dir_HECI_uCode
+
+[WiMan_HECI_uCode_RPL_Device.NT.HW]
+AddReg = WiManHu.PfuFile_RPL.reg
+
+[WiMan_HECI_IO_MTL_M_Device.NT]
+AddReg = Reg_Common_WPP_16
+CopyFiles=Drivers_Dir_HECI_IO
+
+[WiMan_HECI_IO_MTL_M_Device.NT.HW]
+AddReg = WiManHio.PfuFile_MTL_M.reg
+
+[WiMan_HECI_IO_MTL_S_Device.NT]
+AddReg = Reg_Common_WPP_16
+CopyFiles=Drivers_Dir_HECI_IO
+
+[WiMan_HECI_IO_MTL_S_Device.NT.HW]
+AddReg = WiManHio.PfuFile_MTL_S.reg
+
+[WiMan_HECI_IO_LNL_M_Device.NT]
+AddReg = Reg_Common_WPP_16
+CopyFiles=Drivers_Dir_HECI_IO
+
+[WiMan_HECI_IO_LNL_M_Device.NT.HW]
+AddReg = WiManHio.PfuFile_LNL_M.reg
+
+[WiMan_HECI_IO_21_0_Device.NT]
+AddReg = Reg_Common_WPP_16
+CopyFiles=Drivers_Dir_HECI_IO
+
+[WiMan_HECI_IO_21_0_Device.NT.HW]
+AddReg = WiManHio.PfuFile_21_0.reg
+
+[WiMan_HECI_IO_21_50_Device.NT]
+AddReg = Reg_Common_WPP_16
+CopyFiles=Drivers_Dir_HECI_IO
+
+[WiMan_HECI_IO_21_50_Device.NT.HW]
+AddReg = WiManHio.PfuFile_21_50.reg
+
+[WiMan_HECI_IO_22_0_Device.NT]
+AddReg = Reg_Common_WPP_16
+CopyFiles=Drivers_Dir_HECI_IO
+
+[WiMan_HECI_IO_22_0_Device.NT.HW]
+AddReg = WiManHio.PfuFile_22_0.reg
+
+[WiMan_HECI_IO_23_0_Device.NT]
+AddReg = Reg_Common_WPP_16
+CopyFiles=Drivers_Dir_HECI_IO
+
+[WiMan_HECI_IO_23_0_Device.NT.HW]
+AddReg = WiManHio.PfuFile_23_0.reg
+
+[Drivers_Dir_WiFi]
+WiMan.sys
+
+[Drivers_Dir_HECI]
+WiManH.sys
+
+[Drivers_Dir_HECI_uCode]
+WiManHu.sys
+PFU_16_1_PP.bin
+PFU_16_1_PD.bin
+PFU_17_0_PP.bin
+PFU_17_0_PD.bin
+PNVM.bin
+
+[Drivers_Dir_HECI_IO]
+WiManHio.sys
+PFU_18_1_PP.bin
+PFU_18_1_PD.bin
+PFU_19_0_PP.bin
+PFU_19_0_PD.bin
+PFU_20_0_PP.bin
+PFU_20_0_PD.bin
+PFU_21_0_PP.bin
+PFU_21_0_PD.bin
+PFU_21_50_PP.bin
+PFU_21_50_PD.bin
+PFU_22_0_PP.bin
+PFU_22_0_PD.bin
+PFU_23_0_PP.bin
+PFU_23_0_PD.bin
+PNVM_HIO.bin
+
+;-------------- Service installation
+[WiMan_WiFi_Device.NT.Services]
+AddService = WiMan,%SPSVCINST_ASSOCSERVICE%, WiMan_WiFi_Service_Inst, WiMan.EventLogWiFi
+
+[WiMan_HECI_Device.NT.Services]
+AddService = WiManH,%SPSVCINST_ASSOCSERVICE%, WiMan_HECI_Service_Inst, WiManH.EventLogHECI
+
+[WiMan_HECI_uCode_ADL_Device.NT.Services]
+AddService = WiManHu,%SPSVCINST_ASSOCSERVICE%, WiMan_HECI_uCode_Service_Inst, WiManHu.EventLogHECIuCode
+
+[WiMan_HECI_uCode_RPL_Device.NT.Services]
+AddService = WiManHu,%SPSVCINST_ASSOCSERVICE%, WiMan_HECI_uCode_Service_Inst, WiManHu.EventLogHECIuCode
+
+[WiMan_HECI_IO_MTL_M_Device.NT.Services]
+AddService = WiManHio,%SPSVCINST_ASSOCSERVICE%, WiMan_HECI_IO_Service_Inst, WiManHio.EventLogHeciIo
+
+[WiMan_HECI_IO_MTL_S_Device.NT.Services]
+AddService = WiManHio,%SPSVCINST_ASSOCSERVICE%, WiMan_HECI_IO_Service_Inst, WiManHio.EventLogHeciIo
+
+[WiMan_HECI_IO_LNL_M_Device.NT.Services]
+AddService = WiManHio,%SPSVCINST_ASSOCSERVICE%, WiMan_HECI_IO_Service_Inst, WiManHio.EventLogHeciIo
+
+[WiMan_HECI_IO_21_0_Device.NT.Services]
+AddService = WiManHio,%SPSVCINST_ASSOCSERVICE%, WiMan_HECI_IO_Service_Inst, WiManHio.EventLogHeciIo
+
+[WiMan_HECI_IO_21_50_Device.NT.Services]
+AddService = WiManHio,%SPSVCINST_ASSOCSERVICE%, WiMan_HECI_IO_Service_Inst, WiManHio.EventLogHeciIo
+
+[WiMan_HECI_IO_22_0_Device.NT.Services]
+AddService = WiManHio,%SPSVCINST_ASSOCSERVICE%, WiMan_HECI_IO_Service_Inst, WiManHio.EventLogHeciIo
+
+[WiMan_HECI_IO_23_0_Device.NT.Services]
+AddService = WiManHio,%SPSVCINST_ASSOCSERVICE%, WiMan_HECI_IO_Service_Inst, WiManHio.EventLogHeciIo
+
+
+[Reg_Common_WPP_16]
+HKLM, SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\WiManDriverIHVSession, BufferSize, 0x00010001, 0x50
+HKLM, SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\WiManDriverIHVSession, ClockType, 0x00010001, 0x1
+HKLM, SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\WiManDriverIHVSession, FileCounter, 0x00010001, 0x2
+HKLM, SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\WiManDriverIHVSession, FileMax, 0x00010001, 0x4
+HKLM, SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\WiManDriverIHVSession, FileName, 0x00000002, "%%SystemRoot%%\System32\LogFiles\WMI\WiManDriverIHVSession.etl"
+HKLM, SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\WiManDriverIHVSession, Guid, 0x00000002, "{949C6AFE-3CC6-435E-A070-7EDF98629143}"
+HKLM, SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\WiManDriverIHVSession, LogFileMode, 0x00010001, 0x00000002
+HKLM, SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\WiManDriverIHVSession, MaxFileSize, 0x00010001, 0x8
+HKLM, SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\WiManDriverIHVSession, Status, 0x00010001, 0x0
+HKLM, SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\WiManDriverIHVSession, MinimumBuffers, 0x00010001, 0x9
+HKLM, SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\WiManDriverIHVSession, MaximumBuffers, 0x00010001, 0x16
+HKLM, SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\WiManDriverIHVSession, Start, 0x00010001, 0x1
+HKLM, SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\WiManDriverIHVSession\{949C6AFE-3CC6-435E-A070-7EDF98629143}, Enabled, 0x00010001, 0x1
+HKLM, SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\WiManDriverIHVSession\{949C6AFE-3CC6-435E-A070-7EDF98629143}, EnableLevel, 0x00010001, 0x5
+HKLM, SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\WiManDriverIHVSession\{949C6AFE-3CC6-435E-A070-7EDF98629143}, EnableFlags, 0x00010001, 0xffff
+HKLM, SYSTEM\CurrentControlSet\Control\WMI\AutoLogger\WiManDriverIHVSession\{949C6AFE-3CC6-435E-A070-7EDF98629143}, Status, 0x00010001, 0x0
+
+; -------------- WiMan driver install sections
+[WiMan_WiFi_Service_Inst]
+DisplayName    = %WiMan.SVCDESC%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %13%\WiMan\WiMan.sys
+
+[WiMan_HECI_Service_Inst]
+DisplayName    = %WiManH.SVCDESC%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %13%\WiManH\WiManH.sys
+
+[WiMan_HECI_uCode_Service_Inst]
+DisplayName    = %WiManHu.SVCDESC%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %13%\WiManHu\WiManHu.sys
+
+[WiMan_HECI_IO_Service_Inst]
+DisplayName    = %WiManHio.SVCDESC%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %13%\WiManHio\WiManHio.sys
+HKR, "Parameters", "LogPages", %REG_DWORD%, 0x10
+HKR, "Parameters", "WppRecorder_UseTimeStamp", %REG_DWORD%, 1
+
+[WiMan.AddEventLogWiFi.reg]
+HKR, , EventMessageFile, 0x00020000, "%%SystemRoot%%\System32\netevent.dll;%13%\WiMan\WiMan.sys"
+HKR, , TypesSupported,   0x00010001, 7
+
+[WiMan.EventLogWiFi]
+AddReg = WiMan.AddEventLogWiFi.reg
+
+[WiManH.AddEventLogHECI.reg]
+HKR, , EventMessageFile, 0x00020000, "%%SystemRoot%%\System32\netevent.dll;%13%\WiManH\WiManH.sys"
+HKR, , TypesSupported,   0x00010001, 7
+
+[WiManH.EventLogHECI]
+AddReg = WiManH.AddEventLogHECI.reg
+
+[WiManHu.AddEventLogHECIuCode.reg]
+HKR, , EventMessageFile, 0x00020000, "%%SystemRoot%%\System32\netevent.dll;%13%\WiManHu\WiManHu.sys"
+HKR, , TypesSupported,   0x00010001, 7
+
+[WiManHu.EventLogHECIuCode]
+AddReg = WiManHu.AddEventLogHECIuCode.reg
+
+[WiManHio.AddEventLogHeciIo.reg]
+HKR, , EventMessageFile, 0x00020000, "%%SystemRoot%%\System32\netevent.dll;%13%\WiManHio\WiManHio.sys"
+HKR, , TypesSupported,   0x00010001, 7
+HKR,Parameters,DmaRemappingCompatible,0x00010001,1
+
+[WiManHio.EventLogHeciIo]
+AddReg = WiManHio.AddEventLogHeciIo.reg
+
+[WiManHu.PfuFile_ADL.reg]
+HKR, ,"PfuFileName", 0x00000000 ,"PFU_16_1"
+
+[WiManHu.PfuFile_RPL.reg]
+HKR, ,"PfuFileName", 0x00000000 ,"PFU_17_0"
+
+[WiManHio.PfuFile_MTL_M.reg]
+HKR, ,"PfuFileName", 0x00000000 ,"PFU_18_1"
+
+[WiManHio.PfuFile_MTL_S.reg]
+HKR, ,"PfuFileName", 0x00000000 ,"PFU_19_0"
+
+[WiManHio.PfuFile_LNL_M.reg]
+HKR, ,"PfuFileName", 0x00000000 ,"PFU_20_0"
+
+[WiManHio.PfuFile_21_0.reg]
+HKR, ,"PfuFileName", 0x00000000 ,"PFU_21_0"
+
+[WiManHio.PfuFile_21_50.reg]
+HKR, ,"PfuFileName", 0x00000000 ,"PFU_21_50"
+
+[WiManHio.PfuFile_22_0.reg]
+HKR, ,"PfuFileName", 0x00000000 ,"PFU_22_0"
+
+[WiManHio.PfuFile_23_0.reg]
+HKR, ,"PfuFileName", 0x00000000 ,"PFU_23_0"
+
+[Strings]
+SPSVCINST_ASSOCSERVICE= 0x00000002
+ManufacturerName="Intel"
+SPSVCSINST_STARTSERVICE= 0x00000800
+REG_DWORD = 0x00010001
+
+DiskName = "WiMan Installation Disk"
+WiMan.DeviceDesc = "Intel(R) Wireless Manageability"
+WiMan.SVCDESC = "WiMan Service"
+WiManH.DeviceDesc = "Intel(R) Wireless Manageability"
+WiManH.SVCDESC = "WiMan Service"
+WiManHu.DeviceDesc = "Intel(R) Wireless Manageability"
+WiManHu.SVCDESC = "WiMan Service"
+WiManHio.DeviceDesc = "Intel(R) Wireless Manageability"
+WiManHio.SVCDESC = "WiMan Service"

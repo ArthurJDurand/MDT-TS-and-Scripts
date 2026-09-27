@@ -1,3 +1,4 @@
+```markdown
 # Contributing to MDT Task Sequences & Custom Scripts
 
 First off — **thank you** for considering a contribution. This project exists because the MDT community shares knowledge, and every improvement (a new OEM pack, a bug fix, a documentation tweak) makes it more useful for everyone.
@@ -18,6 +19,7 @@ This document explains how to contribute effectively and what standards your con
 - [What Reviewers Look For](#what-reviewers-look-for)
 - [Areas Where Help Is Needed](#areas-where-help-is-needed)
 - [Reporting Bugs](#reporting-bugs)
+- [License of Contributions](#license-of-contributions)
 - [Code of Conduct](#code-of-conduct)
 - [Questions](#questions)
 
@@ -69,6 +71,7 @@ To test your changes properly, you need a working MDT environment.
 - Windows SDK for Windows 11
 - Microsoft Deployment Toolkit (MDT) `6.3.8456.1000`
 - PowerShell 7
+- 7-Zip installed at `C:\Program Files\7-Zip\7z.exe` (required by `pre.ps1` and the payload updater scripts)
 - A target machine for testing (physical hardware strongly preferred over a VM for driver-related changes)
 
 ### Recommended workflow
@@ -80,7 +83,7 @@ To test your changes properly, you need a working MDT environment.
    ```
 3. Set up a **test deployment share** separate from your production share
 4. Merge your fork's contents with your test share
-5. Test your changes end-to-end (PXE boot a client, complete a full deployment)
+5. Test your changes end-to-end (PXE boot a client, complete a full deployment, complete OOBE)
 6. Commit and push to your fork
 7. Open a PR against the `main` branch
 
@@ -94,6 +97,9 @@ To test your changes properly, you need a working MDT environment.
 | Driver pack addition | Deploy to the target model and confirm drivers install |
 | Task sequence change | Full deployment on both BIOS and UEFI (if applicable) |
 | VMD / storage driver change | Deploy to the target CPU generation |
+| `pre.ps1` change | Full deployment through OOBE on at least one physical machine, verify the transcript log at `C:\ProgramData\OEM\Logs\` |
+| `SetupComplete.cmd` change | Full deployment through OOBE, verify all three child scripts run and log |
+| Payload updater change (`Apps.ps1`, `Drivers.ps1`, `LGPO.ps1`) | Dry run against the live companion repos and against a deliberately wrong Gist hash to confirm the failure path |
 
 **State what hardware you tested on in the PR description.** "Tested on Dell Latitude 5430, BIOS mode, Win11 Pro x64" is far more useful than "tested and works."
 
@@ -101,11 +107,18 @@ To test your changes properly, you need a working MDT environment.
 
 ## Script Standards
 
-All PowerShell scripts in `Scripts/Custom/` **must** follow these standards. Scripts that don't will be asked to change before merging.
+Scripts live in two distinct execution contexts. The standards differ.
 
-### 1. WinPE-safe
+| Location | Execution Context | WMI/CIM Allowed? |
+|---|---|---|
+| `Scripts\Custom\` | WinPE (Preinstall, Install, Postinstall phases) | **No** unless `winpe-wmi` is added to FeaturePacks |
+| `$OEM$\$1\...` | Full OS (OOBE via `SetupComplete.cmd`) | **Yes** — WMI and CIM are available and safe |
 
-Scripts run in WinPE during the **Preinstall**, **Install**, and **Postinstall** phases. WinPE is a stripped-down environment — many cmdlets and modules are unavailable.
+The rules below apply to **both** unless stated otherwise.
+
+### 1. WinPE-safe (applies to `Scripts\Custom\` only)
+
+Scripts in `Scripts\Custom\` run in WinPE during the **Preinstall**, **Install**, and **Postinstall** phases. WinPE is a stripped-down environment — many cmdlets and modules are unavailable.
 
 **Rules:**
 
@@ -123,6 +136,8 @@ $model = (Get-CimInstance Win32_ComputerSystem).Model
 # GOOD — registry is always available
 $model = (Get-ItemProperty 'HKLM:\HARDWARE\DESCRIPTION\System\BIOS' -Name SystemProductName).SystemProductName
 ```
+
+Scripts in `$OEM$` are **exempt** from this rule because they run in the full OS.
 
 ### 2. Defensive volume and disk lookups
 
@@ -151,16 +166,18 @@ for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
 
 ### 4. Silent operation
 
-Scripts run inside a task sequence — user-facing output disrupts the deployment UI.
+Scripts in `Scripts\Custom\` run inside a task sequence — user-facing output disrupts the deployment UI.
 
 - **No `Write-Host`** unless the message is diagnostic and critical
 - **No `Write-Output`** unless the output is meant to be captured
 - Redirect verbose tool output to `$null` or a log file
 - Preserve `$LASTEXITCODE` — do not use `| Out-Null` on native commands if you need the exit code
 
+Scripts in `$OEM$` may use `Write-Host` freely for progress reporting, because they run in OOBE with no task sequence UI to disturb.
+
 ### 5. Preserve exit codes
 
-Never mask a failure with a silent `try/catch` that swallows the error. If a script fails, the task sequence should know about it.
+Never mask a failure with a silent `try/catch` that swallows the error. If a script fails, the caller should know about it.
 
 ```powershell
 # BAD — swallows the error
@@ -212,11 +229,15 @@ Scripts that read from network shares should fall back to a DEPLOY-labeled USB d
 
 ### 9. PowerShell 5.1 compatibility
 
-Scripts run under the WinPE version of PowerShell, which is **5.1**. Do not use syntax or cmdlets exclusive to PowerShell 7 (e.g., ternary operator `? :`, `??`, `-Parallel`).
+Scripts must run under the WinPE version of PowerShell, which is **5.1**. Do not use syntax or cmdlets exclusive to PowerShell 7 (e.g., ternary operator `? :`, `??`, `-Parallel`).
 
 ### 10. No `exit` in task sequence scripts
 
-MDT scripts should **return** rather than `exit`, so the task sequence can capture failures. Use `exit` only when the script is intentionally standalone.
+MDT scripts should **return** rather than `exit`, so the task sequence can capture failures. Use `exit` only when the script is intentionally standalone. Scripts invoked from `SetupComplete.cmd` are standalone and may use `exit`.
+
+### 11. Idempotence for payload updaters
+
+The `Apps.ps1`, `Drivers.ps1`, and `LGPO.ps1` scripts must be idempotent. Before downloading anything, they compare the current SHA-256 in the local `.sha256` file against the remote hash and exit early if they match. Any new updater must follow this pattern.
 
 ---
 
@@ -251,7 +272,7 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/). 
 
 Use the script name or area affected:
 
-- `apply-drivers`, `apply-updates`, `winre`, `disk`, `oem`, `lgpo`, `setup`, `docs`, `readme`
+- `apply-drivers`, `apply-updates`, `winre`, `disk`, `oem`, `lgpo`, `setup`, `pre`, `apps`, `drivers`, `docs`, `readme`
 
 ### Examples
 
@@ -333,14 +354,14 @@ version than 11th-13th Gen.
 
 ## Testing
 - Tested on HP EliteBook 840 G11, UEFI, Win11 Pro x64
-- Full deployment completed successfully
+- Full deployment completed successfully through OOBE
 - VMD driver version 20.2.6.1025.3 loaded in WinPE
 
 ## Related Issue
 Closes #42
 
 ## Checklist
-- [x] Follows script standards (WinPE-safe, no WMI, etc.)
+- [x] Follows script standards (WinPE-safe where required)
 - [x] CHANGELOG.md updated under [Unreleased]
 - [x] Tested on real hardware
 - [x] No hardcoded drive letters
@@ -355,15 +376,16 @@ When reviewing your PR, I check:
 
 | Item | Why |
 |---|---|
-| **WinPE safety** | No WMI/CIM/Storage modules unless FeaturePacks are updated |
+| **WinPE safety** | No WMI/CIM/Storage modules in `Scripts\Custom\` unless FeaturePacks are updated |
 | **Defensive lookups** | `Select-Object -First 1` on volume/disk commands |
 | **Retry logic** | DISM and robocopy operations retry on failure |
-| **Silent operation** | No spurious `Write-Host` or `Write-Output` |
-| **Exit code preservation** | Failures are visible to the task sequence |
+| **Silent operation** | No spurious `Write-Host` or `Write-Output` in task sequence scripts |
+| **Exit code preservation** | Failures are visible to the caller |
 | **Header documentation** | SYNOPSIS/DESCRIPTION/NOTES block present |
 | **CHANGELOG entry** | Added under `[Unreleased]` |
 | **No drive letter hardcoding** | Paths discovered via volume labels |
 | **PowerShell 5.1 compatible** | No PS7-only syntax |
+| **Idempotence** | Payload updaters exit early when nothing changed |
 | **Tested on hardware** | PR description states the hardware used |
 | **Small, focused scope** | One logical change per PR |
 
@@ -401,14 +423,23 @@ Driver packs and app archives for:
 
 - Refactoring `WinRE.ps1` to be less monolithic
 - Adding a `-DryRun` mode to destructive scripts (`CleanFixedDrives.ps1`, `FormatDataDrive.ps1`)
-- Adding structured logging to a file
-- Adding Pester tests for pure functions (CPU generation detection, model normalization)
+- Refactoring `pre.ps1` into smaller modules — the current file is over 1000 lines
+- Adding Pester tests for pure functions (CPU generation detection, model normalization, OEM key matching)
+- Adding structured logging to a file alongside the existing transcript
 
-### 5. Documentation
+### 5. Payload updater improvements
+
+- Adding a fallback path to a secondary mirror when both the primary and fallback URLs fail
+- Adding a `-Force` switch to bypass the local hash check and re-download
+- Adding SHA-256 verification of each downloaded part against a manifest (currently only the assembled archive is validated with `7z t`)
+- Replacing the external Gist dependency with a signed manifest file stored in the main repo
+
+### 6. Documentation
 
 - Expanding `docs/TROUBLESHOOTING.md` with real-world error scenarios
 - Adding a "known working hardware" table to the README
 - Adding screenshots to the setup guide
+- Documenting the `SetupComplete.cmd` → `pre.ps1` → `Customizations.ps1` → `pbr.ps1` chain in `docs/OEM.md`
 
 If any of these interest you, **open a Discussion first** so we can scope it together.
 
@@ -422,10 +453,22 @@ Found a bug? [Open an issue](https://github.com/ArthurJDurand/MDT-TS-and-Scripts
 - **Steps to reproduce** — exact task sequence step, phase, or command
 - **Hardware** — make, model, CPU, BIOS/UEFI mode
 - **OS being deployed** — Win10 x64 / Win10 x86 / Win11 x64
-- **Relevant log file** — MDT logs are in `X:\MININT\SMSOSD\OSDLOGS\` (WinPE) or `C:\MININT\SMSOSD\OSDLOGS\` (full OS) during deployment, and `C:\Windows\Temp\DeploymentLogs\` after
+- **Relevant log file** — MDT logs are in `X:\MININT\SMSOSD\OSDLOGS\` (WinPE) or `C:\MININT\SMSOSD\OSDLOGS\` (full OS) during deployment; OEM logs are in `C:\ProgramData\OEM\Logs\` after OOBE
 - **Screenshots** if applicable
 
 **Please don't paste full logs inline** — attach them as files or link to a Gist.
+
+---
+
+## License of Contributions
+
+By submitting a pull request to this project, you agree that your contribution is licensed under the same [MIT License](LICENSE) that governs the project.
+
+You confirm that:
+
+- You have the right to submit the contribution
+- The contribution is your original work, or you have obtained permission to submit it under the MIT License
+- Any third-party code included in your contribution is compatible with the MIT License and clearly attributed
 
 ---
 
@@ -459,3 +502,4 @@ Thank you for being part of it.
 **Happy deploying!** 🚀
 
 </div>
+```

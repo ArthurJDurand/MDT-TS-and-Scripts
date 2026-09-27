@@ -228,5 +228,5 @@ Numbered CMD scripts run manually by the technician after OOBE. Number prefix in
 
 ---
 
-[Unreleased]: https://github.com/ArthurJDurand/MDT-TS-and-Scripts/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/ArthurJDurand/MDT-TS-and-Scripts/releases/tag/v1.0.0
+[Unreleased]: https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/ArthurJDurand/MDT-Zero-Touch-Deployment/releases/tag/v1.0.0

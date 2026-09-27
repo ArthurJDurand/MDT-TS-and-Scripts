@@ -1,0 +1,227 @@
+name: 🐛 Bug Report
+description: Report a bug in a task sequence script, OEM payload, or configuration
+title: "[Bug]: "
+labels:
+  - bug
+  - needs-triage
+assignees:
+  - ArthurJDurand
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. Before submitting, please:
+
+        1. **Search [existing issues](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/issues)** to avoid duplicates.
+        2. **Check [docs/TROUBLESHOOTING.md](https://github.com/ArthurJDurand/MDT-TS-and-Scripts/blob/main/docs/TROUBLESHOOTING.md)** for common errors and fixes.
+        3. **Review [KNOWN LIMITATIONS](https://github.com/ArthurJDurand/MDT-TS-and-Scripts#known-limitations)** in the README — some behaviours are documented and intentional.
+
+        The more detail you provide, the faster this can be resolved.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Pre-flight checks
+      description: Please confirm you have completed these steps before filing.
+      options:
+        - label: I have searched existing issues and this bug has not been reported.
+          required: true
+        - label: I have read docs/TROUBLESHOOTING.md and my issue is not covered there.
+          required: true
+        - label: I have read the Known Limitations section in the README.
+          required: true
+        - label: I am running the latest version of the repository (main branch).
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of what the bug is.
+      placeholder: |
+        Example: LoadWinPEDrivers.ps1 fails to load the Intel VMD driver on
+        HP EliteBook 840 G10, causing the deployment to fail at the Preinstall
+        phase with "no disks found".
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What did you expect to happen?
+      placeholder: The VMD driver loads and diskpart can see the internal NVMe drive.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: What actually happened? Include exact error messages verbatim.
+      placeholder: |
+        Script exits with error 1. WinPE log shows:
+        "Get-IntelProcessorGeneration returned null for CPU: Intel(R) Core(TM) i7-1355U"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Exact steps to reproduce the bug. Be specific.
+      placeholder: |
+        1. PXE boot HP EliteBook 840 G10 with BIOS 1.15
+        2. Select task sequence WIN11PROX64
+        3. Deployment proceeds to Preinstall phase
+        4. Error occurs in "Load WinPE Drivers" step
+    validations:
+      required: true
+
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Deployment phase
+      description: At which phase of the task sequence does the bug occur?
+      options:
+        - Initialization
+        - Validation
+        - State Capture
+        - Preinstall
+        - Install
+        - Postinstall
+        - State Restore
+        - OOBE / SetupComplete.cmd
+        - Post-deployment (manual scripts)
+        - Not applicable / unknown
+    validations:
+      required: true
+
+  - type: dropdown
+    id: script
+    attributes:
+      label: Affected script (if known)
+      description: Which script fails? Select the closest match.
+      options:
+        - Not sure / multiple scripts
+        - LoadWinPEDrivers.ps1
+        - CleanFixedDrives.ps1
+        - SetTargetOSDisk.ps1
+        - CreateRecoveryPartition-BIOS.ps1
+        - CreateRecoveryPartition-UEFI.ps1
+        - FormatDataDrive.ps1
+        - ApplyUpdates10x64.ps1
+        - ApplyUpdates10x86.ps1
+        - ApplyUpdates11.ps1
+        - ExtractOEMAppsx64.ps1
+        - ExtractOEMAppsx86.ps1
+        - ExtractOEMDrivers.ps1
+        - ApplyOEMDrivers.ps1
+        - WinRE.ps1
+        - CleanupScripts.ps1
+        - CopyOEM.wsf
+        - SetupComplete.cmd
+        - pre.ps1
+        - Customizations.ps1
+        - Apps\pbr.ps1
+        - Apps.ps1
+        - Drivers.ps1
+        - LGPO.ps1
+        - Activation\HWID_Activation.cmd
+        - Activation\Ohook_Activation.cmd
+        - RustDesk.ps1
+        - DymaxIOLicense.ps1
+        - OEMDriversExport.ps1
+        - ScanWindowsImage64.ps1
+        - ScanStatex64.ps1
+        - Other (specify in Description)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os_deployed
+    attributes:
+      label: Operating system being deployed
+      options:
+        - Windows 11 Pro x64 (WIN11PROX64)
+        - Windows 10 Pro x64 (WIN10PROX64)
+        - Windows 10 Pro x86 (WIN10PROX86)
+        - Not applicable
+    validations:
+      required: true
+
+  - type: input
+    id: hardware
+    attributes:
+      label: Target hardware
+      description: Make, model, CPU generation, and BIOS version of the machine being deployed to.
+      placeholder: "Dell Latitude 5430, Intel Core i7-1265U (12th Gen), BIOS 1.15.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: firmware_mode
+    attributes:
+      label: Firmware mode
+      options:
+        - UEFI (with Secure Boot)
+        - UEFI (Secure Boot disabled)
+        - Legacy BIOS / MBR
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: mdt_version
+    attributes:
+      label: MDT version
+      description: Value from the MDT About dialog or `Version.xml` in your deployment share.
+      placeholder: "6.3.8456.1000"
+    validations:
+      required: true
+
+  - type: input
+    id: adk_version
+    attributes:
+      label: Windows ADK version
+      placeholder: "Windows 11 ADK 10.1.26100.2454"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log excerpts
+      description: |
+        Paste only the lines surrounding the error. Do **not** paste entire logs inline.
+
+        Relevant log locations:
+        - **WinPE phase:** `X:\MININT\SMSOSD\OSDLOGS\`
+        - **Full OS phase:** `C:\MININT\SMSOSD\OSDLOGS\`
+        - **Post-OOBE:** `C:\ProgramData\OEM\Logs\`
+        - **Deployment summary:** `C:\Windows\Temp\DeploymentLogs\`
+
+        If your log is long, attach it as a file or upload to a Gist and link it here.
+      render: text
+      placeholder: |
+        [2024-11-15 14:32:18] [ERROR] Script execution failed: ...
+        [2024-11-15 14:32:18] [ERROR] At C:\...\LoadWinPEDrivers.ps1:142
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots of error dialogs or the Deployment Workbench state. Drag and drop images directly into this box.
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Anything else that might be relevant — recent changes to your deployment share, custom modifications, network topology, etc.
+    validations:
+      required: false

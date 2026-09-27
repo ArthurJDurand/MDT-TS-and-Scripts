@@ -17,6 +17,7 @@ If you cannot find your issue here, see [Getting Help](#getting-help) at the bot
 - [Framework Issues](#framework-issues)
 - [Hardware-Specific Issues](#hardware-specific-issues)
 - [Post-Deployment Issues](#post-deployment-issues)
+- [Offline Media Issues](#offline-media-issues)
 - [Useful Diagnostic Commands](#useful-diagnostic-commands)
 - [Getting Help](#getting-help)
 
@@ -1062,6 +1063,59 @@ When a task sequence step fails:
 
 ---
 
+## Offline Media Issues
+
+### "DeployRoot not found" on a USB deployment
+
+**Cause:** The media `Bootstrap.ini` does not use `%DEPLOYROOT%`.
+
+**Fix:**
+
+1. Open `<USB>:\Control\Bootstrap.ini`.
+2. Verify the `DeployRoot` value is `%DEPLOYROOT%`, not `\\SERVER\DeploymentShare$`.
+3. If it points at the network share, edit and save. The USB does not need network access.
+
+### OEM content not found on the USB
+
+**Cause:** The USB is not labeled `DEPLOY`, or the payload was not copied.
+
+**Fix:**
+
+1. Verify the volume label:
+   ```powershell
+   Get-Volume | Where-Object { $_.FileSystemLabel -eq 'DEPLOY' }
+   ```
+2. The scripts require the label to be exactly `DEPLOY` (uppercase). Rename the volume if needed:
+   ```powershell
+   Set-Volume -DriveLetter E -NewFileSystemLabel "DEPLOY"
+   ```
+3. Verify the payload folders exist at the USB root (`OEM`, `DriverPacks`, `Updates`, and so on).
+
+### The OS apply step fails on FAT32 with "not enough space"
+
+**Cause:** A WIM or SWM exceeded the 4 GB FAT32 per-file limit, or the drive is too small.
+
+**Fix:**
+
+1. Verify the media content contains `.swm` parts, not a single `.wim`:
+   ```powershell
+   Get-ChildItem "E:\Operating Systems\Win11Prox64" | Select-Object Name
+   ```
+2. If you see `install.wim`, regenerate the media set. MDT splits it during media generation.
+3. If the drive is genuinely too small, use a larger USB.
+
+### USB takes hours to copy
+
+**Cause:** USB 2.0 drive, slow flash chip, or many small files.
+
+**Fix:**
+
+1. Use a USB 3.0 drive on a USB 3.0 port.
+2. Copy with `robocopy /MT:8` to use multiple threads.
+3. Prefer copying from a local staging folder rather than over SMB to the USB.
+
+---
+
 ## Useful Diagnostic Commands
 
 ### WinPE
@@ -1128,7 +1182,7 @@ net use \\SERVER\DeploymentShare$
 Test-Path "\\SERVER\Shared\OEM\x64\Dell.7z"
 
 # List task sequences on the share
-Get-ChildItem "\\SERVER\DeploymentShare$\Control\Task Sequences"
+Get-ChildItem "\\SERVER\DeploymentShare$\Control" -Directory | Where-Object Name -like 'WIN*'
 
 # List drivers in the share
 Get-ChildItem "\\SERVER\DeploymentShare$\Out-of-box Drivers" -Directory

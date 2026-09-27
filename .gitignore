@@ -1,0 +1,420 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# .gitignore — MDT-TS-and-Scripts
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# This repository contains the scripts, task sequences, configuration files,
+# and documentation for an MDT deployment share. The large binary content
+# (operating system images, driver packs, update packages, application
+# installers, boot images) lives in the companion OneDrive folder and on
+# network shares — NOT in Git.
+#
+# The rules below enforce that separation. If you find yourself needing to
+# commit a file that this file ignores, please read CONTRIBUTING.md and
+# open a Discussion first — do not silently weaken these rules.
+#
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 1. MDT RUNTIME ARTIFACTS
+# ───────────────────────────────────────────────────────────────────────────
+# These are created by MDT during a deployment. They must never be
+# committed because they contain machine-specific state and can be very
+# large. They are also cleaned up by CleanupScripts.ps1 at the end of a
+# successful deployment.
+
+_SMSTaskSequence/
+MININT/
+LTIBootstrap.vbs
+LiteTouch.lnk
+
+# MDT-generated log files (deployment logs, task sequence logs, etc.)
+*.log
+!docs/**/*.log.example
+
+# MDT deployment summary and monitoring data
+BDD.log
+BDD_*.log
+SMSTS.log
+SMSTS*.log
+ZTIGather.log
+ZTIDiskpart.log
+ZTIApplications.log
+ZTIDrivers.log
+ZTIPatches.log
+ZTIBackup.log
+ZTIConfigure.log
+ZTIDomainJoin.log
+ZTIGroups.log
+ZTIUserState.log
+ZTIBIOSCheck.log
+ZTINextPhase.log
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 2. CREDENTIALS AND SECRETS
+# ───────────────────────────────────────────────────────────────────────────
+# Bootstrap.ini stores credentials in PLAINTEXT. Never commit a real
+# Bootstrap.ini. Commit Bootstrap.ini.example (or similar) with placeholder
+# values, and instruct users in the README to copy it and fill in their own.
+
+Control/Bootstrap.ini
+Control/Bootstrap.ini.*
+!Control/Bootstrap.ini.example
+!Control/Bootstrap.ini.template
+
+# CustomSettings.ini is tracked, but if you add a machine-specific
+# override or a local credentials file, ignore it here.
+Control/CustomSettings.local.ini
+Control/*.local.ini
+
+# Task sequence specific rules files that might contain credentials
+Task Sequences/**/Rules.bootstrap.ini
+Task Sequences/**/Rules.local.ini
+
+# Any .env files (in case future tooling uses them)
+.env
+.env.*
+!.env.example
+
+# Generic secrets
+*.pfx
+*.p12
+*.key
+*.pem
+secrets.json
+credentials.json
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 3. OPERATING SYSTEM IMAGES
+# ───────────────────────────────────────────────────────────────────────────
+# WIM, ESD, VHD, VHDX files are multiple gigabytes each. They live in the
+# companion OneDrive folder, not in Git. The XML metadata files
+# (OperatingSystems.xml, OperatingSystemGroups.xml) that describe them ARE
+# tracked.
+
+*.wim
+*.esd
+*.vhd
+*.vhdx
+*.vmdk
+*.vdi
+*.avhdx
+
+# But keep the small XML metadata files that describe them
+!Operating Systems/*.xml
+!OperatingSystems.xml
+!OperatingSystemGroups.xml
+
+# Ignore everything under the OS source folders except the XML metadata
+Operating Systems/**/*
+!Operating Systems/*.xml
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 4. BOOT IMAGES
+# ───────────────────────────────────────────────────────────────────────────
+# LiteTouchPE_x64.wim and LiteTouchPE_x86.wim are ~500 MB each and are
+# regenerated locally by "Update Deployment Share". They live on the
+# companion OneDrive folder for users who want a pre-built copy.
+
+Boot/*.wim
+Boot/*.iso
+Boot/*.esd
+
+# Keep the boot folder structure documented via .gitkeep if needed
+!Boot/.gitkeep
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 5. OUT-OF-BOX DRIVERS
+# ───────────────────────────────────────────────────────────────────────────
+# MDT driver folders contain thousands of small .inf/.sys/.cat/.dll files
+# adding up to many gigabytes. The metadata file Drivers.xml and
+# DriverGroups.xml ARE tracked (they describe which drivers are imported),
+# but the actual driver binaries live on the companion OneDrive folder or
+# on a network share.
+
+Out-of-box Drivers/**/*.inf
+Out-of-box Drivers/**/*.sys
+Out-of-box Drivers/**/*.cat
+Out-of-box Drivers/**/*.dll
+Out-of-box Drivers/**/*.exe
+Out-of-box Drivers/**/*.bin
+Out-of-box Drivers/**/*.cab
+Out-of-box Drivers/**/*.msi
+
+# Keep the group/metadata XML files at the root of the Out-of-box Drivers folder
+!Out-of-box Drivers/Drivers.xml
+!Out-of-box Drivers/DriverGroups.xml
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 6. UPDATE PACKAGES
+# ───────────────────────────────────────────────────────────────────────────
+# Windows cumulative updates, .msu files, and .cab packages are hundreds of
+# megabytes each. They are copied into the offline image at deploy time.
+# The Updates folder structure is tracked via a .gitkeep placeholder.
+
+Updates/**/*.msu
+Updates/**/*.cab
+Updates/**/*.psf
+Updates/**/*.xml.tmp
+
+!Updates/.gitkeep
+!Updates/**/.gitkeep
+!Updates/README.md
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 7. APPLICATION INSTALLERS
+# ───────────────────────────────────────────────────────────────────────────
+# MSI, EXE, MSIX, APPX installers are large binaries. The Application
+# metadata (Applications.xml, ApplicationGroups.xml) that MDT uses to
+# reference them IS tracked, but the actual installers live in the
+# companion OneDrive folder or on a network share.
+
+Applications/**/*.msi
+Applications/**/*.exe
+Applications/**/*.msix
+Applications/**/*.msixbundle
+Applications/**/*.appx
+Applications/**/*.appxbundle
+Applications/**/*.msp
+
+!Applications/Applications.xml
+!Applications/ApplicationGroups.xml
+!Applications/README.md
+
+# Packages (MDT packages) — same rule
+Packages/**/*.msi
+Packages/**/*.exe
+Packages/**/*.cab
+
+!Packages/Packages.xml
+!Packages/PackageGroups.xml
+!Packages/README.md
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 8. ARCHIVE FILES
+# ───────────────────────────────────────────────────────────────────────────
+# Split 7-Zip archives (Apps.7z.001, Drivers.7z.002, LGPO.7z, etc.) are
+# downloaded at runtime by the payload updater scripts from the companion
+# repositories. They must never be committed.
+
+*.7z
+*.7z.001
+*.7z.002
+*.7z.003
+*.7z.004
+*.7z.005
+*.7z.006
+*.7z.007
+*.7z.008
+*.7z.009
+*.7z.010
+*.rar
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.gz
+
+# Exception: small documentation samples if you ever add them
+!docs/examples/*.zip
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 9. PAYLOAD HASH FILES AND LOCAL STATE
+# ───────────────────────────────────────────────────────────────────────────
+# The payload updaters write .sha256 files and download staging content
+# to these locations on the target machine. They should never be
+# committed to the repo even if you run the scripts locally.
+
+*.sha256
+C:/Temp/OEM/
+C:/Recovery/OEM/Logs/
+C:/ProgramData/OEM/Logs/
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 10. PREREQUISITES — INSTALLERS AND ARCHIVES
+# ───────────────────────────────────────────────────────────────────────────
+# The Prerequisites folder contains configs (tracked) and some installers
+# or self-extracting archives (not tracked). Keep the configs, ignore
+# the large binaries.
+
+Prerequisites/**/*.exe
+Prerequisites/**/*.msi
+Prerequisites/**/*.msu
+Prerequisites/**/*.cab
+Prerequisites/**/*.7z
+Prerequisites/**/*.zip
+Prerequisites/**/*.iso
+Prerequisites/**/*.wim
+
+# Keep the small config files
+!Prerequisites/**/*.xml
+!Prerequisites/**/*.cmd
+!Prerequisites/**/*.ps1
+!Prerequisites/**/*.ini
+!Prerequisites/**/*.md
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 11. TASK SEQUENCE RUNTIME STATE
+# ───────────────────────────────────────────────────────────────────────────
+# The task sequence definitions themselves (ts.xml, Unattend.xml) ARE
+# tracked. But some MDT tools create backup or state files alongside them
+# during editing, which should not be committed.
+
+Task Sequences/**/*.bak
+Task Sequences/**/*.old
+Task Sequences/**/*.orig
+Task Sequences/**/*.tmp
+Task Sequences/**/~$*
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 12. WINDOWS OPERATING SYSTEM JUNK
+# ───────────────────────────────────────────────────────────────────────────
+# Files that Windows creates automatically when you browse a folder.
+# These should never be committed.
+
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.url
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 13. TEMPORARY AND BACKUP FILES
+# ───────────────────────────────────────────────────────────────────────────
+# General temp files, swap files, and backups.
+
+*.tmp
+*.temp
+*.bak
+*.old
+*.orig
+*.rej
+*.swp
+*.swo
+*~
+~$*
+*.crdownload
+*.partial
+*.part
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 14. EDITOR AND IDE FILES
+# ───────────────────────────────────────────────────────────────────────────
+# Settings and workspace files from common editors. Users can still keep
+# their own local settings — they just won't be tracked in the repo.
+
+.vscode/
+!.vscode/settings.json.example
+!.vscode/launch.json.example
+!.vscode/extensions.json
+
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# JetBrains Rider / VS Code workspace
+*.code-workspace
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 15. POWERSHELL ARTIFACTS
+# ───────────────────────────────────────────────────────────────────────────
+# Files generated by PowerShell tooling (PSScriptAnalyzer, Pester, etc.)
+
+*.ps1xml
+PSScriptAnalyzerSettings.psd1.local
+TestResults.xml
+*.Tests.ps1.bak
+CodeCoverage.xml
+
+# PowerShell module cache
+**/Modules/**/*.psd1.local
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 16. GIT INTERNAL FILES
+# ───────────────────────────────────────────────────────────────────────────
+# Files that Git itself can create during normal use.
+
+.gitattributes.bak
+.gitmodules.bak
+*.orig.git
+*.orig.gitignore
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# 17. REPOSITORY-SPECIFIC EXCEPTIONS
+# ───────────────────────────────────────────────────────────────────────────
+# This section is for files that would normally be caught by a broad rule
+# above, but that we WANT to commit because they are part of the project.
+
+# Documentation assets (small images, diagrams, screenshots)
+!docs/images/*.png
+!docs/images/*.jpg
+!docs/images/*.jpeg
+!docs/images/*.gif
+!docs/images/*.svg
+
+# Small placeholder scripts and samples inside docs
+!docs/examples/*.ps1
+!docs/examples/*.cmd
+!docs/examples/*.wsf
+!docs/examples/*.xml
+!docs/examples/*.ini
+!docs/examples/*.md
+
+# Activation scripts (small, non-sensitive .cmd files)
+!$OEM$/$1/Recovery/OEM/Activation/*.cmd
+!$OEM$/$1/Recovery/OEM/Activation/*.ps1
+
+# Small XML definition files used by the OEM\Update scheduled task
+!$OEM$/$1/Recovery/OEM/Apps/Update.xml
+
+# LGPO tool — if the tool is committed as a small .exe (LGPO.exe) under
+# $OEM$, keep it. Otherwise rely on LGPO.ps1 to download it.
+!$OEM$/$1/Recovery/OEM/LGPO/LGPO.exe
+!$OEM$/$1/Recovery/OEM/LGPO/*.txt
+
+# .gitkeep placeholder files keep empty directory structures
+!.gitkeep
+!**/.gitkeep
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# END OF .gitignore
+# ═══════════════════════════════════════════════════════════════════════════
+# If you need to force-add a file that this file ignores, use:
+#   git add -f <file>
+# and please explain WHY in your commit message and PR description.
+# ═══════════════════════════════════════════════════════════════════════════

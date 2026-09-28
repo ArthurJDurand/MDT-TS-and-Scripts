@@ -79,16 +79,18 @@ DeploymentShare\x64\$OEM$\$1\Recovery\OEM\Apps\
     ├── Acer.json
     ├── Dell.json
     ├── Dynabook.json
-    ├── Gigabyte.json
+    ├── Gigabyte.json             (empty stub — no vendor-specific apps)
     ├── HP.json
     ├── Huawei.json
     ├── Lenovo.json
     ├── MSI.json
-    ├── Proline.json
+    ├── Proline.json              (empty stub — no vendor-specific apps)
     └── Surface.json
 ```
 
-The x86 tree does not ship the framework. It uses monolith scripts that are not part of this repository.
+The x86 tree does not ship the framework. Its OEM application installation is handled by a monolithic `pre.ps1` with no manifest-driven module system.
+
+Two manifests — `Gigabyte.json` and `Proline.json` — ship as empty stubs. Their OEM modules exist for family detection and future expansion; there are no vendor-specific applications to install for those brands today.
 
 ---
 
@@ -285,7 +287,7 @@ The profile returned by `Get-OEMProfile` carries the OEM's identity and configur
 | Field | Purpose |
 |---|---|
 | `Name` | OEM token. Must match the module filename. |
-| `ManifestFile` | Manifest filename, e.g. `Dell.json`. |
+| `ManifestFile` | Manifest filename, e.g. `Dell.json`. Must match the manifest filename **exactly, including case**. |
 | `MarkerRegistryPath` | Registry key for stage markers, e.g. `HKLM:\SOFTWARE\OEM\Dell`. Must be distinct per OEM. |
 | `ResumeTaskName` | Scheduled task name, e.g. `Dell_PBR_Resume`. |
 | `LogDirectory` | Log output directory. All OEMs use `C:\ProgramData\OEM\Logs`. |
@@ -358,7 +360,9 @@ OEM modules must not:
 
 ## Manifests
 
-Each manifest is a JSON file in `Manifests\`, named `<Brand>.json`, whose name must match the OEM module's `ManifestFile` field exactly. The top-level shape is:
+Each manifest is a JSON file in `Manifests\`, named `<Brand>.json`, whose name must match the OEM module's `ManifestFile` field exactly — including case. On case-sensitive deployment shares (Linux-backed SMB, case-folding exports), `Acer.json` and `acer.json` are distinct files and the framework will fail to find the manifest if the case does not match the module's declaration.
+
+The top-level shape is:
 
 ```json
 {
@@ -368,6 +372,8 @@ Each manifest is a JSON file in `Manifests\`, named `<Brand>.json`, whose name m
 ```
 
 `name` is reserved — the framework does not consume it today.
+
+Two manifests — `Gigabyte.json` and `Proline.json` — ship as empty stubs. Their OEM modules exist for family detection and future expansion; there are no vendor-specific applications to install for those brands today. An empty `apps` array is legal and functional.
 
 ### Identity Fields
 
@@ -581,7 +587,7 @@ All logs are written UTF-8 without BOM.
 - **Partial AutoApply states are not detected.** Either AutoApply owns layout completely, or the framework does. There is no middle ground.
 - **Layout files are the only working pin-delivery mechanism** on Windows 10 version 1903 and later, and on all Windows 11 builds. The `Shell.Application` `taskbarpin` and `startpin` COM verbs were removed by Microsoft in 1903. This is why the framework ships a layout subsystem rather than relying on COM.
 - **Registry writes must go through the framework helpers.** Direct writes will violate invariant 7 and risk the offline-hive unload problem.
-- **x86 is not covered.** The x86 tree does not ship the framework. It uses monolith scripts that are not part of this repository.
+- **x86 is not covered.** The x86 tree does not ship the framework. It uses a monolithic `pre.ps1` with no manifest-driven module system.
 
 ---
 

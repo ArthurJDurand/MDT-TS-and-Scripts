@@ -418,9 +418,8 @@ return $null
 | `ExtractOEMAppsx86.ps1` | `OEM\x86` |
 | `ExtractOEMDrivers.ps1` | `DriverPacks` |
 | `WinRE.ps1` | `WindowsRE\<OS>\<arch>` |
-| `ScanWindowsImage64.ps1` | `Servicing` |
-| `ScanStatex64.ps1` | `ScanState` |
 | `3OEMDriversExport.cmd` | `DriverPacks` (write destination) |
+| `4ScanState.cmd` | `ScanState` |
 
 ---
 
@@ -638,6 +637,7 @@ This is faster than a USB for one-off deployments but requires more setup time.
 |---|---|---|
 | Windows activation fails | OEM firmware key missing (test machine) | Expected — activate manually or ignore |
 | Office installation fails | Office installer not in `C:\Recovery\OEM\Apps\` | Verify the OEM app pack includes Office |
+| Office activation is deferred | No user-supplied `Ohook_Activation.cmd` present at `C:\Recovery\OEM\Activation\`, or Office was running | Expected if the script is not shipped. Provide your own if you need Ohook activation. |
 | LGPO fails | LGPO.exe not in `C:\Recovery\OEM\LGPO\` | Verify LGPO ships in the vendor app pack |
 | Framework phases do not converge | Missing framework files, or a required app failed | Check `C:\ProgramData\OEM\Logs\PBR_Deployment.log` |
 

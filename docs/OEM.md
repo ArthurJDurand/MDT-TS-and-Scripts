@@ -39,7 +39,7 @@ The OEM content is what makes this project more than a stock MDT deployment. It 
 
 - **Model-specific driver packs** — extracted and injected into the offline image during deployment
 - **Manufacturer-specific application archives** — extracted into `C:\Recovery\OEM` on the target and installed during OOBE or by the Apps framework
-- **Activation scripts** — HWID for Windows and Ohook for Office
+- **Activation scripts** — HWID for Windows. Office activation via Ohook is supported by `pre.ps1` if you supply your own `Ohook_Activation.cmd`; it is not distributed with this repository.
 - **Local Group Policy** — LGPO tool and policy backups
 - **Windows Recovery Environment images** — per OS and architecture
 - **Offline servicing components** — DirectX FOD package for driver store cleanup
@@ -283,7 +283,7 @@ The exact structure is up to you — `ExtractOEMAppsx64.ps1` extracts the archiv
 ### Servicing
 
 **Path:** `\\SERVER\Shared\Servicing`
-**Consumed by:** `ScanWindowsImage64.ps1` (invoked from the post-deployment `3OEMDriversExport.cmd` workflow)
+**Consumed by:** The offline servicing workflow invoked from the post-deployment `3OEMDriversExport.cmd`
 **Purpose:** Offline servicing components needed to restore the DirectX FOD after driver store cleanup.
 
 **Structure:**
@@ -479,6 +479,8 @@ Dell.7z
 Anything under `Apps\` is available to `pre.ps1` (which scans `C:\Recovery\OEM\Apps\` for installers) and to the OEM Apps framework (which reads manifests under `Apps\Manifests\`).
 
 **Office installers:** `pre.ps1` calls `Get-OfficeInstallerFolder`, which looks for a folder under `C:\Recovery\OEM\Apps\` starting with `Office`. Name your Office installer folder `Office2021`, `Office365`, or similar.
+
+**Activation scripts:** `pre.ps1` expects `C:\Recovery\OEM\Activation\HWID_Activation.cmd` for Windows activation. If you want Ohook-based Office activation, place your own `Ohook_Activation.cmd` in the same folder. That script is **not** distributed with this repository; users supply their own copy.
 
 ---
 

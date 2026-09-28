@@ -131,7 +131,6 @@ body:
         - OEM module (specify in Description)
         - Manifest (specify in Description)
         - Activation\HWID_Activation.cmd
-        - Activation\Ohook_Activation.cmd
         - RustDesk.ps1
         - DymaxIOLicense.ps1
         - DiskeeperLicense.ps1

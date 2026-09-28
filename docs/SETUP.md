@@ -805,7 +805,7 @@ Full walkthrough: [docs/OFFLINE-MEDIA.md](OFFLINE-MEDIA.md).
 - [ ] Windows is activated (if OEM firmware key is present)
 - [ ] Office is installed and activated (if Office installer is present)
 - [ ] LGPO policies are applied
-- [ ] Framework convergence markers are written (`SYSTEM_DONE` and eventually `USER_DONE`)
+- [ ] Framework convergence markers are written (`SYSTEM_DONE` and eventually `USER_DONE`) — x64 only
 
 ---
 
@@ -823,7 +823,7 @@ Full troubleshooting guide: [docs/TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 | Deployment fails at "Install Operating System" | WIM missing or index wrong | Task sequence step, `OperatingSystems.xml` |
 | Deployment completes but no drivers | OEM driver pack not found for the model | `C:\ProgramData\OEM\Logs\pre_*.log`, search for "No driver folder found" |
 | Windows not activated | OEM firmware key missing or mismatched edition | `slmgr /dlv` on the target machine |
-| Office not activated | Office app was running during Ohook gate | `C:\ProgramData\OEM\Logs\pre_*.log`, search for "Office activation deferred" |
+| Office not activated | Office app was running during Ohook gate, or `Ohook_Activation.cmd` not present | `C:\ProgramData\OEM\Logs\pre_*.log`, search for "Office activation deferred" |
 | 7-Zip not found in WinPE | Boot image missing `Boot\Addon\x64` content | Verify `Boot.x64.ExtraDirectory` in `Settings.xml` |
 
 ### Where to get help

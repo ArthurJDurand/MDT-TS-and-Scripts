@@ -55,7 +55,7 @@ Closes #
 - [ ] `MDT\Content\` — offline media set
 - [ ] `Prerequisites\` — server/desktop setup configs
 - [ ] `docs\` — documentation
-- [ ] Repository infrastructure (`.github/`, `LICENSE.md`, `CHANGELOG.md`, `.gitignore`)
+- [ ] Repository infrastructure (`.github/`, `LICENSE`, `CHANGELOG.md`, `.gitignore`)
 
 ## Changes Made
 

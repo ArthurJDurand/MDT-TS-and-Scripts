@@ -34,6 +34,7 @@ For the deployment phases referenced throughout, see the [Deployment Flow](../RE
 - [$OEM$ Framework](#oem-framework)
 - [$OEM$ Activation Scripts](#oem-activation-scripts)
   - [HWID_Activation.cmd](#hwid_activationcmd)
+  - [Ohook_Activation.cmd (user-supplied)](#ohook_activationcmd-user-supplied)
 - [$OEM$ Layout and Registry Files](#oem-layout-and-registry-files)
 - [$OEM$ Application Configurators](#oem-application-configurators)
   - [RustDesk.ps1](#rustdeskps1)
@@ -94,10 +95,10 @@ DeploymentShare\
 │           ├── Recovery\OEM\              OEM configuration, activation, apps, framework
 │           └── Scripts\                   Post-deployment scripts
 └── x86\
-    └── $OEM$\                             Parallel structure, no framework
+    └── $OEM$\                             Parallel structure, no Apps framework
 ```
 
-The x86 tree does not ship the Apps framework. It uses monolith scripts that are not part of this repository. See [Known Limitations](#known-limitations) at the end of this document.
+The x86 tree ships the same OEM orchestration scripts (`SetupComplete.cmd`, `pre.ps1`, `HWID_Activation.cmd`, LGPO, PBR chain, post-deployment scripts) as x64, but does not ship the Apps framework — its OEM application installation is handled by a monolithic `pre.ps1` with no manifest-driven module system. Some post-deployment `.cmd` scripts fetch their PowerShell payloads from GitHub Gists at run time; those payloads are not shipped in this repository.
 
 ---
 
@@ -569,7 +570,7 @@ Located under `DeploymentShare\<arch>\$OEM$\$$\Setup\Scripts\`. This path is cop
 4. Runs, in order:
    - `C:\Recovery\OEM\pre.ps1`
    - `C:\Recovery\OEM\Customizations.ps1`
-   - `C:\Recovery\OEM\Apps\pbr.ps1`
+   - `C:\Recovery\OEM\Apps\pbr.ps1` (x64 only)
 5. Cleans up MDT artifacts (`_SMSTaskSequence`, `MININT`, `LiteTouch.lnk`, `LTIBootstrap.vbs`).
 6. Sets hidden attributes on the Default user profile folders.
 7. Logs completion.
@@ -584,8 +585,9 @@ Each child script runs via `powershell.exe -NoProfile -NonInteractive -WindowSty
 
 - If `pre.ps1` hangs, `SetupComplete.cmd` waits indefinitely. The `-NonInteractive` flag mitigates this but does not eliminate it.
 - The `pre.ps1` registry writes to the Default user hive are idempotent with the framework's own hardening.
+- On x86, `SetupComplete.cmd` differs from the x64 variant (no `pbr.ps1` step, no framework). Both the `$$\Setup\Scripts\` and `$1\Recovery\OEM\` copies are identical per architecture, but the x86 copies are not identical to the x64 copies.
 
-**Note:** An identical copy exists at `$1\Recovery\OEM\SetupComplete.cmd`. It is restored by `AfterImage.cmd` during PBR.
+**Note:** An identical copy (per architecture) exists at `$1\Recovery\OEM\SetupComplete.cmd`. It is restored by `AfterImage.cmd` during PBR.
 
 ---
 
@@ -618,7 +620,7 @@ Located under `DeploymentShare\<arch>\$OEM$\$1\Recovery\OEM\`.
 13. Activates Windows via `Activate-Windows`.
 14. Installs Office from `C:\Recovery\OEM\Apps\Office*` if not already installed.
 15. Copies Office shortcuts to the Public Desktop.
-16. Activates Office via Ohook if installed and safe.
+16. Activates Office via Ohook if a user-supplied `Ohook_Activation.cmd` is present and no Office application is running.
 17. Installs UWP apps: `Microsoft.Todos`, `Microsoft.OutlookForWindows` (Win10), `Microsoft.BingNews` (Win10).
 18. Removes legacy Win10 apps.
 19. Installs media extensions (AV1, HEIF, HEVC, MPEG2, RawImage, VP9, WebMedia, Webp).
@@ -638,9 +640,10 @@ Located under `DeploymentShare\<arch>\$OEM$\$1\Recovery\OEM\`.
 
 - 7-Zip at `C:\Program Files\7-Zip\7z.exe`
 - PowerShell 5.1
-- Internet access (for Ohook and HWID activation)
+- Internet access (for HWID activation, and for Ohook activation if user-supplied)
 - `pnputil`, `dism`, `reg`, `cmd`, `powershell` on PATH
 - `C:\Recovery\OEM\Activation\HWID_Activation.cmd`
+- `C:\Recovery\OEM\Activation\Ohook_Activation.cmd` (optional, user-supplied; not distributed with this repository)
 - `C:\Recovery\OEM\LGPO\LGPO.exe`
 - `C:\Recovery\OEM\Apps\*` (installers)
 - `C:\Recovery\OEM\Drivers\*` (extracted driver packs)
@@ -662,7 +665,7 @@ Located under `DeploymentShare\<arch>\$OEM$\$1\Recovery\OEM\`.
 
 The OEM Apps framework — `pbr.ps1`, the ten framework modules under `Framework\`, the eleven OEM modules under `OEM\`, and the eleven manifest files under `Manifests\` — is documented in **[docs/APPS-FRAMEWORK.md](APPS-FRAMEWORK.md)**.
 
-The framework ships only in the x64 tree. The x86 tree uses monolith scripts that are not part of this repository.
+The framework ships only in the x64 tree. The x86 tree uses a monolithic `pre.ps1` with no manifest-driven module system.
 
 ---
 
@@ -691,14 +694,36 @@ Located under `DeploymentShare\<arch>\$OEM$\$1\Recovery\OEM\Activation\`.
 
 ---
 
+### Ohook_Activation.cmd (user-supplied)
+
+**Purpose:** Office activation via Ohook.
+
+**Status:** **Not distributed with this repository.** Users who want Ohook-based Office activation must supply their own copy of `Ohook_Activation.cmd` and place it at `C:\Recovery\OEM\Activation\`. The licensing and distribution constraints of the Ohook activation method make it unsuitable to ship in a public repository.
+
+**When it runs:** Called by `pre.ps1` after Office is installed, and only when:
+
+1. `C:\Recovery\OEM\Activation\Ohook_Activation.cmd` exists.
+2. No Office application is running in an interactive user session (gated by `Test-OfficeSafeForActivation`, which fails closed).
+
+**What it does:** Executes the user-supplied Ohook activation script. The exact behaviour is defined by the user's own copy.
+
+**External dependencies:** Whatever the user's copy of the script requires. The user is responsible for ensuring their script is compatible with the calling contract.
+
+**Known limitations:**
+
+- Not shipped. If the file is missing, `pre.ps1` skips Office activation and logs that the script was not found.
+- The `Test-OfficeSafeForActivation` gate exists to prevent activation while Office is running. If the process list cannot be enumerated, the gate fails closed and Office activation is deferred.
+
+---
+
 ## $OEM$ Layout and Registry Files
 
 Located at `DeploymentShare\<arch>\$OEM$\$1\Recovery\OEM\`.
 
 | File | Purpose |
 |---|---|
-| `LayoutModification.xml` | Base Start menu layout for Windows 10. Extended with manifest-defined pins by the framework (x64) or monolith scripts (x86, not in this repository). |
-| `TaskbarLayoutModification.xml` | Base taskbar layout for Windows 11. Extended with manifest-defined pins by the framework. |
+| `LayoutModification.xml` | Base Start menu layout for Windows 10. Extended with manifest-defined pins by the framework (x64) or monolith scripts (x86). |
+| `TaskbarLayoutModification.xml` | Base taskbar layout for Windows 11. Extended with manifest-defined pins by the framework. **x64 only.** |
 | `DesktopIcons.reg` | Registry file that controls which icons appear on the default desktop. Imported by `pre.ps1`. |
 | `RegionalSettings.reg` | Registry file that sets regional and locale defaults. Imported by `pre.ps1`. |
 
@@ -806,7 +831,10 @@ Located at `DeploymentShare\<arch>\$OEM$\$1\Recovery\OEM\`.
 | `ResetPartitions.txt` | Diskpart script for factory reset. Creates EFI (260 MB), MSR (128 MB), Windows (max minus 1000 MB), and Recovery partitions on GPT. |
 | `unattend.xml` | OOBE unattend used after a PBR reset. Restored to `Windows\Panther` by `AfterImage.cmd`. Sets locale, timezone, and offline driver paths. |
 
-**Note:** `preWINRE.cmd` uses inconsistent casing across the two architectures — lowercase `pre` for x64, capital `Pre` for x86. This is intentional per the PBR extensibility contract and must not be "corrected" without verifying with the framework's canonical docs.
+**Casing notes:**
+
+- `preWINRE.cmd` uses inconsistent casing across the two architectures — lowercase `pre` for x64, capital `Pre` for x86. This is intentional per the PBR extensibility contract and must not be "corrected" without verifying with the framework's canonical docs.
+- `unattend.xml` uses inconsistent casing across the two architectures — lowercase for x64, capital `Unattend.xml` for x86. Same rationale.
 
 ---
 
@@ -824,13 +852,30 @@ The number prefix indicates the order in which the scripts should be run. Restar
 | `1Firstrun.cmd` | Interactive first pass. Opens Windows Update, OEM utility setup, and GPU software for the technician to complete. |
 | `2Secondrun.cmd` | Interactive second pass after restart. Applies final updates and records marker decisions (e.g., Dell Optimizer, Dell ACC, MSI Center). |
 | `3OEMDriversExport.cmd` | Exports drivers from the deployed machine and saves them to `\\SERVER\Shared\DriverPacks` or a DEPLOY-labeled USB at `X:\DriverPacks`. |
-| `4ScanState.cmd` | Runs USMT `ScanState` to produce a provisioning package at `C:\Recovery\Customizations`. Transforms `C:\Recovery\OEM` into the AutoApply directory at `C:\Recovery\AutoApply`. |
+| `4ScanState.cmd` | Runs USMT `ScanState` to produce a provisioning package at `C:\Recovery\Customizations`. Transforms `C:\Recovery\OEM` into the AutoApply directory at `C:\Recovery\AutoApply`. The PowerShell payload is fetched at run time from a companion GitHub Gist (`Invoke-RestMethod | Invoke-Expression`); the actual ScanState binaries are read from `\\SERVER\Shared\ScanState` or the DEPLOY USB. |
 
 **Known limitations:**
 
 - These scripts are interactive. They prompt the technician to complete steps in Windows Update, OEM utilities, and other tools.
 - Some scripts are optional. The order is authoritative; skipping one may break the ones that follow.
 - The x86 tree does not include `0Install-AnyDesk.cmd`.
+- `4ScanState.cmd` depends on a Gist-hosted PowerShell payload that is fetched at run time. It requires internet connectivity or a proxy that allows access to `gist.githubusercontent.com`. The Gist is not shipped in this repository.
+
+### Scripts with USB fallback
+
+The following task sequence and post-deployment scripts read from a network share and fall back to a DEPLOY-labeled USB drive:
+
+| Script | USB path used |
+|---|---|
+| `ApplyUpdates10x64.ps1` | `Updates\Win10\x64` |
+| `ApplyUpdates10x86.ps1` | `Updates\Win10\x86` |
+| `ApplyUpdates11.ps1` | `Updates\Win11` |
+| `ExtractOEMAppsx64.ps1` | `OEM\x64` |
+| `ExtractOEMAppsx86.ps1` | `OEM\x86` |
+| `ExtractOEMDrivers.ps1` | `DriverPacks` |
+| `WinRE.ps1` | `WindowsRE\<OS>\<arch>` |
+| `3OEMDriversExport.cmd` | `DriverPacks` (write destination) |
+| `4ScanState.cmd` | `ScanState` |
 
 ---
 

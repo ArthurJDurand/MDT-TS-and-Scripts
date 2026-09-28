@@ -8,11 +8,13 @@
 changelog:
   # Exclude PRs with these labels from release notes entirely.
   # Useful for meta-changes that don't affect users.
+  # Note: `documentation` is intentionally NOT excluded here — it is
+  # categorised below under "📝 Documentation". Excluding a label that is
+  # also categorised makes the category unreachable.
   exclude:
     labels:
       - ignore-for-release
       - skip-changelog
-      - documentation
       - dependencies
       - github-actions
     authors:

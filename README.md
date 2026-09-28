@@ -109,7 +109,7 @@ MDT-Zero-Touch-Deployment/
 │   ├── x64/
 │   │   └── $OEM$/                       x64 OEM content, Apps framework, activation, layout
 │   └── x86/
-│       └── $OEM$/                       x86 OEM content (monolith scripts, no framework)
+│       └── $OEM$/                       x86 OEM content (no framework; monolithic pre.ps1)
 ├── Prerequisites/
 │   ├── All MDT Fixes 2025.exe           ADK/ADK-addon fixes, template patches
 │   ├── for Desktop Editions of Windows/
@@ -128,7 +128,7 @@ MDT-Zero-Touch-Deployment/
 
 The `DeploymentShare/` folder mirrors the layout MDT creates when you create a new deployment share. Merge its contents into your own share after creating it.
 
-The x86 tree does not ship the Apps framework. It uses monolith scripts that are not part of this repository. See [Known Limitations](#known-limitations).
+The x86 tree ships the same OEM orchestration scripts (`SetupComplete.cmd`, `pre.ps1`, `HWID_Activation.cmd`, LGPO, PBR chain, post-deployment scripts) but does not ship the Apps framework. See [Known Limitations](#known-limitations).
 
 ---
 
@@ -247,10 +247,10 @@ PXE or USB boot
   OOBE → SetupComplete.cmd
   • pre.ps1           OEM configuration, activation, third-party apps
   • Customizations.ps1 Branding, offline hive hardening
-  • pbr.ps1           OEM Apps framework (SYSTEM phase)
+  • pbr.ps1           OEM Apps framework (SYSTEM phase, x64 only)
         │
         ▼
-  First logon → resume task → pbr.ps1 (USER phase)
+  First logon → resume task → pbr.ps1 (USER phase, x64 only)
   • Winget installs, health check, layout generation
         │
         ▼
@@ -382,7 +382,7 @@ The media set is generated on demand. It is not shipped in this repository. See 
 - [ ] Windows is activated (if OEM firmware key is present)
 - [ ] Office is installed and activated (if Office installer is present)
 - [ ] LGPO policies are applied
-- [ ] Framework convergence markers are written (`SYSTEM_DONE` and eventually `USER_DONE`)
+- [ ] Framework convergence markers are written (`SYSTEM_DONE` and eventually `USER_DONE`) — x64 only
 
 ---
 
@@ -392,7 +392,7 @@ The media set is generated on demand. It is not shipped in this repository. See 
 - **Plaintext credentials:** `Control\Bootstrap.ini` stores credentials in cleartext. Use a least-privilege deployment account and restrict share permissions. Never commit real credentials.
 - **AnyDesk password is hardcoded** in `pre.ps1` as `p@$$w0rd`. Change it before using AnyDesk outside an isolated lab.
 - **MDT is no longer under active development.** This project targets MDT `6.3.8456.1000`.
-- **Framework is x64-only.** The OEM Apps framework ships only in the x64 tree. The x86 tree uses monolith scripts that are not part of this repository. Post-deployment updates via `Update.xml` are x64-only.
+- **Apps framework is x64-only.** The OEM Apps framework (framework modules, OEM modules, JSON manifests) ships only in the x64 tree. On x86, OEM application installation is handled by a monolithic `pre.ps1` with no manifest-driven module system. Post-deployment updates via `Update.xml` are x64-only.
 - **VMD driver versions are hardcoded** for specific CPU generations in `LoadWinPEDrivers.ps1` and `ApplyOEMDrivers.ps1`. New generations require code updates.
 - **`ExtractOEMDrivers.ps1` hardcodes the OS family to Win11** when resolving the driver pack path. This is a latent bug for Win10 deployments — the Win10 task sequence will look in the Win11 driver pack folder.
 - **x86 task sequence cannot use VMD.** Intel VMD drivers are x64-only. The x86 task sequence will not attempt VMD loading.

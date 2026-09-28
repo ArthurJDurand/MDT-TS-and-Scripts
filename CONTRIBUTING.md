@@ -439,7 +439,7 @@ Read [docs/APPS-FRAMEWORK.md](docs/APPS-FRAMEWORK.md) end to end. It defines the
 1. Create `OEM\OEM.<Brand>.psm1` with at least a `Get-OEMProfile` function
 2. Create `Manifests\<Brand>.json` with the app list
 3. Ensure the profile's `Name` matches the module filename
-4. Ensure the profile's `ManifestFile` matches the manifest filename
+4. Ensure the profile's `ManifestFile` matches the manifest filename **exactly, including case**
 5. Ensure the profile's `MarkerRegistryPath` is distinct from every other OEM's
 6. Test on hardware from that OEM
 7. Update the OEM modules table in [docs/APPS-FRAMEWORK.md](docs/APPS-FRAMEWORK.md)
@@ -480,7 +480,7 @@ Currently, `pre.ps1` activates only if the OEM license is Professional. Non-Pro 
 
 ### 2. x86 framework support
 
-The x86 tree does not have the Apps framework. It uses monolith scripts that are not part of this repository. Contributing an x86 framework implementation, or documenting the x86 monolith scripts, would close a significant gap.
+The x86 tree ships a monolithic `pre.ps1` with no manifest-driven module system. It does not have the Apps framework. Contributing an x86 framework implementation, or modularizing the x86 `pre.ps1`, would close a significant gap.
 
 ### 3. Additional OEM packs
 

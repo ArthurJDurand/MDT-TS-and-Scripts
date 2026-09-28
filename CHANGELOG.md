@@ -66,13 +66,13 @@ Initial public release.
 
 #### OEM Setup and Orchestration
 
-- `SetupComplete.cmd` — Runs at the end of OOBE. Orchestrates `pre.ps1`, `Customizations.ps1`, and `pbr.ps1` in sequence, then cleans up MDT artifacts and sets hidden attributes on the Default user profile folders. Identical copy exists at `$1\Recovery\OEM\SetupComplete.cmd` for restoration by `AfterImage.cmd` during PBR.
+- `SetupComplete.cmd` — Runs at the end of OOBE. Orchestrates `pre.ps1`, `Customizations.ps1`, and `pbr.ps1` in sequence, then cleans up MDT artifacts and sets hidden attributes on the Default user profile folders. An identical copy exists at `$1\Recovery\OEM\SetupComplete.cmd` for restoration by `AfterImage.cmd` during PBR.
 
 #### OEM Configuration
 
 - `pre.ps1` — Runs during `SetupComplete.cmd`. Installs OEM drivers, WLAN, Intel VMD, applies LGPO, activates Windows and Office, installs third-party applications (7-Zip, WinRAR, AnyDesk, RustDesk, DymaxIO on x64 / Diskeeper on x86, Acronis Drive Monitor), configures the OEM\Update scheduled task on x64, sets system attributes, and cleans up. Maintains its own inline version history.
 - `Customizations.ps1` — Runs after `pre.ps1` for OEM branding and offline hive hardening.
-- `pbr.ps1` — Runs after `Customizations.ps1` in SYSTEM context. Entry point for the OEM Apps framework.
+- `pbr.ps1` — Runs after `Customizations.ps1` in SYSTEM context. Entry point for the OEM Apps framework (x64 only).
 
 #### OEM Apps Framework (`x64\$OEM$\$1\Recovery\OEM\Apps\`)
 
@@ -91,7 +91,7 @@ A two-phase deployment engine for OOBE-era machines. Ships only in the x64 tree.
   - `Engine.psm1` — orchestration entry points
 - **OEM modules** (`OEM\`) — Eleven vendor-specific modules:
   - `OEM.ASUS.psm1`, `OEM.Acer.psm1`, `OEM.Dell.psm1`, `OEM.Dynabook.psm1`, `OEM.Gigabyte.psm1`, `OEM.HP.psm1`, `OEM.Huawei.psm1`, `OEM.Lenovo.psm1`, `OEM.MSI.psm1`, `OEM.Proline.psm1`, `OEM.Surface.psm1`
-- **Manifests** (`Manifests\`) — Eleven JSON manifests, one per OEM.
+- **Manifests** (`Manifests\`) — Eleven JSON manifests, one per OEM. `Gigabyte.json` and `Proline.json` ship as empty stubs; their modules exist for family detection and future expansion.
 - **Two-phase model** — SYSTEM phase runs at OOBE (local installers only), USER phase runs at first logon (winget + local). Phase ordering is permissive.
 - **Stage markers** — `SYSTEM_DONE` and `USER_DONE` convergence markers under a per-OEM registry path.
 - **Health check** — post-USER-phase verification that all expected apps are present.
@@ -102,7 +102,7 @@ See [docs/APPS-FRAMEWORK.md](docs/APPS-FRAMEWORK.md) for the full framework refe
 #### OEM Activation
 
 - `HWID_Activation.cmd` — HWID-based Windows activation fallback used when the firmware OEM key activation fails.
-- `Ohook_Activation.cmd` — Office activation via Ohook. Called by `pre.ps1` only after confirming no Office application is running in an interactive user session.
+- Office activation via Ohook is supported by `pre.ps1` if a user-supplied `Ohook_Activation.cmd` is present at `C:\Recovery\OEM\Activation\`. **This script is not distributed with the repository.** Users who require Ohook activation supply their own copy. `pre.ps1` calls it only after confirming no Office application is running in an interactive user session.
 
 #### OEM Application Configurators
 
@@ -142,7 +142,7 @@ Numbered CMD scripts run manually by the technician after OOBE. Number prefix in
 - `1Firstrun.cmd` — Interactive first pass: Windows Update, OEM utility setup, GPU software.
 - `2Secondrun.cmd` — Interactive second pass after restart: final updates and marker decisions.
 - `3OEMDriversExport.cmd` — Exports drivers to `\\SERVER\Shared\DriverPacks` or a DEPLOY-labeled USB at `X:\DriverPacks`.
-- `4ScanState.cmd` — Captures a PBR provisioning package at `C:\Recovery\Customizations` and populates `C:\Recovery\AutoApply`.
+- `4ScanState.cmd` — Captures a PBR provisioning package at `C:\Recovery\Customizations` and populates `C:\Recovery\AutoApply`. The ScanState tooling itself is downloaded from a companion Gist at run time rather than shipped in this repository.
 
 #### Dynamic Driver Support
 
@@ -159,7 +159,7 @@ Numbered CMD scripts run manually by the technician after OOBE. Number prefix in
 - RustDesk (silent, with external configuration script)
 - DymaxIO (x64) / Diskeeper (x86), with external licensing script
 - Acronis Drive Monitor (installed only when a spinning HDD is detected)
-- Microsoft Office 365 (installed from `C:\Recovery\OEM\Apps\Office365`, activated via Ohook)
+- Microsoft Office 365 (installed from `C:\Recovery\OEM\Apps\Office365`)
 
 #### Windows AppX Packages Provisioned by `pre.ps1`
 
@@ -225,17 +225,17 @@ Numbered CMD scripts run manually by the technician after OOBE. Number prefix in
 
 - Documented that `Control\Bootstrap.ini` stores credentials in plaintext and requires a least-privilege deployment account with restricted share permissions.
 - Documented that `pre.ps1` contains a hardcoded `$AnyDeskPassword` that must be changed before use in any non-lab environment.
-- Office activation via Ohook is gated by `Test-OfficeSafeForActivation`, which fails closed if any Office application is running in an interactive user session or if the process list cannot be enumerated.
+- Office activation via Ohook is gated by `Test-OfficeSafeForActivation`, which fails closed if any Office application is running in an interactive user session or if the process list cannot be enumerated. The Ohook activation script itself is not distributed with this repository.
 - Windows activation via `Activate-Windows` captures `/ipk` and `/ato` exit codes separately and falls through to HWID activation if the firmware-key path fails.
 - All registry writes in the Apps framework go through `reg.exe` exclusively. The PowerShell Registry Provider is used for reads only.
 
 ### Known Limitations at Release
 
-- Framework ships only in the x64 tree. x86 uses monolith scripts that are not part of this repository.
+- Framework ships only in the x64 tree. The x86 tree uses a monolithic `pre.ps1` with no manifest-driven module system.
 - `ExtractOEMDrivers.ps1` hardcodes the OS family to Win11 when resolving the driver pack path.
 - VMD driver versions are hardcoded for specific CPU generations.
 - `Update.xml` post-deployment updates are x64-only.
-- `pre.ps1` is a large monolith (67 KB x64, 45 KB x86).
+- `pre.ps1` is a large monolith (68 KB x64, 45 KB x86).
 
 ---
 

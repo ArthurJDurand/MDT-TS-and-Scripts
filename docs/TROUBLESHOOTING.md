@@ -645,15 +645,13 @@ When a task sequence step fails:
 
 #### Office activation is deferred
 
-**Cause:** By design — `pre.ps1` fails closed if any Office app is running in an interactive user session.
+**Cause:** By design — `pre.ps1` fails closed if any Office app is running in an interactive user session, or if the user-supplied `Ohook_Activation.cmd` is not present.
 
 **Fix:**
 
-1. This is intentional. The gate ensures Ohook does not run while Office is open.
-2. If you need to force activation, run the Ohook script manually as SYSTEM after OOBE:
-   ```cmd
-   C:\Recovery\OEM\Activation\Ohook_Activation.cmd /Ohook
-   ```
+1. **If the script is missing:** `Ohook_Activation.cmd` is not distributed with this repository. If you want Ohook-based Office activation, supply your own copy at `C:\Recovery\OEM\Activation\Ohook_Activation.cmd`. Without it, `pre.ps1` skips Office activation and logs that the script was not found.
+
+2. **If the script is present:** The gate ensures Ohook does not run while Office is open. If you need to force activation, run your Ohook script manually as SYSTEM after OOBE. The exact command depends on your copy of the script.
 
 #### Windows activation fails
 
@@ -1059,7 +1057,7 @@ When a task sequence step fails:
    ```powershell
    Get-Volume | Where-Object FileSystemLabel -eq 'DEPLOY'
    ```
-4. For `4ScanState.cmd` failures, verify the USMT tool is present under `\\SERVER\Shared\ScanState\amd64\`.
+4. For `4ScanState.cmd` failures, verify the USMT tool is present under `\\SERVER\Shared\ScanState\amd64\`. Note that `4ScanState.cmd` fetches a PowerShell payload from a companion GitHub Gist at run time; if the deployment host has no internet access or a proxy blocks `gist.githubusercontent.com`, the script will fail before it reaches the ScanState step.
 
 ---
 

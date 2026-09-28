@@ -81,7 +81,6 @@ Control/*.local.xml
 *.pfx
 *.p12
 *.key
-*.pem
 secrets.json
 credentials.json
 
@@ -113,7 +112,6 @@ credentials.json
 *.ocx
 *.cpl
 *.sys
-*.inf
 *.cat
 *.bin
 *.dat
@@ -175,6 +173,7 @@ credentials.json
 # OEM content — per-architecture $OEM$ trees. Contains app installers,
 # driver packages, LGPO.exe, activation scripts, and framework content.
 !DeploymentShare/x64/$OEM$/**
+!DeploymentShare/x86/$OEM$/**
 !DeploymentShare/x86/$OEM$/**
 
 # MDT-managed drivers — tracked only if the project ever imports a curated

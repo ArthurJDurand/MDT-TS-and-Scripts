@@ -1,30 +1,77 @@
 @echo off
-:: Disable sleep when plugged in
-powercfg /x -standby-timeout-ac 0
+setlocal EnableExtensions
 
-:: Install .NET 3.5 (Commented out)
-rem DISM /Online /Enable-Feature /FeatureName:NetFx3 /All
+:: =========================================================
+:: SetupComplete.cmd
+:: OEM Deployment Orchestrator (Hardened)
+:: =========================================================
 
-:: Import Wi-Fi Profiles
-if exist "%SystemRoot%\Setup\Scripts\Wi-Fi.xml" netsh wlan add profile filename="%SystemRoot%\Setup\Scripts\Wi-Fi.xml"
-if exist "%SystemRoot%\Setup\Scripts\Wi-Fi-5GHz.xml" netsh wlan add profile filename="%SystemRoot%\Setup\Scripts\Wi-Fi-5GHz.xml"
+:: Log Configuration
+set "LogDir=%ProgramData%\OEM\Logs"
+set "LogFile=%LogDir%\SetupComplete.log"
 
-:: Install Prerequisites
-if exist "%SystemDrive%\Recovery\OEM\pre.ps1" powershell -ExecutionPolicy Bypass -File "%SystemDrive%\Recovery\OEM\pre.ps1"
+if not exist "%LogDir%" mkdir "%LogDir%" >nul 2>&1
+
+(
+echo =========================================================
+echo SetupComplete Started
+echo Date: %DATE%
+echo Time: %TIME%
+echo Computer: %COMPUTERNAME%
+echo =========================================================
+)>>"%LogFile%"
+
+:: Disable sleep while plugged in
+echo [%DATE% %TIME%] Configuring power settings...>>"%LogFile%"
+powercfg /x -standby-timeout-ac 0 >>"%LogFile%" 2>&1
+
+:: Run Pre-Requisites
+if exist "%SystemDrive%\Recovery\OEM\pre.ps1" (
+    echo [%DATE% %TIME%] Running pre.ps1...>>"%LogFile%"
+    powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "%SystemDrive%\Recovery\OEM\pre.ps1" >>"%LogFile%" 2>&1
+    set "RC=%ERRORLEVEL%"
+    echo [%DATE% %TIME%] pre.ps1 exit code: %RC%>>"%LogFile%"
+)
 
 :: Apply OEM Customizations
-if exist "%SystemDrive%\Recovery\OEM\Customizations.ps1" powershell -ExecutionPolicy Bypass -File "%SystemDrive%\Recovery\OEM\Customizations.ps1"
+if exist "%SystemDrive%\Recovery\OEM\Customizations.ps1" (
+    echo [%DATE% %TIME%] Running Customizations.ps1...>>"%LogFile%"
+    powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "%SystemDrive%\Recovery\OEM\Customizations.ps1" >>"%LogFile%" 2>&1
+    set "RC=%ERRORLEVEL%"
+    echo [%DATE% %TIME%] Customizations.ps1 exit code: %RC%>>"%LogFile%"
+)
 
-:: Install OEM Apps
-if exist "%SystemDrive%\Recovery\OEM\Apps\pbr.ps1" powershell -ExecutionPolicy Bypass -File "%SystemDrive%\Recovery\OEM\Apps\pbr.ps1"
+:: Install OEM Applications
+if exist "%SystemDrive%\Recovery\OEM\Apps\pbr.ps1" (
+    echo [%DATE% %TIME%] Running pbr.ps1...>>"%LogFile%"
+    powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "%SystemDrive%\Recovery\OEM\Apps\pbr.ps1" >>"%LogFile%" 2>&1
+    set "RC=%ERRORLEVEL%"
+    echo [%DATE% %TIME%] pbr.ps1 exit code: %RC%>>"%LogFile%"
+)
 
-:: Cleanup MDT Deployment Artifacts
-if exist "%SystemDrive%\_SMSTaskSequence" rd "%SystemDrive%\_SMSTaskSequence" /s /q
-if exist "%SystemDrive%\MININT" rd "%SystemDrive%\MININT" /s /q
-if exist "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\LiteTouch.lnk" del "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\LiteTouch.lnk" /f /q
-if exist "%SystemDrive%\LTIBootstrap.vbs" del "%SystemDrive%\LTIBootstrap.vbs" /f /q
+:: MDT / Deployment Cleanup (safe post-OOBE)
+echo [%DATE% %TIME%] Cleaning deployment artifacts...>>"%LogFile%"
+if exist "%SystemDrive%\_SMSTaskSequence" rd /s /q "%SystemDrive%\_SMSTaskSequence" >>"%LogFile%" 2>&1
+if exist "%SystemDrive%\MININT" rd /s /q "%SystemDrive%\MININT" >>"%LogFile%" 2>&1
+if exist "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\LiteTouch.lnk" del /f /q "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\LiteTouch.lnk" >>"%LogFile%" 2>&1
+if exist "%SystemDrive%\LTIBootstrap.vbs" del /f /q "%SystemDrive%\LTIBootstrap.vbs" >>"%LogFile%" 2>&1
 
-:: Hide System Folders
-attrib "%SystemDrive%\Recovery" +h +s
-attrib "%SystemDrive%\Users\Default" +h +r
-attrib "%SystemDrive%\Users\Default\AppData" +h
+:: Set folder attributes on Default user profile (Recovery already secured above)
+echo [%DATE% %TIME%] Setting folder attributes on Default profile...>>"%LogFile%"
+if exist "%SystemDrive%\Users\Default" (
+    attrib +h "%SystemDrive%\Users\Default" >>"%LogFile%" 2>&1
+)
+if exist "%SystemDrive%\Users\Default\AppData" (
+    attrib +h "%SystemDrive%\Users\Default\AppData" >>"%LogFile%" 2>&1
+)
+
+(
+echo =========================================================
+echo SetupComplete Finished
+echo Date: %DATE%
+echo Time: %TIME%
+echo =========================================================
+)>>"%LogFile%"
+
+endlocal
+exit /b 0
